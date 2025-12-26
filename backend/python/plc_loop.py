@@ -27,7 +27,12 @@ _read_config = None
 _socket_clients = []  # List of (socket, addr) to broadcast to
 raw_bit_data = []
 raw_word_data = []
+
 STOP = object()
+WORKER_DONE = object()
+TOTAL_WORKERS = 2  # press, heat, lathe
+finished_workers = 0
+
 main_q_intersection = Queue(maxsize=5000)
 press_clean_q = Queue(maxsize=1000)
 heat_clean_q = Queue(maxsize=1000)
@@ -119,8 +124,8 @@ def start_loop(plc_location, read_config, socket_clients_list):
     loop_main_queue_thread.start()
     loop_press_clean_thread = threading.Thread(target=_loop_clean_press_data_worker, daemon=True)
     loop_press_clean_thread.start()
-    # loop_heat_clean_thread = threading.Thread(target=_loop_clean_heat_data_worker, daemon=True)
-    # loop_heat_clean_thread.start()
+    loop_heat_clean_thread = threading.Thread(target=_loop_clean_heat_data_worker, daemon=True)
+    loop_heat_clean_thread.start()
     # loop_lathe_clean_thread = threading.Thread(target=_loop_clean_lathe_data_worker, daemon=True)
     # loop_lathe_clean_thread.start()
     # loop_eq_press_clean_thread = threading.Thread(target=_loop_clean_eq_press_data_worker, daemon=True)
@@ -131,9 +136,8 @@ def start_loop(plc_location, read_config, socket_clients_list):
 
 def stop_loop():
     """Stop the loop gracefully."""
-    global STOP,_running
+    global _running
     _running = False      
-
 
 def write_tag(tag, value):
     """
@@ -228,7 +232,7 @@ def _loop_read_plc_worker():
 
             # 2. Broadcast to all connected Node.js clients
             # _broadcast_plc_data(tags)
-            time.sleep(5)  # 0.3-second loop
+            time.sleep(1)  # 0.3-second loop
 
         except Exception as e:
             print(f"⚠️ Read error, reconnecting: {e}")
@@ -253,12 +257,12 @@ def _main_queue_intersection():
         data = main_q_intersection.get()        
         try:
             if data is STOP:
-                for sq in [press_clean_q, heat_clean_q, lathe_clean_q, eq_press_clean_q]:
+                for sq in [press_clean_q, heat_clean_q]:
                     sq.put_nowait(STOP)
-                print("🛑 Main intersection stopped By STOP")
+                print("🛑 Main intersection finished, stopped By STOP")
                 break
 
-            for q in [press_clean_q, heat_clean_q, lathe_clean_q, eq_press_clean_q]:
+            for q in [press_clean_q, heat_clean_q]:
                 try:
                     q.put(data, timeout=1)
                 except Full:
@@ -272,19 +276,44 @@ def _loop_clean_press_data_worker():
         data = press_clean_q.get() 
         try:
             if data is STOP:
-                clean_db_q.put_nowait(STOP)
-                print("🛑 Clean press data loop stopped By STOP")
+                print("🛑 Press worker finished, stopped By STOP")                
+                clean_db_q.put_nowait(WORKER_DONE)
                 break
             cleaned_press = clean_data.press_clean(_db_pool,all_department,all_machine,all_data,data)
             # Pass to DB writer queue
-            clean_broadcast = {"status": cleaned_press[0],
-                                "count": cleaned_press[1],
-                                "cycle_time": cleaned_press[2]
-                               }
-            _broadcast_plc_data(clean_broadcast)
-            # clean_db_q.put(cleaned_press, timeout=1)
+            if cleaned_press is not None :
+                print(cleaned_press)
+                try:
+                    pass
+                    # clean_db_q.put(cleaned_press, timeout=1)
+                except Exception as e:
+                    print(f"⚠️ clean_db_q full , drop press data: {e}")
         finally:
             press_clean_q.task_done()
+        time.sleep(0.2)
+
+def _loop_clean_heat_data_worker():
+    while True :
+        data = heat_clean_q.get() 
+        try:
+            if data is STOP:
+                print("🛑 Heat worker finished, stopped By STOP")                
+                clean_db_q.put_nowait(WORKER_DONE)
+                break
+            cleaned_heat = clean_data.heat_clean(_db_pool,all_department,all_machine,all_data,data)
+            # heat to DB writer queue
+
+            if cleaned_heat is not None :
+                pass
+                # print( cleaned_heat)
+                # for i in cleaned_heat:
+                #     print("cleaned_heat",i)
+            #   try :
+            #         clean_db_q.put(cleaned_heat, timeout=1)
+            #     except Exception as e:
+            #         print(f"⚠️ clean_db_q full , drop heat data: {e}")
+        finally:
+            heat_clean_q.task_done()
         time.sleep(0.2)
 
 # --- Get connection pool ---
@@ -295,13 +324,18 @@ def get_db_pool():
     return _db_pool
 def _loop_writer_db_worker():
     """Worker thread to write PLC data to DB."""
-    global _db_pool    
+    global _db_pool,TOTAL_WORKERS,finished_workers
     while True :
         data = clean_db_q.get()
         try:
-            if data is STOP:
-                print("🛑 DB writer loop stopped By STOP")
-                break
+            if data is WORKER_DONE:
+                finished_workers += 1
+                print(f"🧩 Worker finished: {finished_workers}/{TOTAL_WORKERS}")
+
+                if finished_workers == TOTAL_WORKERS:
+                    print("🛑 All workers finished. DB writer stopped.")
+                    break
+                continue
 
             if _db_pool is None:
                 print("to write but _db_pool is None",_db_pool)
@@ -321,7 +355,7 @@ def _loop_writer_db_worker():
 
         finally:
             clean_db_q.task_done()
-        time.sleep(0.5)
+        time.sleep(0.2)
 # --- Broadcast function ---
 def _broadcast_plc_data(data):
     """Send JSON data to all connected TCP clients (Node.js)."""

@@ -118,15 +118,9 @@ def get_range_equipment(all_range_equipment):
 
     return all_department,all_machine,all_category,all_data
 
-# plc_location = get_all_location(_db_pool,"PLC")
-# status_location = get_all_location(_db_pool,"Read_location")
-# all_range = get_all_location(_db_pool,"All")
-# all_range_equipment = get_all_location(_db_pool,"Equipment")
-# all_department,all_machine,all_data,all_category = get_range(all_range)
-# all_department_eq,all_machine_eq,all_category_eq,all_data_eq = get_range_equipment(all_range_equipment)
 
 # Filter process Press
-compare_count,compare_status = [[],[],[],[],[],[],[],[],[],[],[],[],[]],[[],[],[],[],[],[],[],[],[],[],[],[],[]]
+compare_press_count,compare_press_status = [[],[],[],[],[],[],[],[],[],[],[],[],[]],[[],[],[],[],[],[],[],[],[],[],[],[],[]]
 
 def heat_clean(data):
     print("Heat clean data start",data[1][0:3])
@@ -139,8 +133,8 @@ def eq_press_clean(data):
     return data[1][0:3]
 
 # Read all row after last output
-def row_after_output(pool,time_stamp,department,machine_name,part_name):
-    conn = pool.connection()
+def row_after_output(_db_pool,time_stamp,department,machine_name,part_name):
+    conn = _db_pool.connection()
     if department == "Press":
         query = """
             SELECT time_stamp,output_,idle_,alarm_,offline_
@@ -175,8 +169,8 @@ def row_after_output(pool,time_stamp,department,machine_name,part_name):
     return row
 
 # Count today production 
-def count_production(pool,time_stamp,department,machine_name):
-    conn = pool.connection()
+def count_production(_db_pool,time_stamp,department,machine_name):
+    conn = _db_pool.connection()
     if department == "Press":
         query = """
             SELECT COUNT(output_) AS count_output
@@ -236,11 +230,11 @@ def press_clean(_db_pool,all_department,all_machine,all_data,data):
                 status_check,count_check,status_count_check = [],[],[]
                 status_check = machine_data[list_data].copy()  
                 status_check[point_int[0]] = 0
-                if status_check[point_int[1]:point_int[2]] != compare_status[list_data]:
+                if status_check[point_int[1]:point_int[2]] != compare_press_status[list_data]:
                     cycle_time = 0
                     count_today = 0
                     # queue_save_press.put((status_check,cycle_time,count_today))
-                    compare_status[list_data] = status_check[point_int[1]:point_int[2]]
+                    compare_press_status[list_data] = status_check[point_int[1]:point_int[2]]
                     return status_check,cycle_time,count_today
                 else : 
                     pass
@@ -248,7 +242,7 @@ def press_clean(_db_pool,all_department,all_machine,all_data,data):
                 status_count_check = machine_data[list_data].copy()
                 count_check = status_count_check[point_int[0]]
                 if count_check != 0:
-                    if count_check != compare_count[list_data]:
+                    if count_check != compare_press_count[list_data]:
                         old_row = row_after_output(_db_pool,status_count_check[0],all_department[point_int[4]],status_count_check[2],status_count_check[4])
                         cycle_time = 0
                         if old_row == () or old_row == None:
@@ -262,15 +256,91 @@ def press_clean(_db_pool,all_department,all_machine,all_data,data):
                                 cycle_time = (status_count_check[0] - old_row[0]["time_stamp"]).total_seconds()
                         count_today = count_production(_db_pool,status_count_check[0],all_department[point_int[4]],status_count_check[2]) + 1  
                         # queue_save_press.put((status_count_check,cycle_time,count_today))                               
-                        compare_count[list_data] = count_check
+                        compare_press_count[list_data] = count_check
                         return status_count_check,cycle_time,count_today
                     else : 
                         pass
                 else :
-                    compare_count[list_data] = count_check
-        else:
-            pass
+                    compare_press_count[list_data] = count_check
+        # else:
+        #     pass
     except Exception as e:
         print("❌ Press clean data error:",e)
 
 
+def heat_clean(_db_pool,all_department,all_machine,all_data,data):
+    point_int = [9,1,15,95,1]
+    point_str = ["alarm_","setting_"]
+    try :                    
+        machine_data = [] 
+        current_time,bit_received,word_received = data
+        for machine in all_machine[point_int[4]]:
+            each_machine = []
+            each_machine.append(current_time)
+            each_machine.append(all_department[point_int[4]])
+            each_machine.append(machine)
+            for data in (all_data[point_int[4]]):
+                if data["machine_"] == machine:
+                    if len(each_machine) <=3:
+                        each_machine.append(data["type_"])
+                    if data["note_"] == "Part_Name":
+                        pick_up = word_received[data["target_"]:data["target_"]+data["range_"]]
+                        string_pick = plc_received_to_string(pick_up)
+                        each_machine.append(string_pick)
+                    elif data["note_"] == "Plan" :
+                        pick_up = word_received[data["target_"]:data["target_"]+data["range_"]][0]
+                        each_machine.append(pick_up)
+                    elif data["note_"] == "Alarm_Code":
+                        pick_up = word_received[data["target_"]:data["target_"]+data["range_"]][0]
+                        each_machine.append(pick_up)
+                    elif data["note_"] == "ID_Operator":
+                        pick_up = word_received[data["target_"]:data["target_"]+data["range_"]]
+                        string_pick = plc_received_to_string(pick_up)
+                        each_machine.append(string_pick)
+                    elif data["note_"] == "Status":
+                        pick_up = bit_received[data["target_"]:data["target_"]+data["range_"]]
+                        int_pick = int(pick_up[0])
+                        each_machine.append(int_pick)
+            machine_data.append(each_machine)
+        return machine_data
+        # if machine_data != []:
+        #     for list_data in range(len(machine_data)):
+        #         status_check,count_check,status_count_check = [],[],[]
+        #         status_check = machine_data[list_data].copy()  
+        #         status_check[point_int[0]] = 0
+        #         if status_check[point_int[1]:point_int[2]] != compare_status[list_data]:
+        #             cycle_time = 0
+        #             count_today = 0
+        #             # queue_save_heat.put((status_check,cycle_time,count_today))   
+        #             compare_status[list_data] = status_check[point_int[1]:point_int[2]]
+        #             return status_check,cycle_time,count_today
+        #         else : 
+        #             pass
+                
+        #         status_count_check = machine_data[list_data].copy()
+        #         count_check = status_count_check[point_int[0]]
+        #         if count_check != 0:
+        #             if count_check != compare_count[list_data]:
+        #                 old_row = row_after_output(_db_pool,status_count_check[0],all_department[point_int[4]],status_count_check[2],status_count_check[4])
+        #                 cycle_time = 0
+        #                 if old_row == () or old_row == None:
+        #                     cycle_time = point_int[3]
+        #                 else:
+        #                     for row in old_row:
+        #                         if row[point_str[0]] == 1 or row[point_str[1]] == 1:
+        #                             cycle_time = point_int[3]
+        #                             break
+        #                     if cycle_time != point_int[3]:
+        #                         cycle_time = (status_count_check[0] - old_row[0]["time_stamp"]).total_seconds()
+        #                 count_today = count_production(_db_pool,status_count_check[0],all_department[point_int[4]],status_count_check[2]) + 1  
+        #                 # queue_save_heat.put((status_count_check,cycle_time,count_today))                                  
+        #                 compare_count[list_data] = count_check
+        #                 return status_count_check,cycle_time,count_today
+        #             else : 
+        #                 pass
+        #         else :
+        #             compare_count[list_data] = count_check
+        # else:
+            # pass
+    except Exception as e:
+        print("❌ Heat clean data error:",e)

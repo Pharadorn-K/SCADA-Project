@@ -124,61 +124,87 @@
 
 # db_pool = create_pool()
 
-first, my code look like this:
-# backend/python/a.py
-try:
-    # Prefer relative import when running as a package
-    from .utils import b
-except Exception:
-    # Fall back to direct import when running as a script
-    from utils import b
+# first, my code look like this:
+# # backend/python/a.py
+# try:
+#     # Prefer relative import when running as a package
+#     from .utils import b
+# except Exception:
+#     # Fall back to direct import when running as a script
+#     from utils import b
 
-def other_use_pool_function(data):
-    global db_pool
-    if db_pool is None:
-        print("⚠️ DB pool not available. Skipping save.")
-        return False
+# def other_use_pool_function(data):
+#     global db_pool
+#     if db_pool is None:
+#         print("⚠️ DB pool not available. Skipping save.")
+#         return False
     
 
-# backend/python/utils/b.py
-from dbutils.pooled_db import PooledDB
-import pymysql
-from dotenv import load_dotenv
-from pathlib import Path
-import os
-# --- Load config ---
-env_path = Path(__file__).parent.parent.parent / "node" / ".env"
-load_dotenv(dotenv_path=env_path)
+# # backend/python/utils/b.py
+# from dbutils.pooled_db import PooledDB
+# import pymysql
+# from dotenv import load_dotenv
+# from pathlib import Path
+# import os
+# # --- Load config ---
+# env_path = Path(__file__).parent.parent.parent / "node" / ".env"
+# load_dotenv(dotenv_path=env_path)
 
-# --- Create connection pool ---
-def create_pool():
-    try:
-        pool = PooledDB(
-            creator=pymysql,
-            host=os.getenv("DB_HOST"),
-            port=int(os.getenv("DB_PORT")),
-            user=os.getenv("DB_USER"),
-            password=os.getenv("DB_PASSWORD"),
-            database=os.getenv("DB_NAME"),
-            mincached=int(os.getenv("DB_MIN", 1)),
-            maxcached=int(os.getenv("DB_MAX", 5)),
-            charset='utf8mb4',
-            cursorclass=pymysql.cursors.DictCursor,
-            autocommit=True  # Important: auto-commit INSERTs
-        )
-        print("✅ MySQL connection pool created")
-        return pool
-    except Exception as e:
-        print(f"❌ Failed to create DB pool: {e}")
-        return None
+# # --- Create connection pool ---
+# def create_pool():
+#     try:
+#         pool = PooledDB(
+#             creator=pymysql,
+#             host=os.getenv("DB_HOST"),
+#             port=int(os.getenv("DB_PORT")),
+#             user=os.getenv("DB_USER"),
+#             password=os.getenv("DB_PASSWORD"),
+#             database=os.getenv("DB_NAME"),
+#             mincached=int(os.getenv("DB_MIN", 1)),
+#             maxcached=int(os.getenv("DB_MAX", 5)),
+#             charset='utf8mb4',
+#             cursorclass=pymysql.cursors.DictCursor,
+#             autocommit=True  # Important: auto-commit INSERTs
+#         )
+#         print("✅ MySQL connection pool created")
+#         return pool
+#     except Exception as e:
+#         print(f"❌ Failed to create DB pool: {e}")
+#         return None
 
-db_pool = create_pool()
+# db_pool = create_pool()
 
-def use_pool_function(data):
-    global db_pool
-    if db_pool is None:
-        print("⚠️ DB pool not available. Skipping save.")
-        return False
+# def use_pool_function(data):
+#     global db_pool
+#     if db_pool is None:
+#         print("⚠️ DB pool not available. Skipping save.")
+#         return False
     
-So, the problem is that in plc_loop.py, the other_use_pool_function function is trying to use a global db_pool variable that is not defined within its scope. 
-To fix this, we need to ensure that the db_pool is properly created and accessible within plc_loop.py. how to fix it?
+# So, the problem is that in plc_loop.py, the other_use_pool_function function is trying to use a global db_pool variable that is not defined within its scope. 
+# To fix this, we need to ensure that the db_pool is properly created and accessible within plc_loop.py. how to fix it?
+
+
+data = [
+        ["a","b","c",0,1,2,3],
+        ["c","b","a",0,1,2,3],
+        ["x","y","z",0,1,2,3],
+        ["z","y","x",0,1,2,3]
+       ]
+compare_heat_count,compare_heat_status = [[],[],[],[],[],[],[],[],[],[],[],[],[]],[[],[],[],[],[],[],[],[],[],[],[],[],[]]
+def test_clean_data(data):
+    global compare_heat_count,compare_heat_status
+    p_int = [4,1,7,95,1]
+    for d in range(len(data)):
+        s_check,c_check,sc_check = [],[],[]
+        s_check.append(data[d].copy()) 
+        s_check[0][p_int[0]] = 0
+        if s_check[p_int[1]:p_int[2]] != compare_heat_status[d]:
+            cycle_time = 0
+            count_today = 0
+            # queue_save_heat.put((status_check,cycle_time,count_today))   
+            compare_heat_status[d] = s_check[p_int[1]:p_int[2]]
+            # return s_check,cycle_time,count_today
+        else : 
+            pass
+
+test_clean_data(data)
