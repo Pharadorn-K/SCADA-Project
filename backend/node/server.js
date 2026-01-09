@@ -5,29 +5,62 @@ const express = require('express');
 const http = require('http');
 const WebSocket = require('ws');
 const path = require('path');
+// Add near top, after other requires
+const session = require('express-session');
 
 // Import services
 const plcRoutes = require('./routes/api/plc');
 const setupWebsocket = require('./routes/websocket');
+// Add after other route imports
+const authRoutes = require('./routes/api/auth');
+
 
 // Initialize Express app
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+
+
 // Middleware
 app.use(express.json());
 
+// After app initialization, before routes
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'scada-secret-dev', // Use strong secret in .env for prod
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: process.env.NODE_ENV === 'production', // HTTPS only in prod
+    httpOnly: true,
+    sameSite: 'strict',
+    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+  }
+}));
+// Add before other app.use(...)
+app.use('/api/auth', authRoutes);
 // API Routes
 app.use('/api/plc', plcRoutes);
 
 
 // Serve static files
 app.use(express.static(path.join(__dirname, '../../frontend/public')));
+// Add before app.get('/') for index.html
+function requireAuth(req, res, next) {
+  if (req.session.userId) {
+    return next();
+  }
+  // Redirect to login if not authenticated
+  res.redirect('/login.html');
+}
 
-// Serve index.html ONLY for root
-app.get('/', (req, res) => {
+// Update root route
+app.get('/', requireAuth, (req, res) => {
   res.sendFile(path.join(__dirname, '../../frontend/public/index.html'));
 });
+// // Serve index.html ONLY for root
+// app.get('/', (req, res) => {
+//   res.sendFile(path.join(__dirname, '../../frontend/public/index.html'));
+// });
 
 
 // Create HTTP server
@@ -65,3 +98,4 @@ server.listen(PORT, () => {
   console.log(`✅ SCADA Node server running on http://localhost:${PORT}`);
   console.log(`📡 WebSocket server ready`);
 });
+
