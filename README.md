@@ -87,6 +87,7 @@ scada-project/
 │       ├── dashboard.js                # ✅ Real-time panel logic (charts, controls) 
 │       ├── api.js                      # HTTP API wrappers (/api/plc/start, etc.) │
 │       └── styles/ 
+│           ├── login.css 
 │           └── main.css 
 │
 ├── database/ 

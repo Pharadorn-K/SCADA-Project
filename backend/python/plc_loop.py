@@ -42,13 +42,13 @@ eq_press_clean_q = Queue(maxsize=1000)
 clean_db_q = Queue(maxsize=1000)
 _db_pool = None
 
-_db_pool = db_connector.create_pool()
-plc_location = clean_data.get_all_location(_db_pool,"PLC")
-status_location = clean_data.get_all_location(_db_pool,"Read_location")
-all_range = clean_data.get_all_location(_db_pool,"All")
-all_range_equipment = clean_data.get_all_location(_db_pool,"Equipment")
-all_department,all_machine,all_data,all_category = clean_data.get_range(all_range)
-all_department_eq,all_machine_eq,all_category_eq,all_data_eq = clean_data.get_range_equipment(all_range_equipment)
+# _db_pool = db_connector.create_pool()
+# plc_location = clean_data.get_all_location(_db_pool,"PLC")
+# status_location = clean_data.get_all_location(_db_pool,"Read_location")
+# all_range = clean_data.get_all_location(_db_pool,"All")
+# all_range_equipment = clean_data.get_all_location(_db_pool,"Equipment")
+# all_department,all_machine,all_data,all_category = clean_data.get_range(all_range)
+# all_department_eq,all_machine_eq,all_category_eq,all_data_eq = clean_data.get_range_equipment(all_range_equipment)
 
 # --- read head & size function ---
 def get_read_head_and_size():
@@ -272,6 +272,7 @@ def _main_queue_intersection():
         time.sleep(0.3)
 
 def _loop_clean_press_data_worker():
+    return
     while True :
         data = press_clean_q.get() 
         try:
@@ -293,6 +294,7 @@ def _loop_clean_press_data_worker():
         time.sleep(0.2)
 
 def _loop_clean_heat_data_worker():
+    return
     while True :
         data = heat_clean_q.get() 
         try:
@@ -318,11 +320,13 @@ def _loop_clean_heat_data_worker():
 
 # --- Get connection pool ---
 def get_db_pool():
+    return
     global _db_pool
     if _db_pool is None:
         _db_pool = db_connector.create_pool()
     return _db_pool
 def _loop_writer_db_worker():
+    return
     """Worker thread to write PLC data to DB."""
     global _db_pool,TOTAL_WORKERS,finished_workers
     while True :
@@ -356,6 +360,7 @@ def _loop_writer_db_worker():
         finally:
             clean_db_q.task_done()
         time.sleep(0.2)
+
 # --- Broadcast function ---
 def _broadcast_plc_data(data):
     """Send JSON data to all connected TCP clients (Node.js)."""
