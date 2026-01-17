@@ -1,42 +1,141 @@
-// // backend/node/services/pythonBridge.js
-// let isRunning = false;
-
-// function start() {
-//   if (isRunning) return { success: false };
-//   isRunning = true;
-//   console.log('🚧 Starting Python PLC service (stub)...');
-//   // TODO: spawn Python process or connect via TCP
-//   return { success: true };
-// }
-
-// function stop() {
-//   if (!isRunning) return { success: false };
-//   isRunning = false;
-//   console.log('🛑 Stopping Python PLC service (stub)...');
-//   return { success: true };
-// }
-
-// function writeTag(tag, value) {
-//   console.log(`✍️ Writing to PLC: ${tag} = ${value} (stub)`);
-//   return true; // TODO: forward to Python
-// }
-
-// module.exports = { start, stop, writeTag };
-
 // backend/node/services/pythonBridge.js
 const net = require('net');
 const { updateData } = require('./plcMonitor');
 
 const PYTHON_HOST = '127.0.0.1';
 const PYTHON_PORT = parseInt(process.env.PYTHON_PORT) || 8081;
+const alarmService = global.services?.alarmService;
+const stateStore = global.services?.stateStore;
+
+// Helper to safely raise alarms
+function raiseAlarm(code, message, severity) {
+  if (alarmService && typeof alarmService.raise === 'function') {
+    alarmService.raise(code, message, severity);
+  } else {
+    console.warn(`[ALARM] ${severity} - ${code}: ${message}`);
+  }
+}
+
+// Helper to persist intent
+function saveIntent(intent) {
+  if (!stateStore) return;
+  stateStore.saveState({ lastIntent: intent });
+}
 
 let socket = null;
 let isConnected = false;
 let reconnectTimeout = null;
 let isShuttingDown = false;
+let plcRunning = false;
+let plcConnected = false;
+let lastHeartbeat = null;
+let plcHealthy = false;
+let plcStartTime = null;
+let autoRecoverEnabled = true;
+let recoverAttempts = 0;
+const MAX_RECOVER_ATTEMPTS = 5;
+let recovering = false;
 
 // Queue commands if not connected
 let commandQueue = [];
+
+function handleMessage(msg) {
+  if (msg.type === 'heartbeat') {
+    lastHeartbeat = Date.now();
+    
+    // If transitioning from unhealthy → healthy, raise recovery alarm
+    if (!plcHealthy) {
+      raiseAlarm(
+        'PLC_RECOVERED',
+        'PLC heartbeat restored',
+        'INFO'
+      );
+    
+    // 👇 CLEAR fault alarms
+    global.services.alarmService.clear('PLC_FAULT');
+    global.services.alarmService.clear('PLC_DISCONNECTED');
+    }
+    plcHealthy = true;
+    recoverAttempts = 0; // reset on successful heartbeat
+    console.log('💓 PLC heartbeat received');
+    return;
+  }
+}
+
+// Watchdog: Monitor PLC health
+const HEARTBEAT_TIMEOUT = 5000; // 5 seconds
+const STARTUP_GRACE = 10000;    // 10 seconds - give PLC time to start
+setInterval(() => {
+  if (!plcRunning) {
+    plcHealthy = false;
+    return;
+  }
+
+  if (!lastHeartbeat) {
+    if (Date.now() - plcStartTime < STARTUP_GRACE) {
+      return; // ⏳ still starting
+    }
+    plcHealthy = false;
+    return;
+  }
+
+  const diff = Date.now() - lastHeartbeat;
+
+  if (diff > HEARTBEAT_TIMEOUT) {
+    if (plcHealthy) {
+      console.warn('🐶 PLC Watchdog timeout → FAULT');
+      
+      // Raise alarm for heartbeat timeout
+      raiseAlarm(
+        'PLC_FAULT',
+        'PLC heartbeat timeout',
+        'ERROR'
+      );
+    }
+
+    plcHealthy = false;
+
+    if (autoRecoverEnabled && plcRunning && !recovering) {
+      attemptAutoRecover();
+    }
+  }
+}, 1000);
+function attemptAutoRecover() {
+  if (recoverAttempts >= MAX_RECOVER_ATTEMPTS) {
+    console.error('🚫 Auto-recover failed: max attempts reached');
+    return;
+  }
+
+  recovering = true;
+  recoverAttempts++;
+
+  const delay = Math.min(2000 * recoverAttempts, 10000); // backoff
+  console.log(`🔁 Auto-recover attempt ${recoverAttempts} in ${delay}ms`);
+  
+  // Raise alarm for recovery attempt
+  raiseAlarm(
+    'PLC_RECOVERING',
+    `Auto-recover attempt ${recoverAttempts}`,
+    'WARN'
+  );
+
+  setTimeout(() => {
+    console.log('🔄 Restarting PLC loop');
+
+    // Force reconnect cycle
+    if (socket) socket.destroy();
+
+    // Reset heartbeat so watchdog waits
+    lastHeartbeat = null;
+    plcHealthy = false;
+    plcStartTime = Date.now();
+
+    // Send start again
+    sendCommand({ cmd: 'start' });
+
+    recovering = false;
+  }, delay);
+}
 
 function connect() {
   if (isShuttingDown) return;
@@ -46,8 +145,8 @@ function connect() {
   socket.on('connect', () => {
     console.log('🔗 Connected to Python PLC service');
     isConnected = true;
-    
-    // Send queued commands
+    plcConnected = true;
+
     while (commandQueue.length > 0) {
       const cmd = commandQueue.shift();
       socket.write(JSON.stringify(cmd) + '\n');
@@ -59,6 +158,7 @@ function connect() {
     for (const msg of messages) {
       try {
         const payload = JSON.parse(msg);
+        handleMessage(payload); // Process heartbeat and other messages
         if (payload.type === 'plc_data') {
           updateData(payload.tags); // Broadcast via WebSocket
         }
@@ -71,9 +171,18 @@ function connect() {
   socket.on('close', () => {
     console.log('🔌 Disconnected from Python PLC service');
     isConnected = false;
-    if (!isShuttingDown) {
-      scheduleReconnect();
-    }
+    plcConnected = false;
+    plcHealthy = false;     // ✅ watchdog failure
+    // plcRunning stays TRUE
+    
+    // Raise alarm for lost PLC connection
+    raiseAlarm(
+      'PLC_DISCONNECTED',
+      'Lost connection to Python PLC service',
+      'ERROR'
+    );
+    
+    if (!isShuttingDown) scheduleReconnect();
   });
 
   socket.on('error', (err) => {
@@ -109,10 +218,38 @@ function sendCommand(cmd) {
 
 // Public API
 function start() {
+  if (plcRunning) {
+    console.log('⚠️ Start ignored: PLC already running');
+    return false;
+  }
+  saveIntent('RUNNING'); // 🔄 persist intent
+
+  autoRecoverEnabled = true;
+  plcRunning = true;
+  plcHealthy = true;       // 🔥 assume healthy on start
+  lastHeartbeat = Date.now();    // 🔥 set initial timestamp
+  plcStartTime = Date.now();
+  recoverAttempts = 0;
   return sendCommand({ cmd: 'start' });
 }
 
+
 function stop() {
+  if (!plcRunning) return false;
+
+  saveIntent('STOPPED'); // 🔄 persist intent
+
+  autoRecoverEnabled = false;
+  plcRunning = false;
+  recoverAttempts = 0;
+  
+  // Raise alarm for manual stop
+  raiseAlarm(
+    'PLC_STOPPED_MANUAL',
+    'PLC stopped by operator',
+    'INFO'
+  );
+  
   return sendCommand({ cmd: 'stop' });
 }
 
@@ -126,7 +263,17 @@ function shutdown() {
   if (reconnectTimeout) clearTimeout(reconnectTimeout);
 }
 
+function getStatus() {
+  return {
+    running: plcRunning,
+    connected: plcConnected,
+    healthy: plcHealthy,
+    lastHeartbeat
+  };
+}
+
+
 // Start connection on module load
 connect();
 
-module.exports = { start, stop, writeTag, shutdown };
+module.exports = { start, stop, writeTag, shutdown, getStatus };

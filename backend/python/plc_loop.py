@@ -1,11 +1,12 @@
 # backend/python/plc_loop.py
-
 import pymcprotocol
 import time
 import threading
 from datetime import datetime
 from queue import Full, Queue, Empty
 import sys
+import time
+import json
 
 try:
     # Prefer relative import when running as a package
@@ -27,7 +28,7 @@ _read_config = None
 _socket_clients = []  # List of (socket, addr) to broadcast to
 raw_bit_data = []
 raw_word_data = []
-
+_stop_event = threading.Event()
 STOP = object()
 WORKER_DONE = object()
 TOTAL_WORKERS = 2  # press, heat, lathe
@@ -41,7 +42,13 @@ eq_press_clean_q = Queue(maxsize=1000)
 
 clean_db_q = Queue(maxsize=1000)
 _db_pool = None
-
+# Python sends heartbeat
+def send_heartbeat(socket):
+    msg = {
+        "type": "heartbeat",
+        "ts": time.time()
+    }
+    socket.sendall((json.dumps(msg) + "\n").encode())
 # _db_pool = db_connector.create_pool()
 # plc_location = clean_data.get_all_location(_db_pool,"PLC")
 # status_location = clean_data.get_all_location(_db_pool,"Read_location")
@@ -115,7 +122,12 @@ def start_loop(plc_location, read_config, socket_clients_list):
     _plc_location = plc_location
     _read_config = read_config
     _socket_clients = socket_clients_list
+    if _running:
+        print("⚠️ PLC loop already running")
+        return False
+    
     _running = True
+    _stop_event.clear()
 
     # Start background thread
     loop_read_PLC_thread = threading.Thread(target=_loop_read_plc_worker, daemon=True)
@@ -135,9 +147,13 @@ def start_loop(plc_location, read_config, socket_clients_list):
     return True
 
 def stop_loop():
-    """Stop the loop gracefully."""
     global _running
-    _running = False      
+    print("🛑 Stop requested")
+    _running = False
+    _stop_event.set()
+    time.sleep(1.5)  # allow threads to exit
+
+    _stop_event.clear()
 
 def write_tag(tag, value):
     """
@@ -192,11 +208,11 @@ def _loop_read_plc_worker():
     global mc
     connected = False
 
-    while _running:
+    while _running and not _stop_event.is_set():
         if not connected:
             connected = connect_to_plc()
             if not connected:
-                time.sleep(5)  # Retry every 5s if disconnected
+                time.sleep(1)  # Retry every 5s if disconnected
                 continue
 
         try:
@@ -220,6 +236,11 @@ def _loop_read_plc_worker():
 
             tags = (timestamp, bit_data, word_data)
 
+            # print(f"📡 Read data: {tags[0]}")
+            tags_broadcast = {
+                "timestamp": timestamp,
+            }
+            print(f"📡 Read data at {timestamp}")
             # tags = {
             #     "timestamp": timestamp,
             #     "bits": bit_data,
@@ -228,10 +249,18 @@ def _loop_read_plc_worker():
             # }
 
             # 1. Send data to Queue for Clean
-            main_q_intersection.put(tags , timeout=1)
+            # main_q_intersection.put(tags , timeout=1)
 
             # 2. Broadcast to all connected Node.js clients
-            # _broadcast_plc_data(tags)
+            _broadcast_plc_data(tags_broadcast)
+            
+            # 3. Send heartbeat to confirm PLC is alive
+            for client_sock, addr in _socket_clients[:]:
+                try:
+                    send_heartbeat(client_sock)
+                except Exception as e:
+                    print(f"🔌 Heartbeat failed for {addr}: {e}")
+            
             time.sleep(1)  # 0.3-second loop
 
         except Exception as e:
@@ -364,19 +393,18 @@ def _loop_writer_db_worker():
 # --- Broadcast function ---
 def _broadcast_plc_data(data):
     """Send JSON data to all connected TCP clients (Node.js)."""
-    message = '{"type": "plc_data", "tags": ' + str(data).replace("'", '"') + '}'
-    # Safer: use json.dumps
-    # import json
-    # message = json.dumps({"type": "plc_data", "tags": data}) + ""
+    message = json.dumps({
+        "type": "plc_data",
+        "tags": data
+    }) + "\n"
 
     dead_clients = []
     for client_sock, addr in _socket_clients[:]:
         try:
-            client_sock.send(message.encode('utf-8'))
+            client_sock.sendall(message.encode('utf-8'))
         except Exception as e:
             print(f"🔌 Client {addr} disconnected: {e}")
             dead_clients.append((client_sock, addr))
 
-    # Remove dead clients
     for dead in dead_clients:
         _socket_clients.remove(dead)

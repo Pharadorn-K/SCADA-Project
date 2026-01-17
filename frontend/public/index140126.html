@@ -1,0 +1,271 @@
+<!-- // frontend/public/index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SCADA Dashboard</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      margin: 0;
+      background: #f5f5f5;
+    }
+    nav {
+      background: #1976d2;
+      padding: 0 20px;
+      display: flex;
+      gap: 20px;
+    }
+    nav a {
+      color: white;
+      text-decoration: none;
+      padding: 15px 10px;
+      display: block;
+    }
+    nav a:hover, nav a.active {
+      background: #1565c0;
+    }
+    main {
+      padding: 20px;
+    }
+    .page { display: none; }
+    .page.active { display: block; }
+    .card {
+      background: white;
+      padding: 15px;
+      margin: 10px 0;
+      border-radius: 6px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    button {
+      padding: 8px 16px;
+      margin: 5px;
+      font-size: 14px;
+    }
+    pre {
+      background: #eee;
+      padding: 10px;
+      overflow: auto;
+    }
+  </style>
+</head>
+<body>
+  <!-- Navigation -->
+  <nav id="nav">
+    <a href="/" data-page="home">🏠 Home</a>
+    <a href="/production" data-page="production">🏭 Production</a>
+    <a href="/maintenance" data-page="maintenance">🔧 Maintenance</a>
+    <!-- Admin link will be added dynamically -->
+    <a href="#" id="logout-link">🚪 Logout</a>
+    <span id="admin-nav-placeholder"></span>
+  </nav>
+
+  <!-- Add placeholder for admin link -->
+ 
+
+  <!-- Pages -->
+  <main>
+    <!-- Home Page -->
+    <div id="home" class="page">
+      <h1>🏭 SCADA Dashboard – Home</h1>
+      <div class="card">
+        <p>Welcome to the SCADA system.</p>
+        <p>Use navigation above to switch views.</p>
+      </div>
+    </div>
+
+    <!-- Production Page -->
+    <div id="production" class="page">
+      <h1>🏭 Production Monitoring</h1>
+      <div class="card">
+        <h3>ControlEvents</h3>
+        <button onclick="startPolling()">▶️ Start PLC Polling</button>
+        <button onclick="stopPolling()">⏹️ Stop PLC Polling</button>
+        <input id="write-tag" placeholder="Tag (e.g., B10)" value="B10" />
+        <input id="write-value" type="number" placeholder="Value" value="1" />
+        <button onclick="writeTag()">✍️ Write Tag</button>
+      </div>
+
+      <div class="card">
+        <h3>📡 WebSocket Status: <span id="ws-status">Disconnected</span></h3>
+        <h3>📥 Latest PLC Data:</h3>
+        <pre id="plc-data">No data yet...</pre>
+      </div>
+    </div>
+
+    <!-- Maintenance Page -->
+    <div id="maintenance" class="page">
+      <h1>🔧 Maintenance</h1>
+      <div class="card">
+        <p>Schedule maintenance, view logs, calibrate sensors.</p>
+        <!-- Add your maintenance tools here -->
+      </div>
+    </div>
+
+    <!-- Admin Page -->
+    <div id="admin" class="page">
+      <h1>⚙️ Admin Panel</h1>
+      <div class="card">
+        <p>User management, system settings, audit logs.</p>
+        <!-- Add admin controls here -->
+      </div>
+    </div>
+  </main>
+
+  <script>
+    // ==== SPA Router ====
+    const pages = ['home', 'production', 'maintenance', 'admin'];
+    let currentPath = '';
+
+    function navigateTo(path) {
+      // Normalize path: '/' → 'home', '/production' → 'production'
+      const page = path === '/' ? 'home' : path.substring(1);
+
+      // Block access to admin if not allowed
+      if (page === 'admin' && currentUserRole !== 'admin') {
+        alert('Access denied');
+        return;
+      }
+      if (!pages.includes(page)) return;
+
+      // Update active nav link
+      document.querySelectorAll('#nav a[data-page]').forEach(el => {
+        el.classList.toggle('active', el.dataset.page === page);
+      });
+
+      // Show correct page
+      document.querySelectorAll('.page').forEach(el => {
+        el.classList.toggle('active', el.id === page);
+      });
+
+      // Update URL (without reload)
+      history.pushState(null, '', path);
+      currentPath = path;
+    }
+
+    // Handle browser back/forward
+    window.addEventListener('popstate', () => {
+      renderPage();
+    });
+
+    function renderPage() {
+      const path = window.location.pathname;
+      navigateTo(path);
+    }
+
+    // Intercept link clicks
+    document.querySelectorAll('#nav a[data-page]').forEach(link => {
+      link.addEventListener('click', (e) => {
+        e.preventDefault();
+        const target = new URL(e.target.href).pathname;
+        navigateTo(target);
+      });
+    });
+
+    // ==== Auth Check ====
+    // async function checkAuth() {
+    //   try {
+    //     const res = await fetch('/api/auth/status', { credentials: 'same-origin' });
+    //     const auth = await res.json();
+    //     if (!auth.authenticated) {
+    //       window.location.href = '/login.html';
+    //     }
+    //   } catch (err) {
+    //     window.location.href = '/login.html';
+    //   }
+    // }
+    // After checkAuth(), get user role
+    let currentUserRole = null;
+
+    async function checkAuth() {
+      try {
+        const res = await fetch('/api/auth/status', { credentials: 'same-origin' });
+        const auth = await res.json();
+        if (!auth.authenticated) {
+          window.location.href = '/login.html';
+          return;
+        }
+        currentUserRole = auth.role;
+
+        // Show/hide admin nav
+        const adminNav = document.getElementById('admin-nav-placeholder');
+        if (auth.role === 'admin') {
+          adminNav.innerHTML = '<a href="/admin" data-page="admin">⚙️ Admin</a>';
+        } else {
+          adminNav.innerHTML = '';
+        }
+
+        renderPage();
+      } catch (err) {
+        window.location.href = '/login.html';
+      }
+    }
+
+    // ==== WebSocket & PLC Controls (keep alive across pages) ====
+    const ws = new WebSocket('ws://localhost:3000');
+    const statusEl = document.getElementById('ws-status');
+    const dataEl = document.getElementById('plc-data');
+
+    ws.onopen = () => {
+      statusEl.textContent = 'Connected';
+      statusEl.style.color = 'green';
+    };
+
+    ws.onmessage = (event) => {
+      const msg = JSON.parse(event.data);
+      if (msg.type === 'plc_update') {
+        dataEl.textContent = JSON.stringify(msg.data, null, 2);
+      }
+    };
+
+    ws.onclose = () => {
+      statusEl.textContent = 'Disconnected';
+      statusEl.style.color = 'red';
+    };
+
+    // API wrappers
+    async function sendCommand(endpoint) {
+      try {
+        const res = await fetch(`/api/plc/${endpoint}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin'
+        });
+        const result = await res.json();
+        console.log(`${endpoint}:`, result);
+      } catch (err) {
+        console.error('Command failed:', err);
+      }
+    }
+
+    function startPolling() { sendCommand('start'); }
+    function stopPolling()  { sendCommand('stop'); }
+    function writeTag() {
+      const tag = document.getElementById('write-tag').value;
+      const value = parseInt(document.getElementById('write-value').value);
+      fetch('/api/plc/write', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify({ tag, value })
+      });
+    }
+
+    async function logout() {
+      await fetch('/api/auth/logout', { method: 'POST', credentials: 'same-origin' });
+      window.location.href = '/login.html';
+    }
+
+    document.getElementById('logout-link').addEventListener('click', (e) => {
+      e.preventDefault();
+      logout();
+    });
+
+    // ==== Initialize ====
+    checkAuth().then(() => {
+      renderPage(); // Set initial page based on URL
+    });
+  </script>
+</body>
+</html>

@@ -1,103 +1,19 @@
 <!-- // frontend/public/index.html -->
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <title>SET SCADA : Dashboard</title>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <style>
-    body { font-family: sans-serif; padding: 20px; background: #cdecf8; }
-    .card { background: white; padding: 15px; margin: 10px 0; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-    button { padding: 8px 16px; margin: 5px; font-size: 14px; }
-    pre { background: #eee; padding: 10px; overflow: auto; }
-  </style>
-</head>
-<body>
-  <h1>🏭 SCADA Test Dashboard</h1>
-
-  <div class="card">
-    <h3>ControlEvents</h3>
-    <button onclick="startPolling()">▶️ Start PLC Polling</button>
-    <button onclick="stopPolling()">⏹️ Stop PLC Polling</button>
-    <!-- <button onclick="writeTag()">✍️ Write Tag (B100 = 1)</</button> -->
-     <input id="write-tag" placeholder="Tag (e.g., B10)" value="B10">
-    <input id="write-value" type="number" placeholder="Value" value="1">
-    <button onclick="writeTag()">✍️ Write Tag</button>
-    <button onclick="logout()">🚪 Logout</button>
-  </div>
-
-  <div class="card">
-    <h3>📡 WebSocket Status: <span id="ws-status">Disconnected</span></h3>
-    <h3>📥 Latest PLC Data:</h3>
-    <pre id="plc-data">No data yet...</pre>
-  </div>
-
-  <script>
-    const ws = new WebSocket('ws://localhost:3000');
-    const statusEl = document.getElementById('ws-status');
-    const dataEl = document.getElementById('plc-data');
-    // Add near top of <script> in index.html
-    async function checkAuth() {
-      try {
-        const res = await fetch('/api/auth/status', { credentials: 'same-origin' });
-        const auth = await res.json();
-        if (!auth.authenticated) {
-          window.location.href = '/login.html';
-        }
-      } catch (err) {
-        window.location.href = '/login.html';
-      }
-    }
-
-    // Call on page load
-    checkAuth();
-
-    // ... rest of your existing WebSocket and control code
-    ws.onopen = () => {
-      statusEl.textContent = 'Connected';
-      statusEl.style.color = 'green';
-    };
-
-    ws.onmessage = (event) => {
-      const msg = JSON.parse(event.data);
-      if (msg.type === 'plc_update') {
-        dataEl.textContent = JSON.stringify(msg.data, null, 2);
-      }
-    };
-
-    ws.onclose = () => {
-      statusEl.textContent = 'Disconnected';
-      statusEl.style.color = 'red';
-    };
-
-    async function sendCommand(endpoint) {
-      try {
-        const res = await fetch(`http://localhost:3000/api/plc/${endpoint}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' }
-        });
-        const result = await res.json();
-        console.log(`${endpoint}:`, result);
-      } catch (err) {
-        console.error('Command failed:', err);
-      }
-    }
-
-    function startPolling() { sendCommand('start'); }
-    function stopPolling()  { sendCommand('stop'); }
-    function writeTag() {
-      const tag = document.getElementById('write-tag').value;
-      const value = parseInt(document.getElementById('write-value').value);
-      fetch('http://localhost:3000/api/plc/write', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tag, value })
-      });
-    }
-    async function logout() {
-      await fetch('/api/auth/logout', { method: 'POST', credentials: 'same-origin' });
-      window.location.href = '/login.html';
-    }
-  </script>
-</body>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>SCADA.SET</title>
+    <link rel="stylesheet" href="/css/main.css">
+  </head>
+  <body>
+    <header>
+      <h1>SCADA.SET</h1>
+    </header>
+    <nav id="main-nav"></nav>
+    <main id="app"></main>
+    
+    <script type="module" src="/js/app.js"></script>
+  </body>
 </html>

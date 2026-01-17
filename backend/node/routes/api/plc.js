@@ -1,24 +1,56 @@
 // backend/node/routes/api/plc.js
 const express = require('express');
 const router = express.Router();
+const { requireRole } = require('../../middleware/requireRole');
 
-router.post('/start', (req, res) => {
-  const { success } = global.services.pythonBridge.start();
-  res.json({ success, message: success ? 'PLC polling started' : 'Already running' });
+router.get('/status', (req, res) => {
+  const status = global.services.pythonBridge.getStatus();
+  res.json(status);
 });
 
-router.post('/stop', (req, res) => {
-  const { success } = global.services.pythonBridge.stop();
-  res.json({ success, message: success ? 'PLC polling stopped' : 'Not running' });
+router.post('/start',requireRole('admin'), (req, res) => {
+  const ok = global.services.pythonBridge.start();
+
+  global.services.logService.log({
+    type: 'AUDIT',
+    severity: 'INFO',
+    user: req.session.userId || 'unknown',
+    role: req.session.role || 'unknown',
+    action: 'START_PLC',
+    message: 'PLC start requested'
+  });
+
+  res.json({ ok });
 });
 
-router.post('/write', (req, res) => {
+router.post('/stop', requireRole('admin'), (req, res) => {
+  const ok = global.services.pythonBridge.stop();
+
+  global.services.logService.log({
+    type: 'AUDIT',
+    severity: 'INFO',
+    user: req.session.userId || 'unknown',
+    role: req.session.role || 'unknown',
+    action: 'STOP_PLC',
+    message: 'PLC stop requested'
+  });
+
+  res.json({ ok });
+});
+router.post('/write', requireRole('admin'), (req, res) => {
   const { tag, value } = req.body;
-  if (!tag || value === undefined) {
-    return res.status(400).json({ error: 'Missing tag or value' });
-  }
-  const success = global.services.pythonBridge.writeTag(tag, value);
-  res.json({ success, tag, value });
+  const ok = global.services.pythonBridge.writeTag(tag, value);
+
+  global.services.logService.log({
+    type: 'AUDIT',
+    severity: 'INFO',
+    user: req.session.userId || 'unknown',
+    role: req.session.role || 'unknown',
+    action: 'WRITE_PLC_TAG',
+    message: 'PLC tag write requested'
+  });
+
+  res.json({ ok });
 });
 
 module.exports = router;

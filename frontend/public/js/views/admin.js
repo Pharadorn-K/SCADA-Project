@@ -1,0 +1,136 @@
+// frontend/public/js/views/admin.js
+export function adminView() {
+  return `
+      <h1>⚙️ Admin Panel</h1>
+      <p>Manage PLC and view real-time data.</p>
+      <div class="card">
+        <strong>Status:</strong>
+        <span id="plc-badge" class="badge badge-gray">UNKNOWN</span>
+      </div>
+
+      <div class="card">
+        <button id="btn-start">▶️ Start</button>
+        <button id="btn-stop">⏹️ Stop</button>
+        <input id="write-tag" placeholder="Tag" value="B10">
+        <input id="write-value" type="number" value="1">
+        <button id="btn-write">✍️ Write</button>
+      </div>
+
+      <div class="card">
+        <h3>🚨 Active Alarms</h3>
+        <ul id="alarm-list" class="alarm-list"></ul>
+      </div>
+
+  `;
+}
+
+import { sendPlcCommand } from '../api.js';
+
+let alarmTimer = null;
+async function refreshPlcStatus() {
+  const res = await fetch('/api/plc/status', {
+    credentials: 'same-origin'
+  });
+  return res.json();
+}
+
+
+function updateUIFromStatus(status) {
+  const badge = document.getElementById('plc-badge');
+  const btnStart = document.getElementById('btn-start');
+  const btnStop = document.getElementById('btn-stop');
+
+  if (!status.connected && status.running) {
+    badge.textContent = 'PLC FAULT';
+    badge.className = 'badge badge-red';
+    btnStart.disabled = true;
+    btnStop.disabled = false;
+  }
+  else if (!status.connected) {
+    badge.textContent = 'DISCONNECTED';
+    badge.className = 'badge badge-gray';
+    btnStart.disabled = true;
+    btnStop.disabled = true;
+  }
+  else if (status.running && !status.healthy) {
+    badge.textContent = 'PLC FAULT';
+    badge.className = 'badge badge-red';
+    btnStart.disabled = true;
+    btnStop.disabled = false;
+  }
+  else if (status.running) {
+    badge.textContent = 'RUNNING';
+    badge.className = 'badge badge-green';
+    btnStart.disabled = true;
+    btnStop.disabled = false;
+  }
+  else {
+    badge.textContent = 'STOPPED';
+    badge.className = 'badge badge-red';
+    btnStart.disabled = false;
+    btnStop.disabled = true;
+  }
+}
+
+export async function adminMount() {
+  // Initial status fetch
+  const status = await refreshPlcStatus();
+  const alarmList = document.getElementById('alarm-list');
+  updateUIFromStatus(status);
+
+  document.getElementById('btn-start').addEventListener('click', async () => {
+    await sendPlcCommand('start');
+    const status = await refreshPlcStatus();
+    updateUIFromStatus(status);
+  });
+
+  document.getElementById('btn-stop').addEventListener('click', async () => {
+    await sendPlcCommand('stop');
+    const status = await refreshPlcStatus();
+    updateUIFromStatus(status);
+  });
+
+  document.getElementById('btn-write').addEventListener('click', () => {
+    const tag = document.getElementById('write-tag').value;
+    const value = parseInt(document.getElementById('write-value').value);
+    sendPlcCommand('write', { tag, value });
+  });
+
+  async function loadAlarms() {
+    const res = await fetch('/api/alarms', {
+      credentials: 'same-origin'
+    });
+
+    if (!res.ok) {
+      console.warn('Alarm fetch failed:', res.status);
+      alarmList.innerHTML = '<li>No alarm access</li>';
+      return;
+    }
+
+    const alarms = await res.json();
+
+    if (!Array.isArray(alarms)) {
+      console.warn('Alarm response not array:', alarms);
+      return;
+    }
+
+    alarmList.innerHTML = alarms
+      .slice()
+      .reverse()
+      .map(a => `
+        <li class="alarm ${a.severity.toLowerCase()}">
+          <strong>${a.code}</strong>
+          <span>${a.message}</span>
+          <small>${new Date(a.time).toLocaleTimeString()}</small>
+        </li>
+      `)
+      .join('');
+  }
+
+  await loadAlarms();
+  alarmTimer = setInterval(loadAlarms, 2000);
+}
+
+export function adminUnmount() {
+  if (alarmTimer) clearInterval(alarmTimer);
+}

@@ -1,5 +1,4 @@
 # backend/python/plc_service.py
-
 import socket
 import threading
 import json
@@ -93,12 +92,16 @@ def handle_command(msg, client_socket):
             read_config=READ_CONFIG,
             socket_clients_list=connected_clients,
         )
-        # Optional: send ack back
-        # client_socket.send(b'{"ack": "start", "success": true}\n')
+        # Send ACK back
+        response = {"type": "ack", "cmd": "start", "success": success}
+        client_socket.send((json.dumps(response) + "\n").encode('utf-8'))
 
     elif cmd == "stop":
         print("⏹️ Stop command received")
         plc_loop.stop_loop()
+        # Send ACK back
+        response = {"type": "ack", "cmd": "stop", "success": True}
+        client_socket.send((json.dumps(response) + "\n").encode('utf-8'))
 
     elif cmd == "write":
         tag = msg.get("tag")
