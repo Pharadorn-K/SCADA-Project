@@ -85,13 +85,6 @@
 
     function startPolling() { sendCommand('start'); }
     function stopPolling()  { sendCommand('stop'); }
-    // function writeTag()     { 
-    //   fetch('http://localhost:3000/api/plc/write', {
-    //     method: 'POST',
-    //     headers: { 'Content-Type': 'application/json' },
-    //     body: JSON.stringify({ tag: "B100", value: 1 })
-    //   });
-    // }
     function writeTag() {
       const tag = document.getElementById('write-tag').value;
       const value = parseInt(document.getElementById('write-value').value);
@@ -108,19 +101,3 @@
   </script>
 </body>
 </html>
-<!-- 
-<input id="write-tag" placeholder="Tag (e.g., B10)" value="B10">
-<input id="write-value" type="number" placeholder="Value" value="1">
-<button onclick="writeTag()">✍️ Write Tag</button> -->
-
-<!-- <script>
-function writeTag() {
-  const tag = document.getElementById('write-tag').value;
-  const value = parseInt(document.getElementById('write-value').value);
-  fetch('http://localhost:3000/api/plc/write', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ tag, value })
-  });
-}
-</script> -->

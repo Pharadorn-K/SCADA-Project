@@ -17,7 +17,6 @@ const VALID_USERS = [
   }
 ];
 
-
 router.post('/login', (req, res) => {
   const { username, password } = req.body;
   console.log('Login attempt:', { username, password }); // ← see what's received

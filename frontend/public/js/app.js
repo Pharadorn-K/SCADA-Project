@@ -1,5 +1,4 @@
 // frontend/public/js/app.js
-
 import { homeView, homeMount, homeUnmount } from './views/home.js';
 import { productionView, productionMount, productionUnmount } from './views/production.js';
 import { maintenanceView, maintenanceMount, maintenanceUnmount } from './views/maintenance.js';

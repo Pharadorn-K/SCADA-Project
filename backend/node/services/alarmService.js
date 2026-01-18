@@ -83,7 +83,6 @@ function clear(code) {
   return true;
 }
 
-
 function getAll() {
   return alarms.slice(-100);
 }

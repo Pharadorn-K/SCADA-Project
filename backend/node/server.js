@@ -1,5 +1,4 @@
 // backend/node/server.js
-
 require('dotenv').config(); // Load .env
 const express = require('express');
 const http = require('http');
@@ -29,12 +28,9 @@ const setupWebsocket = require('./routes/websocket');
 const authRoutes = require('./routes/api/auth');
 const auditRoutes = require('./routes/api/audit');
 
-
-
 // Initialize Express app
 const app = express();
 const PORT = process.env.PORT || 3000;
-
 
 // Middleware
 app.use(express.json());
@@ -95,7 +91,6 @@ function requireRole(allowedRoles) {
   };
 }
 
-
 // Public: Home (any logged-in user)
 app.get('/', requireAuth, (req, res) => {
   res.sendFile(path.join(__dirname, '../../frontend/public/index.html'));
@@ -125,7 +120,6 @@ function requireAuth(req, res, next) {
   if (req.session.userId) return next();
   res.redirect('/login.html');
 }
-
 
 // Create HTTP server
 const server = http.createServer(app);

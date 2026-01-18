@@ -8,13 +8,7 @@ export const scadaStore = {
     this.latestPlcData = data;
     this.listeners.forEach(fn => fn(data));
   },
-
-  // subscribe(fn) {
-  //   this.listeners.push(fn);
-  //   return () => {
-  //     this.listeners = this.listeners.filter(f => f !== fn);
-  //   };
-  // }
+  
   subscribe(fn) {
     this.listeners.push(fn);
 

@@ -1,5 +1,4 @@
 // backend/node/routes/api/alarm.js
-
 // module.exports = router;
 const express = require('express');
 const router = express.Router();

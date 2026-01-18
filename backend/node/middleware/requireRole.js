@@ -1,3 +1,4 @@
+// backend/node/middleware/requireRole.js
 function requireRole(requiredRole) {
   return (req, res, next) => {
     const role = req.session?.role;
