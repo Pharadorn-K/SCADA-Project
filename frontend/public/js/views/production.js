@@ -19,6 +19,11 @@ import { scadaStore } from '../store.js';
 let unsubscribe = null;
 let alarmTimer = null;
 
+function handleAlarmEvent(msg) {
+  if (msg.type !== 'alarm_event') return;
+  loadAlarms(); // re-render list instantly
+}
+
 export async function productionMount() {
   const dataEl = document.getElementById('plc-data');
   const alarmList = document.getElementById('alarm-list');
@@ -77,7 +82,7 @@ export async function productionMount() {
   }
 
   await loadAlarms();
-  alarmTimer = setInterval(loadAlarms, 2000);
+  // alarmTimer = setInterval(loadAlarms, 2000);
 }
 
 export function productionUnmount() {

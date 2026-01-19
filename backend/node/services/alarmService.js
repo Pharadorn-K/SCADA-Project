@@ -4,6 +4,10 @@ let lastAlarmCode = null;
 
 function raise(code, message, severity = 'ERROR') {
   if (code === lastAlarmCode) return;
+  alarms.push(alarm);
+  lastAlarmCode = code;
+
+  broadcastAlarm('RAISED', alarm);
 
   const alarm = {
     id: Date.now(),              // 👈 unique ID
@@ -37,6 +41,24 @@ function raise(code, message, severity = 'ERROR') {
   }
 }
 
+function broadcastAlarm(event, alarm) {
+  const wss = global.services?.wss;
+  if (!wss) return;
+
+  const payload = JSON.stringify({
+    type: 'alarm_event',
+    event,   // RAISED | CLEARED | ACK
+    alarm
+  });
+
+  wss.clients.forEach(client => {
+    if (client.readyState === 1) {
+      client.send(payload);
+    }
+  });
+}
+
+
 function acknowledge(id, user) {
   const alarm = alarms.find(a => a.id === id);
   if (!alarm || alarm.acknowledged) return false;
@@ -44,6 +66,7 @@ function acknowledge(id, user) {
   alarm.acknowledged = true;
   alarm.ackBy = user;
   alarm.ackTime = new Date().toISOString();
+  broadcastAlarm('ACK', alarm);
 
   global.services.logService.log({
     type: 'AUDIT',
@@ -68,6 +91,7 @@ function clear(code) {
   alarm.cleared = true;
   alarm.clearTime = new Date().toISOString();
   lastAlarmCode = null;
+  broadcastAlarm('CLEARED', alarm);
 
   console.log(`✅ [CLEAR] ${code}`);
 
