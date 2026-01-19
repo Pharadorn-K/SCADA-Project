@@ -58,7 +58,6 @@ function broadcastAlarm(event, alarm) {
   });
 }
 
-
 function acknowledge(id, user) {
   const alarm = alarms.find(a => a.id === id);
   if (!alarm || alarm.acknowledged) return false;

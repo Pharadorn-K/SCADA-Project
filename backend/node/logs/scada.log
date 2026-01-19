@@ -96,3 +96,6 @@
 {"ts":"2026-01-19T03:40:06.818Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"LOGIN","code":null,"message":"User logged in","meta":{}}
 {"ts":"2026-01-19T03:41:39.515Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"LOGIN","code":null,"message":"User logged in","meta":{}}
 {"ts":"2026-01-19T03:43:11.413Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"LOGIN","code":null,"message":"User logged in","meta":{}}
+{"ts":"2026-01-19T13:45:28.457Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"LOGIN","code":null,"message":"User logged in","meta":{}}
+{"ts":"2026-01-19T13:45:33.741Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"WRITE_PLC_TAG","code":null,"message":"PLC tag write requested","meta":{}}
+{"ts":"2026-01-19T13:45:40.398Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"START_PLC","code":null,"message":"PLC start requested","meta":{}}

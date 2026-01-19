@@ -19,10 +19,7 @@ import { scadaStore } from '../store.js';
 let unsubscribe = null;
 let alarmTimer = null;
 
-function handleAlarmEvent(msg) {
-  if (msg.type !== 'alarm_event') return;
-  loadAlarms(); // re-render list instantly
-}
+
 
 export async function productionMount() {
   const dataEl = document.getElementById('plc-data');
@@ -39,6 +36,11 @@ export async function productionMount() {
 
     loadAlarms();
   };
+
+  function handleAlarmEvent(msg) {
+    if (msg.type !== 'alarm_event') return;
+    loadAlarms(); // re-render list instantly
+  }
 
   // PLC live data
   unsubscribe = scadaStore.subscribe((data) => {
@@ -63,7 +65,7 @@ export async function productionMount() {
       return;
     }
 
-  alarmList.innerHTML = alarms
+    alarmList.innerHTML = alarms
     .slice()
     .reverse()
     .map(a => `
@@ -80,7 +82,12 @@ export async function productionMount() {
     `)
   .join('');
   }
+  const ws = scadaStore.ws;
 
+  ws.addEventListener('message', (event) => {
+    const msg = JSON.parse(event.data);
+    handleAlarmEvent(msg);
+  });
   await loadAlarms();
   // alarmTimer = setInterval(loadAlarms, 2000);
 }
@@ -89,3 +96,4 @@ export function productionUnmount() {
   if (unsubscribe) unsubscribe();
   if (alarmTimer) clearInterval(alarmTimer);
 }
+
