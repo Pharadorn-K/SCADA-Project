@@ -34,7 +34,6 @@ async function refreshPlcStatus() {
   return res.json();
 }
 
-
 function updateUIFromStatus(status) {
   const badge = document.getElementById('plc-badge');
   const btnStart = document.getElementById('btn-start');
@@ -72,6 +71,11 @@ function updateUIFromStatus(status) {
   }
 }
 
+function handleAlarmEvent(msg) {
+  if (msg.type !== 'alarm_event') return;
+  loadAlarms(); // re-render list instantly
+}
+
 export async function adminMount() {
   // Initial status fetch
   const status = await refreshPlcStatus();
@@ -96,6 +100,19 @@ export async function adminMount() {
     sendPlcCommand('write', { tag, value });
   });
 
+  alarmList.onclick = async (e) => {
+    if (!e.target.classList.contains('ack-btn')) return;
+
+    const id = e.target.dataset.id;
+
+    await fetch(`/api/alarms/ack/${id}`, {
+      method: 'POST',
+      credentials: 'same-origin'
+    });
+
+    loadAlarms();
+  };
+
   async function loadAlarms() {
     const res = await fetch('/api/alarms', {
       credentials: 'same-origin'
@@ -115,20 +132,31 @@ export async function adminMount() {
     }
 
     alarmList.innerHTML = alarms
-      .slice()
-      .reverse()
-      .map(a => `
-        <li class="alarm ${a.severity.toLowerCase()}">
-          <strong>${a.code}</strong>
-          <span>${a.message}</span>
-          <small>${new Date(a.time).toLocaleTimeString()}</small>
-        </li>
-      `)
-      .join('');
+    .slice()
+    .reverse()
+    .map(a => `
+      <li class="alarm ${a.severity.toLowerCase()} ${a.acknowledged ? 'ack' : ''}">
+        <strong>${a.code}</strong>
+        <span>${a.message}</span>
+        <small display="float:right">${new Date(a.time).toLocaleTimeString()}</small>
+        ${
+          a.acknowledged
+            ? `<small>✔ ACK by ${a.ackBy}</small>`
+            : `<button data-id="${a.id}" class="ack-btn">ACK</button>`
+        }
+      </li>
+    `)
+  .join('');
   }
 
+  const ws = scadaStore.ws;
+
+  ws.addEventListener('message', (event) => {
+    const msg = JSON.parse(event.data);
+    handleAlarmEvent(msg);
+  });
+
   await loadAlarms();
-  alarmTimer = setInterval(loadAlarms, 2000);
 }
 
 export function adminUnmount() {

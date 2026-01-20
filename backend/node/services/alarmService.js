@@ -4,21 +4,17 @@ let lastAlarmCode = null;
 
 function raise(code, message, severity = 'ERROR') {
   if (code === lastAlarmCode) return;
-  alarms.push(alarm);
-  lastAlarmCode = code;
-
-  broadcastAlarm('RAISED', alarm);
 
   const alarm = {
-    id: Date.now(),              // 👈 unique ID
+    id: Date.now(),
     time: new Date().toISOString(),
     code,
     message,
     severity,
-    acknowledged: false,         // 👈 NEW
+    acknowledged: false,
     ackBy: null,
     ackTime: null,
-    cleared: false,          // 👈 NEW
+    cleared: false,
     clearTime: null
   };
 
@@ -27,7 +23,8 @@ function raise(code, message, severity = 'ERROR') {
 
   console.log(`🚨 [${severity}] ${code} - ${message}`);
 
-  // ✅ SAFE: global.services exists by now
+  broadcastAlarm('RAISED', alarm);
+
   const logService = global.services?.logService;
   if (logService) {
     logService.log({
@@ -40,6 +37,7 @@ function raise(code, message, severity = 'ERROR') {
     });
   }
 }
+
 
 function broadcastAlarm(event, alarm) {
   const wss = global.services?.wss;

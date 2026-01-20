@@ -116,11 +116,6 @@ app.get('/', requireAuth, (req, res) => {
   res.redirect('/');
 });
 
-// function requireAuth(req, res, next) {
-//   if (req.session.userId) return next();
-//   res.redirect('/login.html');
-// }
-
 // Create HTTP server
 const server = http.createServer(app);
 
