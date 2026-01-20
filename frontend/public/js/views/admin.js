@@ -21,6 +21,11 @@ export function adminView() {
         <ul id="alarm-list" class="alarm-list"></ul>
       </div>
 
+      <div class="card">
+        <h3>🧾 Alarm History</h3>
+        <ul id="alarm-history" class="alarm-history"></ul>
+      </div>
+
   `;
 }
 
@@ -148,6 +153,32 @@ export async function adminMount() {
     `)
   .join('');
   }
+  async function loadAlarmHistory() {
+    const el = document.getElementById('alarm-history');
+
+    const res = await fetch('/api/alarm-history', {
+      credentials: 'same-origin'
+    });
+
+    if (!res.ok) {
+      el.innerHTML = '<li>No access</li>';
+      return;
+    }
+
+    const logs = await res.json();
+
+    el.innerHTML = logs
+      .slice()
+      .reverse()
+      .map(l => `
+        <li class="alarm ${l.severity.toLowerCase()}">
+          <strong>${l.code}</strong>
+          <span>${l.message}</span>
+          <small>${new Date(l.ts).toLocaleString()}</small>
+        </li>
+      `)
+      .join('');
+  }
 
   const ws = scadaStore.ws;
 
@@ -157,6 +188,8 @@ export async function adminMount() {
   });
 
   await loadAlarms();
+  await loadAlarmHistory();
+
 }
 
 export function adminUnmount() {

@@ -38,5 +38,10 @@ function log({
     meta
   });
 }
+function getRecent({ type, limit = 100 }) {
+  return logs
+    .filter(l => l.type === type)
+    .slice(-limit);
+}
 
 module.exports = { log };

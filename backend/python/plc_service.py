@@ -47,7 +47,8 @@ connected_clients = []
 
 def handle_client(client_socket, addr):
     """Handle a single Node.js client connection."""
-    print(f"📥 New connection from {addr}")
+    # print(f"📥 New connection from {addr}")
+    print(f" New connection from {addr}")
     connected_clients.append((client_socket, addr))
 
     try:
@@ -69,13 +70,16 @@ def handle_client(client_socket, addr):
                     msg = json.loads(line)
                     handle_command(msg, client_socket)
                 except json.JSONDecodeError as e:
-                    print(f"❌ Invalid JSON from {addr}: {line} | Error: {e}")
+                    # print(f"❌ Invalid JSON from {addr}: {line} | Error: {e}")
+                    print(f" Invalid JSON from {addr}: {line} | Error: {e}")
     except ConnectionResetError:
         pass
     except Exception as e:
-        print(f"⚠️ Client {addr} error: {e}")
+        # print(f"⚠️ Client {addr} error: {e}")
+        print(f" Client {addr} error: {e}")
     finally:
-        print(f"📤 Client {addr} disconnected")
+        # print(f"📤 Client {addr} disconnected")
+        print(f" Client {addr} disconnected")
         if (client_socket, addr) in connected_clients:
             connected_clients.remove((client_socket, addr))
         client_socket.close()
@@ -86,7 +90,8 @@ def handle_command(msg, client_socket):
     cmd = msg.get("cmd")
 
     if cmd == "start":
-        print("▶️ Start command received")
+        # print("▶️ Start command received")
+        print(" Start command received")
         success = plc_loop.start_loop(
             plc_location=(PLC_IP, PLC_PORT_A, PLC_PORT_B, PLC_PORT_C),
             read_config=READ_CONFIG,
@@ -97,7 +102,8 @@ def handle_command(msg, client_socket):
         client_socket.send((json.dumps(response) + "\n").encode('utf-8'))
 
     elif cmd == "stop":
-        print("⏹️ Stop command received")
+        # print("⏹️ Stop command received")
+        print(" Stop command received")
         plc_loop.stop_loop()
         # Send ACK back
         response = {"type": "ack", "cmd": "stop", "success": True}
@@ -107,15 +113,18 @@ def handle_command(msg, client_socket):
         tag = msg.get("tag")
         value = msg.get("value")
         if tag is None or value is None:
-            print("❌ Write command missing 'tag' or 'value'")
+            # print("❌ Write command missing 'tag' or 'value'")
+            print(" Write command missing 'tag' or 'value'")
             return
-        print(f"📝 Write command: {tag} = {value}")
+        # print(f"📝 Write command: {tag} = {value}")
+        print(f" Write command: {tag} = {value}")
         plc_loop.write_tag(tag, value)
         # After successful write
         response = {"type": "ack", "cmd": "write", "tag": tag, "success": True}
         client_socket.send((json.dumps(response) + "\n").encode('utf-8'))
     else:
-        print(f"❓ Unknown command: {cmd}")
+        # print(f"❓ Unknown command: {cmd}")
+        print(f" Unknown command: {cmd}")
 
 
 def start_tcp_server():
@@ -126,9 +135,11 @@ def start_tcp_server():
     try:
         server.bind((TCP_HOST, TCP_PORT))
         server.listen(5)
-        print(f"📡 Python PLC service listening on {TCP_HOST}:{TCP_PORT}")
+        # print(f"📡 Python PLC service listening on {TCP_HOST}:{TCP_PORT}")
+        print(f" Python PLC service listening on {TCP_HOST}:{TCP_PORT}")
     except OSError as e:
-        print(f"❌ Failed to bind to {TCP_HOST}:{TCP_PORT}: {e}")
+        # print(f"❌ Failed to bind to {TCP_HOST}:{TCP_PORT}: {e}")
+        print(f" Failed to bind to {TCP_HOST}:{TCP_PORT}: {e}")
         sys.exit(1)
 
     try:
@@ -141,12 +152,14 @@ def start_tcp_server():
             )
             client_handler.start()
     except KeyboardInterrupt:
-        print("\n🛑 Shutting down PLC service...")
+        # print("\n🛑 Shutting down PLC service...")
+        print("\n Shutting down PLC service...")
     finally:
         plc_loop.stop_loop()
         server.close()
 
 
 if __name__ == "__main__":
-    print(f"🚀 Starting SCADA PLC Service | {datetime.now().isoformat()}")
+    # print(f"🚀 Starting SCADA PLC Service | {datetime.now().isoformat()}")
+    print(f"Starting SCADA PLC Service | {datetime.now().isoformat()}")
     start_tcp_server()

@@ -64,6 +64,7 @@ app.use('/api/auth', require('./routes/api/auth'));
 // API Routes
 app.use('/api/plc', plcRoutes);
 app.use('/api/alarms', require('./routes/api/alarm'));
+app.use('/api/alarm-history', require('./routes/api/alarmHistory'));
 app.use('/api/audit', auditRoutes);
 
 // Serve static files
