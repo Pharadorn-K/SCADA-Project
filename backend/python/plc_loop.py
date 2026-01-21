@@ -276,7 +276,7 @@ def _loop_read_plc_worker():
     # Cleanup on exit
     if mc:
         mc.close()
-        print("🛑 PLC loop stopped")
+        print("🛑 PLC loop stopped")        
         main_q_intersection.put_nowait(STOP)
     else:
         print("🛑 PLC loop stopped, ⚠️ Error mc")

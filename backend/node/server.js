@@ -17,7 +17,7 @@ global.services = {
   stateStore,  
   wss: null // Will be set later
 };
-
+logService.loadFromFile(10);
 const alarmService = require('./services/alarmService');
 global.services.alarmService = alarmService;
 

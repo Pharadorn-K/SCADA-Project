@@ -38,7 +38,6 @@ function raise(code, message, severity = 'ERROR') {
   }
 }
 
-
 function broadcastAlarm(event, alarm) {
   const wss = global.services?.wss;
   if (!wss) return;

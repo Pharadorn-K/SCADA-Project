@@ -129,3 +129,48 @@
 {"ts":"2026-01-20T15:21:11.286Z","type":"ALARM","severity":"ERROR","user":"system","role":"system","action":null,"code":"PLC_DISCONNECTED","message":"Lost connection to Python PLC service","meta":{}}
 {"ts":"2026-01-20T15:23:23.294Z","type":"ALARM","severity":"ERROR","user":"system","role":"system","action":null,"code":"PLC_DISCONNECTED","message":"Lost connection to Python PLC service","meta":{}}
 {"ts":"2026-01-20T15:40:33.916Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"LOGIN","code":null,"message":"User logged in","meta":{}}
+{"ts":"2026-01-21T00:04:29.155Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"LOGIN","code":null,"message":"User logged in","meta":{}}
+{"ts":"2026-01-21T00:04:36.954Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"START_PLC","code":null,"message":"PLC start requested","meta":{}}
+{"ts":"2026-01-21T00:04:42.220Z","type":"ALARM","severity":"ERROR","user":"system","role":"system","action":null,"code":"PLC_FAULT","message":"PLC heartbeat timeout","meta":{}}
+{"ts":"2026-01-21T00:04:42.220Z","type":"ALARM","severity":"WARN","user":"system","role":"system","action":null,"code":"PLC_RECOVERING","message":"Auto-recover attempt 1","meta":{}}
+{"ts":"2026-01-21T00:04:44.235Z","type":"ALARM","severity":"ERROR","user":"system","role":"system","action":null,"code":"PLC_DISCONNECTED","message":"Lost connection to Python PLC service","meta":{}}
+{"ts":"2026-01-21T00:04:52.721Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_STOPPED_MANUAL","message":"PLC stopped by operator","meta":{}}
+{"ts":"2026-01-21T00:04:52.722Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"STOP_PLC","code":null,"message":"PLC stop requested","meta":{}}
+{"ts":"2026-01-21T00:04:52.724Z","type":"ALARM","severity":"ERROR","user":"system","role":"system","action":null,"code":"PLC_DISCONNECTED","message":"Lost connection to Python PLC service","meta":{}}
+{"ts":"2026-01-21T00:12:02.999Z","type":"ALARM","severity":"ERROR","user":"system","role":"system","action":null,"code":"PLC_DISCONNECTED","message":"Lost connection to Python PLC service","meta":{}}
+{"ts":"2026-01-21T00:18:11.972Z","type":"ALARM","severity":"ERROR","user":"system","role":"system","action":null,"code":"PLC_DISCONNECTED","message":"Lost connection to Python PLC service","meta":{}}
+{"ts":"2026-01-21T00:18:56.291Z","type":"ALARM","severity":"ERROR","user":"system","role":"system","action":null,"code":"PLC_DISCONNECTED","message":"Lost connection to Python PLC service","meta":{}}
+{"ts":"2026-01-21T00:21:24.841Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"LOGIN","code":null,"message":"User logged in","meta":{}}
+{"ts":"2026-01-21T00:21:27.680Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"START_PLC","code":null,"message":"PLC start requested","meta":{}}
+{"ts":"2026-01-21T00:21:54.777Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_STOPPED_MANUAL","message":"PLC stopped by operator","meta":{}}
+{"ts":"2026-01-21T00:21:54.777Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"STOP_PLC","code":null,"message":"PLC stop requested","meta":{}}
+{"ts":"2026-01-21T00:29:30.554Z","type":"ALARM","severity":"ERROR","user":"system","role":"system","action":null,"code":"PLC_DISCONNECTED","message":"Lost connection to Python PLC service","meta":{}}
+{"ts":"2026-01-21T00:30:24.619Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"LOGIN","code":null,"message":"User logged in","meta":{}}
+{"ts":"2026-01-21T00:30:55.937Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"START_PLC","code":null,"message":"PLC start requested","meta":{}}
+{"ts":"2026-01-21T00:31:07.823Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_STOPPED_MANUAL","message":"PLC stopped by operator","meta":{}}
+{"ts":"2026-01-21T00:31:07.824Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"STOP_PLC","code":null,"message":"PLC stop requested","meta":{}}
+{"ts":"2026-01-21T00:32:10.977Z","type":"ALARM","severity":"ERROR","user":"system","role":"system","action":null,"code":"PLC_DISCONNECTED","message":"Lost connection to Python PLC service","meta":{}}
+{"ts":"2026-01-21T00:45:47.635Z","type":"ALARM","severity":"ERROR","user":"system","role":"system","action":null,"code":"PLC_DISCONNECTED","message":"Lost connection to Python PLC service","meta":{}}
+{"ts":"2026-01-21T00:47:04.430Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"LOGIN","code":null,"message":"User logged in","meta":{}}
+{"ts":"2026-01-21T06:33:45.321Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"LOGIN","code":null,"message":"User logged in","meta":{}}
+{"ts":"2026-01-21T06:40:48.437Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"LOGIN","code":null,"message":"User logged in","meta":{}}
+{"ts":"2026-01-21T06:45:53.935Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"LOGIN","code":null,"message":"User logged in","meta":{}}
+{"ts":"2026-01-21T07:11:29.763Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"LOGIN","message":"User logged in"}
+{"ts":"2026-01-21T07:14:01.972Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"LOGIN","message":"User logged in"}
+{"ts":"2026-01-21T07:14:38.331Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"START_PLC","message":"PLC start requested"}
+{"ts":"2026-01-21T07:14:55.422Z","type":"ALARM","severity":"INFO","code":"PLC_STOPPED_MANUAL","message":"PLC stopped by operator","user":"system","role":"system"}
+{"ts":"2026-01-21T07:14:55.423Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"STOP_PLC","message":"PLC stop requested"}
+{"ts":"2026-01-21T07:15:36.755Z","type":"AUDIT","severity":"INFO","user":"operator","role":"operator","action":"LOGIN","message":"User logged in"}
+{"ts":"2026-01-21T07:15:48.860Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"LOGIN","message":"User logged in"}
+{"ts":"2026-01-21T07:15:52.060Z","type":"AUDIT","severity":"INFO","user":"admin","role":"operator","action":"ACK_ALARM","code":"PLC_STOPPED_MANUAL","message":"Alarm acknowledged"}
+{"ts":"2026-01-21T07:18:54.864Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"START_PLC","message":"PLC start requested"}
+{"ts":"2026-01-21T07:19:06.064Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"STOP_PLC","message":"PLC stop requested"}
+{"ts":"2026-01-21T07:31:27.494Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"LOGIN","message":"User logged in"}
+{"ts":"2026-01-21T07:31:36.039Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"START_PLC","message":"PLC start requested"}
+{"ts":"2026-01-21T07:31:40.229Z","type":"ALARM","severity":"INFO","code":"PLC_STOPPED_MANUAL","message":"PLC stopped by operator","user":"system","role":"system"}
+{"ts":"2026-01-21T07:31:40.230Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"STOP_PLC","message":"PLC stop requested"}
+{"ts":"2026-01-21T07:31:46.989Z","type":"AUDIT","severity":"INFO","user":"admin","role":"operator","action":"ACK_ALARM","code":"PLC_STOPPED_MANUAL","message":"Alarm acknowledged"}
+{"ts":"2026-01-21T07:47:33.638Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"LOGIN","code":null,"message":"User logged in","meta":{}}
+{"ts":"2026-01-21T07:51:27.561Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"LOGIN","code":null,"message":"User logged in","meta":{}}
+{"ts":"2026-01-21T08:02:08.460Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"LOGIN","code":null,"message":"User logged in","meta":{}}
+{"ts":"2026-01-21T08:04:07.787Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"LOGIN","code":null,"message":"User logged in","meta":{}}

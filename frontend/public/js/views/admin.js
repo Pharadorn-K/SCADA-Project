@@ -17,6 +17,17 @@ export function adminView() {
       </div>
 
       <div class="card">
+        <label>Alarm History Range:</label>
+        <select id="alarm-range">
+          <option value="15">Last 15 minutes</option>
+          <option value="30">Last 30 minutes</option>
+          <option value="60" selected>Last 1 hour</option>
+          <option value="480">Last 8 hours</option>
+          <option value="1440">Last 24 hours</option>
+        </select>
+      </div>      
+
+      <div class="card">
         <h3>🚨 Active Alarms</h3>
         <ul id="alarm-list" class="alarm-list"></ul>
       </div>
@@ -25,13 +36,16 @@ export function adminView() {
         <h3>🧾 Alarm History</h3>
         <ul id="alarm-history" class="alarm-history"></ul>
       </div>
-
   `;
 }
 
 import { sendPlcCommand } from '../api.js';
+import { scadaStore } from '../store.js';
 
-let alarmTimer = null;
+
+let alarmTimer = null;  
+
+
 async function refreshPlcStatus() {
   const res = await fetch('/api/plc/status', {
     credentials: 'same-origin'
@@ -76,11 +90,6 @@ function updateUIFromStatus(status) {
   }
 }
 
-function handleAlarmEvent(msg) {
-  if (msg.type !== 'alarm_event') return;
-  loadAlarms(); // re-render list instantly
-}
-
 export async function adminMount() {
   // Initial status fetch
   const status = await refreshPlcStatus();
@@ -105,6 +114,11 @@ export async function adminMount() {
     sendPlcCommand('write', { tag, value });
   });
 
+  function handleAlarmEvent(msg) {
+    if (msg.type !== 'alarm_event') return;
+    loadAlarms(); // re-render list instantly
+  }
+
   alarmList.onclick = async (e) => {
     if (!e.target.classList.contains('ack-btn')) return;
 
@@ -119,40 +133,37 @@ export async function adminMount() {
   };
 
   async function loadAlarms() {
-    const res = await fetch('/api/alarms', {
-      credentials: 'same-origin'
-    });
+    const rangeMin = document.getElementById('alarm-range')?.value || 60;
+
+    const from = new Date(Date.now() - rangeMin * 60 * 1000).toISOString();
+
+    const res = await fetch(
+      `/api/alarm-history?from=${encodeURIComponent(from)}`,
+      { credentials: 'same-origin' }
+    );
 
     if (!res.ok) {
-      console.warn('Alarm fetch failed:', res.status);
       alarmList.innerHTML = '<li>No alarm access</li>';
       return;
     }
 
     const alarms = await res.json();
 
-    if (!Array.isArray(alarms)) {
-      console.warn('Alarm response not array:', alarms);
-      return;
-    }
+    if (!Array.isArray(alarms)) return;
 
     alarmList.innerHTML = alarms
-    .slice()
-    .reverse()
-    .map(a => `
-      <li class="alarm ${a.severity.toLowerCase()} ${a.acknowledged ? 'ack' : ''}">
-        <strong>${a.code}</strong>
-        <span>${a.message}</span>
-        <small display="float:right">${new Date(a.time).toLocaleTimeString()}</small>
-        ${
-          a.acknowledged
-            ? `<small>✔ ACK by ${a.ackBy}</small>`
-            : `<button data-id="${a.id}" class="ack-btn">ACK</button>`
-        }
-      </li>
-    `)
-  .join('');
+      .slice()
+      .reverse()
+      .map(a => `
+        <li class="alarm ${a.severity.toLowerCase()}">
+          <strong>${a.code}</strong>
+          <span>${a.message}</span>
+          <small>${new Date(a.ts).toLocaleString()}</small>
+        </li>
+      `)
+      .join('');
   }
+
   async function loadAlarmHistory() {
     const el = document.getElementById('alarm-history');
 
@@ -179,13 +190,14 @@ export async function adminMount() {
       `)
       .join('');
   }
-
   const ws = scadaStore.ws;
-
   ws.addEventListener('message', (event) => {
     const msg = JSON.parse(event.data);
     handleAlarmEvent(msg);
   });
+
+  document.getElementById('alarm-range')
+  .addEventListener('change', loadAlarms);
 
   await loadAlarms();
   await loadAlarmHistory();
