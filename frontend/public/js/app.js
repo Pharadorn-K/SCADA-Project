@@ -3,6 +3,7 @@ import { homeView, homeMount, homeUnmount } from './views/home.js';
 import { productionView, productionMount, productionUnmount } from './views/production.js';
 import { maintenanceView, maintenanceMount, maintenanceUnmount } from './views/maintenance.js';
 import { adminView, adminMount, adminUnmount } from './views/admin.js';
+import { renderSidebar } from './sidebar.js';
 
 let currentUnmount = null;
 let currentUserRole = null;
@@ -17,51 +18,69 @@ async function checkAuth() {
     return false;
   }
   currentUserRole = auth.role;
-  renderNav();
+  // renderNav();
   return true;
 }
 
+// function renderNav() {
+//   const nav = document.getElementById('main-nav');
+//   // const nav = document.getElementById('sidear');
+//   // Build nav HTML with data-page
+//   let navHTML = `
+//     <a href="#" data-page="home">🏠 Home</a>
+//     <a href="#" data-page="production">🏭 Production</a>
+//     <a href="#" data-page="maintenance">🔧 Maintenance</a>
+//   `;
 
-function renderNav() {
-  const nav = document.getElementById('main-nav');
+//   if (currentUserRole === 'admin') {
+//     navHTML += `<a href="#" data-page="admin">⚙️ Admin</a>`;
+//   }
 
-  // Build nav HTML with data-page
-  let navHTML = `
-    <a href="#" data-page="home">🏠 Home</a>
-    <a href="#" data-page="production">🏭 Production</a>
-    <a href="#" data-page="maintenance">🔧 Maintenance</a>
-  `;
+//   navHTML += `<a href="#" id="logout-link">🚪 Logout</a>`;
+//   nav.innerHTML = navHTML;
 
-  if (currentUserRole === 'admin') {
-    navHTML += `<a href="#" data-page="admin">⚙️ Admin</a>`;
-  }
+//   // Bind click handlers
+//   nav.querySelectorAll('a[data-page]').forEach(link => {
+//     link.addEventListener('click', (e) => {
+//       e.preventDefault();
+//       const page = link.dataset.page;
+//       navigate(page);
+//     });
+//   });
 
-  navHTML += `<a href="#" id="logout-link">🚪 Logout</a>`;
-  nav.innerHTML = navHTML;
+//   // Bind logout
+//   const logoutLink = document.getElementById('logout-link');
+//   if (logoutLink) {
+//     logoutLink.addEventListener('click', (e) => {
+//       e.preventDefault();
+//       logout();
+//     });
+//   }
+// }
+function mountTopbar() {
+  const btn = document.getElementById('logout-btn');
+  const roleEl = document.getElementById('user-role');
 
-  // Bind click handlers
-  nav.querySelectorAll('a[data-page]').forEach(link => {
-    link.addEventListener('click', (e) => {
-      e.preventDefault();
-      const page = link.dataset.page;
-      navigate(page);
-    });
-  });
+  if (roleEl) roleEl.textContent = currentUserRole;
 
-  // Bind logout
-  const logoutLink = document.getElementById('logout-link');
-  if (logoutLink) {
-    logoutLink.addEventListener('click', (e) => {
-      e.preventDefault();
-      logout();
+  if (btn) {
+    btn.addEventListener('click', async () => {
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+        credentials: 'same-origin'
+      });
+      window.location.href = '/login.html';
     });
   }
 }
-async function logout() {
-  await fetch('/api/auth/logout', { method: 'POST', credentials: 'same-origin' });
+
+export async function logout() {
+  await fetch('/api/auth/logout', { 
+    method: 'POST', 
+    credentials: 'same-origin' 
+  });
   window.location.href = '/login.html';
 }
-
 
 import { scadaStore } from './store.js';
 
@@ -88,12 +107,50 @@ function initWebSocket() {
   };
 }
 
+function mountSidebar() {
+  const sidebar = document.getElementById('sidebar');
+  sidebar.innerHTML = renderSidebar(currentUserRole);
+
+  sidebar.addEventListener('click', (e) => {
+    const link = e.target.closest('a[data-page]');
+    if (!link) return;
+
+    e.preventDefault();
+    navigate(link.dataset.page);
+  });
+}
+
+function setActiveSidebar(page) {
+  document.querySelectorAll('#sidebar a[data-page]').forEach(a => {
+    a.classList.toggle('active', a.dataset.page === page);
+  });
+}
+
+function initSidebarToggle() {
+  const btn = document.getElementById('sidebar-toggle');
+  const layout = document.querySelector('.layout');
+
+  btn.addEventListener('click', () => {
+    layout.classList.toggle('sidebar-collapsed');
+
+    // Optional: remember state
+    localStorage.setItem(
+      'sidebar-collapsed',
+      layout.classList.contains('sidebar-collapsed')
+    );
+  });
+
+  // Restore state
+  if (localStorage.getItem('sidebar-collapsed') === 'true') {
+    layout.classList.add('sidebar-collapsed');
+  }
+}
 
 // // Main router
 export async function navigate(page) {
   const isAuthenticated = await checkAuth();
   if (!isAuthenticated) return;
-
+  setActiveSidebar(page);
   if (currentUnmount) currentUnmount();
 
   const app = document.getElementById('app');
@@ -138,6 +195,24 @@ export async function navigate(page) {
       navigate('home');
   }
 }
+
+async function bootstrap() {
+  const ok = await checkAuth();
+  if (!ok) return;
+
+  initWebSocket();
+  mountTopbar();
+  mountSidebar();
+  initSidebarToggle();
+  navigate('home');
+}
+
+bootstrap();
+
+// await loadCurrentUser();
+// mountSidebar();
+// navigate('home');
+
 
 // export async function navigate(page) {
 //   const isAuthenticated = await checkAuth();
