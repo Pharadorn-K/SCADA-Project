@@ -89,45 +89,94 @@ function initWebSocket() {
 }
 
 
-// Main router
+// // Main router
 export async function navigate(page) {
   const isAuthenticated = await checkAuth();
   if (!isAuthenticated) return;
 
-  // Cleanup previous
   if (currentUnmount) currentUnmount();
 
   const app = document.getElementById('app');
 
+  // 🔥 RESET page classes
+  app.className = 'page';
+
   switch (page) {
     case 'home':
+      app.classList.add('page-home');
       app.innerHTML = homeView();
       homeMount?.();
       currentUnmount = homeUnmount;
       break;
+
     case 'production':
+      app.classList.add('page-production');
       app.innerHTML = productionView();
       productionMount?.();
       currentUnmount = productionUnmount;
       break;
+
     case 'maintenance':
+      app.classList.add('page-maintenance');
       app.innerHTML = maintenanceView();
       maintenanceMount?.();
       currentUnmount = maintenanceUnmount;
       break;
+
     case 'admin':
       if (currentUserRole !== 'admin') {
         alert('Access denied');
         return;
       }
+      app.classList.add('page-admin');
       app.innerHTML = adminView();
       adminMount?.();
       currentUnmount = adminUnmount;
       break;
+
     default:
       navigate('home');
   }
 }
+
+// export async function navigate(page) {
+//   const isAuthenticated = await checkAuth();
+//   if (!isAuthenticated) return;
+
+//   // Cleanup previous
+//   if (currentUnmount) currentUnmount();
+
+//   const app = document.getElementById('app');
+
+//   switch (page) {
+//     case 'home':
+//       app.innerHTML = homeView();
+//       homeMount?.();
+//       currentUnmount = homeUnmount;
+//       break;
+//     case 'production':
+//       app.innerHTML = productionView();
+//       productionMount?.();
+//       currentUnmount = productionUnmount;
+//       break;
+//     case 'maintenance':
+//       app.innerHTML = maintenanceView();
+//       maintenanceMount?.();
+//       currentUnmount = maintenanceUnmount;
+//       break;
+//     case 'admin':
+//       if (currentUserRole !== 'admin') {
+//         alert('Access denied');
+//         return;
+//       }
+//       app.innerHTML = adminView();
+//       adminMount?.();
+//       currentUnmount = adminUnmount;
+//       break;
+//     default:
+//       navigate('home');
+//   }
+// }
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
