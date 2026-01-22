@@ -1,5 +1,6 @@
 /* frontend/public/css/main.css */
 /* ===== Page Wrapper ===== */
+
 .page {
   min-height: calc(100vh - 60px);
   padding: 20px;
