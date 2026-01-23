@@ -5,6 +5,7 @@ export function homeView() {
       <div class="card">
         <p>Welcome to the SCADA system.</p>
         <p>Use navigation above to switch views.</p>
+        <p><i class="fasfa-desktop"></i> fontawesome</p>
       </div>
   `;
 }

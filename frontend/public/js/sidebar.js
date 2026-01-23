@@ -3,7 +3,7 @@ export function renderSidebar(role) {
   return `
     <nav class="sidebar-nav">
       <div class="sidebar-section">
-        <a data-page="home">🏠 <span>Home</span></a>
+        <a data-page="home"><i class="fa-solid fa-arrow-right-to-bracket"></i><span>Home</span></a>
         <a data-page="production">🏭 <span>Production</span></a>
         <a data-page="maintenance">🛠 <span>Maintenance</span></a>
 
