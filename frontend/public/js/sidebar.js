@@ -16,7 +16,3 @@ export function renderSidebar(role) {
     </nav>
   `;
 }
-{/* <a href="#" data-page="home">🏠 Home</a>  
-<a href="#" data-page="production">🏭 Production</a>
-<a href="#" data-page="maintenance">🛠 Maintenance</a>
-<a href="#" data-page="admin">⚙ Admin</a> */}

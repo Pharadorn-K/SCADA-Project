@@ -18,45 +18,9 @@ async function checkAuth() {
     return false;
   }
   currentUserRole = auth.role;
-  // renderNav();
   return true;
 }
 
-// function renderNav() {
-//   const nav = document.getElementById('main-nav');
-//   // const nav = document.getElementById('sidear');
-//   // Build nav HTML with data-page
-//   let navHTML = `
-//     <a href="#" data-page="home">🏠 Home</a>
-//     <a href="#" data-page="production">🏭 Production</a>
-//     <a href="#" data-page="maintenance">🔧 Maintenance</a>
-//   `;
-
-//   if (currentUserRole === 'admin') {
-//     navHTML += `<a href="#" data-page="admin">⚙️ Admin</a>`;
-//   }
-
-//   navHTML += `<a href="#" id="logout-link">🚪 Logout</a>`;
-//   nav.innerHTML = navHTML;
-
-//   // Bind click handlers
-//   nav.querySelectorAll('a[data-page]').forEach(link => {
-//     link.addEventListener('click', (e) => {
-//       e.preventDefault();
-//       const page = link.dataset.page;
-//       navigate(page);
-//     });
-//   });
-
-//   // Bind logout
-//   const logoutLink = document.getElementById('logout-link');
-//   if (logoutLink) {
-//     logoutLink.addEventListener('click', (e) => {
-//       e.preventDefault();
-//       logout();
-//     });
-//   }
-// }
 function mountTopbar() {
   const btn = document.getElementById('logout-btn');
   const roleEl = document.getElementById('user-role');
@@ -209,49 +173,6 @@ async function bootstrap() {
 
 bootstrap();
 
-// await loadCurrentUser();
-// mountSidebar();
-// navigate('home');
-
-
-// export async function navigate(page) {
-//   const isAuthenticated = await checkAuth();
-//   if (!isAuthenticated) return;
-
-//   // Cleanup previous
-//   if (currentUnmount) currentUnmount();
-
-//   const app = document.getElementById('app');
-
-//   switch (page) {
-//     case 'home':
-//       app.innerHTML = homeView();
-//       homeMount?.();
-//       currentUnmount = homeUnmount;
-//       break;
-//     case 'production':
-//       app.innerHTML = productionView();
-//       productionMount?.();
-//       currentUnmount = productionUnmount;
-//       break;
-//     case 'maintenance':
-//       app.innerHTML = maintenanceView();
-//       maintenanceMount?.();
-//       currentUnmount = maintenanceUnmount;
-//       break;
-//     case 'admin':
-//       if (currentUserRole !== 'admin') {
-//         alert('Access denied');
-//         return;
-//       }
-//       app.innerHTML = adminView();
-//       adminMount?.();
-//       currentUnmount = adminUnmount;
-//       break;
-//     default:
-//       navigate('home');
-//   }
-// }
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
