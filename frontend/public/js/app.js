@@ -1,10 +1,8 @@
 // frontend/public/js/app.js
-import { homeView, homeMount, homeUnmount } from './views/home.js';
-import { productionView, productionMount, productionUnmount } from './views/production.js';
-import { maintenanceView, maintenanceMount, maintenanceUnmount } from './views/maintenance.js';
-import { adminView, adminMount, adminUnmount } from './views/admin.js';
 import { renderSidebar } from './sidebar.js';
-
+import { initSidebarBehavior,setActiveSidebar } from './sidebar-behavior.js';
+import { routes } from './routes.js';
+import { scadaStore } from './store.js';
 let currentUnmount = null;
 let currentUserRole = null;
 
@@ -46,8 +44,6 @@ export async function logout() {
   window.location.href = '/login.html';
 }
 
-import { scadaStore } from './store.js';
-
 function initWebSocket() {
   if (scadaStore.ws) return;
 
@@ -74,30 +70,20 @@ function initWebSocket() {
 function mountSidebar() {
   const sidebar = document.getElementById('sidebar');
   sidebar.innerHTML = renderSidebar(currentUserRole);
+  initSidebarBehavior(navigate);
 
-  sidebar.addEventListener('click', (e) => {
-    const link = e.target.closest('a[data-page]');
-    if (!link) return;
-
-    e.preventDefault();
-    navigate(link.dataset.page);
-  });
-}
-
-function setActiveSidebar(page) {
-  document.querySelectorAll('#sidebar a[data-page]').forEach(a => {
-    a.classList.toggle('active', a.dataset.page === page);
-  });
 }
 
 function initSidebarToggle() {
-  const btn = document.getElementById('sidebar-toggle');
   const layout = document.querySelector('.layout');
+
+  // IMPORTANT: button is inside sidebar
+  const btn = document.getElementById('toggleSidebar');
+  if (!btn || !layout) return;
 
   btn.addEventListener('click', () => {
     layout.classList.toggle('sidebar-collapsed');
 
-    // Optional: remember state
     localStorage.setItem(
       'sidebar-collapsed',
       layout.classList.contains('sidebar-collapsed')
@@ -110,54 +96,42 @@ function initSidebarToggle() {
   }
 }
 
-// // Main router
-export async function navigate(page) {
+export async function navigate(route) {
   const isAuthenticated = await checkAuth();
   if (!isAuthenticated) return;
-  setActiveSidebar(page);
+
   if (currentUnmount) currentUnmount();
 
   const app = document.getElementById('app');
-
-  // 🔥 RESET page classes
   app.className = 'page';
 
-  switch (page) {
-    case 'home':
-      app.classList.add('page-home');
-      app.innerHTML = homeView();
-      homeMount?.();
-      currentUnmount = homeUnmount;
-      break;
+  const parts = route.split('.');
+  let node = routes;
 
-    case 'production':
-      app.classList.add('page-production');
-      app.innerHTML = productionView();
-      productionMount?.();
-      currentUnmount = productionUnmount;
-      break;
-
-    case 'maintenance':
-      app.classList.add('page-maintenance');
-      app.innerHTML = maintenanceView();
-      maintenanceMount?.();
-      currentUnmount = maintenanceUnmount;
-      break;
-
-    case 'admin':
-      if (currentUserRole !== 'admin') {
-        alert('Access denied');
-        return;
-      }
-      app.classList.add('page-admin');
-      app.innerHTML = adminView();
-      adminMount?.();
-      currentUnmount = adminUnmount;
-      break;
-
-    default:
-      navigate('home');
+  for (const part of parts) {
+    node = node?.[part];
   }
+
+  if (!node || !node.view) {
+    console.warn('Route not found:', route);
+    return navigate('home');
+  }
+
+  // Role guard
+  if (node.role && node.role !== currentUserRole) {
+    alert('Access denied');
+    return;
+  }
+
+  // Page wrapper class
+  app.classList.add(`page-${parts[0]}`);
+
+  app.innerHTML = node.view();
+  node.mount?.();
+  currentUnmount = node.unmount || null;
+
+  // Sync sidebar
+  setActiveSidebar(route);
 }
 
 async function bootstrap() {
@@ -166,18 +140,10 @@ async function bootstrap() {
 
   initWebSocket();
   mountTopbar();
-  mountSidebar();
-  initSidebarToggle();
+  mountSidebar();        // injects sidebar HTML
+  initSidebarToggle();   // now button exists
   navigate('home');
 }
 
+
 bootstrap();
-
-
-// Initialize
-document.addEventListener('DOMContentLoaded', () => {
-  initWebSocket();
-  // Restore page from URL hash or default to home
-  const page = window.location.hash.slice(1) || 'home';
-  navigate(page);
-});

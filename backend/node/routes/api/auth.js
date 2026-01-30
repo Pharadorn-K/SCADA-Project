@@ -46,15 +46,27 @@ router.post('/login', (req, res) => {
 });
 
 router.post('/logout', (req, res) => {
-  req.session.destroy();
-  res.json({ success: true });
-  global.services.logService.log({
-    type: 'AUDIT',
-    severity: 'INFO',
-    user: req.session.userId || 'unknown',
-    role: req.session.role || 'unknown',
-    action: 'LOGOUT',
-    message: 'User logged out'
+  // ✅ Capture data BEFORE destroy
+  const userId = req.session?.userId || 'unknown';
+  const role = req.session?.role || 'unknown';
+
+  req.session.destroy(err => {
+    if (err) {
+      console.error('Session destroy error:', err);
+      return res.status(500).json({ success: false });
+    }
+
+    // ✅ Log AFTER destroy using captured values
+    global.services.logService.log({
+      type: 'AUDIT',
+      severity: 'INFO',
+      user: userId,
+      role: role,
+      action: 'LOGOUT',
+      message: 'User logged out'
+    });
+
+    res.json({ success: true });
   });
 });
 

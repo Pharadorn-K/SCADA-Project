@@ -1070,3 +1070,507 @@ body {
   background: #f5f6fa;
 }
 
+
+
+
+
+
+
+
+
+
+// frontend/public/js/app.js
+import { renderSidebar } from './sidebar.js';
+import { initSidebarBehavior,setActiveSidebar } from './sidebar-behavior.js';
+import { routes } from './routes.js';
+
+let currentUnmount = null;
+let currentUserRole = null;
+
+
+// Auth check
+async function checkAuth() {
+  const res = await fetch('/api/auth/status', { credentials: 'same-origin' });
+  const auth = await res.json();
+  if (!auth.authenticated) {
+    window.location.href = '/login.html';
+    return false;
+  }
+  currentUserRole = auth.role;
+  return true;
+}
+
+function mountTopbar() {
+  const btn = document.getElementById('logout-btn');
+  const roleEl = document.getElementById('user-role');
+
+  if (roleEl) roleEl.textContent = currentUserRole;
+
+  if (btn) {
+    btn.addEventListener('click', async () => {
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+        credentials: 'same-origin'
+      });
+      window.location.href = '/login.html';
+    });
+  }
+}
+
+export async function logout() {
+  await fetch('/api/auth/logout', { 
+    method: 'POST', 
+    credentials: 'same-origin' 
+  });
+  window.location.href = '/login.html';
+}
+
+import { scadaStore } from './store.js';
+
+function initWebSocket() {
+  if (scadaStore.ws) return;
+
+  // const ws = new WebSocket('ws://localhost:3000');
+  const protocol = location.protocol === 'https:' ? 'wss' : 'ws';
+  const ws = new WebSocket(`${protocol}://${location.host}`);
+
+  scadaStore.ws = ws;
+
+  ws.onmessage = (event) => {
+    const msg = JSON.parse(event.data);
+    if (msg.type === 'plc_update') {
+      scadaStore.setData(msg.data); // notify all subscribers
+    }
+  };
+
+  ws.onopen = () => console.log('WS connected');
+  ws.onclose = () => {
+    console.log('WS disconnected');
+    setTimeout(initWebSocket, 2000); // auto-reconnect
+  };
+}
+
+function mountSidebar() {
+  const sidebar = document.getElementById('sidebar');
+  sidebar.innerHTML = renderSidebar(currentUserRole);
+  initSidebarBehavior(navigate);
+
+}
+
+function initSidebarToggle() {
+  const btn = document.getElementById('sidebar-toggle');
+  const layout = document.querySelector('.layout');
+
+  btn.addEventListener('click', () => {
+    layout.classList.toggle('sidebar-collapsed');
+
+    // Optional: remember state
+    localStorage.setItem(
+      'sidebar-collapsed',
+      layout.classList.contains('sidebar-collapsed')
+    );
+  });
+
+  // Restore state
+  if (localStorage.getItem('sidebar-collapsed') === 'true') {
+    layout.classList.add('sidebar-collapsed');
+  }
+}
+
+export async function navigate(route) {
+  const isAuthenticated = await checkAuth();
+  if (!isAuthenticated) return;
+
+  if (currentUnmount) currentUnmount();
+
+  const app = document.getElementById('app');
+  app.className = 'page';
+
+  const parts = route.split('.');
+  let node = routes;
+
+  for (const part of parts) {
+    node = node?.[part];
+  }
+
+  if (!node || !node.view) {
+    console.warn('Route not found:', route);
+    return navigate('home');
+  }
+
+  // Role guard
+  if (node.role && node.role !== currentUserRole) {
+    alert('Access denied');
+    return;
+  }
+
+  // Page wrapper class
+  app.classList.add(`page-${parts[0]}`);
+
+  app.innerHTML = node.view();
+  node.mount?.();
+  currentUnmount = node.unmount || null;
+
+  // Sync sidebar
+  setActiveSidebar(route);
+}
+
+async function bootstrap() {
+  const ok = await checkAuth();
+  if (!ok) return;
+
+  initWebSocket();
+  mountTopbar();
+  mountSidebar();
+  initSidebarToggle();
+  navigate('home');
+}
+
+bootstrap();
+
+
+<!-- // frontend/public/index.html -->
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>SCADA.SET</title>
+    <link rel="stylesheet" href="/css/fontawesome/all.min.css">
+    <link rel="stylesheet" href="/css/main.css">
+  </head>
+  <body>
+    <header id="topbar">
+      <div class="topbar-left">
+        <h1>SCADA.SET</h1>
+      </div>
+
+      <div class="topbar-right">
+        <span id="user-role"></span>
+        <button id="logout-btn">Logout <i class="fa-solid fa-right-to-bracket fa-flip-horizontal"></i></i></button>
+      </div>
+    </header>
+
+    <div class="layout">
+      <aside id="sidebar"></aside>
+      <main id="app" class="page"></main>
+    </div>
+    
+    <script type="module" src="/js/app.js"></script>
+  </body>
+</html>
+
+
+// frontend/public/js/routes.js
+import * as Home from './views/home.js';
+import * as Production from './views/production.js';
+import * as Maintenance from './views/maintenance.js';
+import * as Admin from './views/admin.js';
+import * as OEE from './views/oee.js';
+
+export const routes = {
+  home: {
+    view: Home.homeView,
+    mount: Home.homeMount,
+    unmount: Home.homeUnmount
+  },
+
+  production: {
+    history: {
+      view: Production.productionHistoryView,
+      mount: Production.productionHistoryMount
+    },
+    press: {
+      view: Production.productionPressView
+    },
+    heat: {
+      view: Production.productionHeatView
+    },
+    lathe: {
+      view: Production.productionLatheView
+    }
+  },
+
+  maintenance: {
+    overview: {
+      view: Maintenance.maintenanceOverviewView
+    },
+    request: {
+      view: Maintenance.maintenanceRequestView
+    }
+  },
+
+  admin: {
+    alarm: {
+      view: Admin.adminAlarmView,
+      role: 'admin'
+    },
+    database: {
+      view: Admin.adminDatabaseView,
+      role: 'admin'
+    }
+  },
+
+  oee: {
+    view: OEE.oeeView
+  }
+};
+
+
+
+// frontend/public/js/sidebar-behavior.js
+// export function initSidebarBehavior(navigate) {
+//   const sidebar = document.querySelector('.sidebar');
+
+//   // Toggle collapse
+//   document.getElementById('toggleSidebar')?.addEventListener('click', () => {
+//     sidebar.classList.toggle('collapsed');
+
+//     // close all submenus when collapsed
+//     if (sidebar.classList.contains('collapsed')) {
+//       document.querySelectorAll('.sub-menu ul').forEach(ul => {
+//         ul.style.display = 'none';
+//       });
+//     }
+//   });
+
+//   // Handle submenu toggle
+//   sidebar.addEventListener('click', (e) => {
+//     const link = e.target.closest('.sub-menu > a');
+//     if (!link) return;
+
+//     e.preventDefault();
+
+//     if (sidebar.classList.contains('collapsed')) {
+//       sidebar.classList.remove('collapsed');
+//       return;
+//     }
+
+//     const parent = link.parentElement;
+//     const submenu = parent.querySelector('ul');
+
+//     // close siblings
+//     // parent.parentElement.querySelectorAll(':scope > .sub-menu').forEach(li => {
+//     //   if (li !== parent) li.querySelector('ul')?.style.display = 'none';
+//     // });
+// parent.parentElement.querySelectorAll(':scope > .sub-menu').forEach(li => {
+// if (li !== parent) {
+// const ul = li.querySelector('ul');
+// if (ul) ul.style.display = 'none';
+// }
+// });
+
+//     submenu.style.display =
+//       submenu.style.display === 'block' ? 'none' : 'block';
+//   });
+
+//   // Handle navigation clicks
+//   sidebar.addEventListener('click', (e) => {
+//     const pageLink = e.target.closest('a[data-page]');
+//     if (!pageLink) return;
+
+//     e.preventDefault();
+//     setActiveSidebar(pageLink.dataset.page);
+//     navigate(pageLink.dataset.page);
+//   });
+// }
+export function initSidebarBehavior(navigate) {
+  const sidebar = document.querySelector('.sidebar');
+
+  // Toggle collapse
+  const toggleBtn = document.getElementById('toggleSidebar');
+
+  if (toggleBtn) {
+    toggleBtn.addEventListener('click', () => {
+      sidebar.classList.toggle('collapsed');
+
+      // close all submenus when collapsed
+      if (sidebar.classList.contains('collapsed')) {
+        document.querySelectorAll('.sub-menu ul').forEach(ul => {
+          ul.style.display = 'none';
+        });
+      }
+    });
+  }
+
+  // Handle submenu toggle
+  sidebar.addEventListener('click', (e) => {
+    const link = e.target.closest('.sub-menu > a');
+    if (!link) return;
+
+    e.preventDefault();
+
+    if (sidebar.classList.contains('collapsed')) {
+      sidebar.classList.remove('collapsed');
+      return;
+    }
+
+    const parent = link.parentElement;
+    const submenu = parent.querySelector('ul');
+
+    parent.parentElement.querySelectorAll(':scope > .sub-menu').forEach(li => {
+      if (li !== parent) {
+        const ul = li.querySelector('ul');
+        if (ul) ul.style.display = 'none';
+      }
+    });
+
+    submenu.style.display =
+      submenu.style.display === 'block' ? 'none' : 'block';
+  });
+
+  // Handle navigation clicks
+  sidebar.addEventListener('click', (e) => {
+    const pageLink = e.target.closest('a[data-page]');
+    if (!pageLink) return;
+
+    e.preventDefault();
+    setActiveSidebar(pageLink.dataset.page);
+    navigate(pageLink.dataset.page);
+  });
+}
+export function setActiveSidebar(page) {
+  document.querySelectorAll('#leftside-navigation li')
+    .forEach(li => li.classList.remove('active'));
+
+  const activeLink = document.querySelector(`a[data-page="${page}"]`);
+  if (!activeLink) return;
+
+  let li = activeLink.closest('li');
+  while (li) {
+    li.classList.add('active');
+    li = li.parentElement.closest('li');
+  }
+
+  // ensure parents are open
+  document.querySelectorAll('.sub-menu.active > ul')
+    .forEach(ul => ul.style.display = 'block');
+}
+
+
+
+export function renderSidebar(role) {
+  return `
+  <div class="sidebar-header">
+    <button class="toggle-sidebar" id="toggleSidebar">
+      <i class="fa fa-bars"></i>
+    </button>
+  </div>
+
+  <div id="leftside-navigation">
+    <ul class="nano-content">
+
+      <li>
+        <a data-page="home" data-title="Home">
+          <i class="fa fa-dashboard"></i><span>Home</span>
+        </a>
+      </li>
+
+      <li class="sub-menu">
+        <a href="javascript:void(0);" data-title="Production">
+          <i class="fa fa-table"></i><span>Production</span>
+          <i class="arrow fa fa-angle-right"></i>
+        </a>
+        <ul>
+          <li><a data-page="production.history">History</a></li>
+          <li><a data-page="production.press">Press</a></li>
+          <li><a data-page="production.heat">Heat</a></li>
+          <li><a data-page="production.lathe">Lathe</a></li>
+        </ul>
+      </li>
+
+      <li class="sub-menu">
+        <a href="javascript:void(0);" data-title="Maintenance">
+          <i class="fa fa-tasks"></i><span>Maintenance</span>
+          <i class="arrow fa fa-angle-right"></i>
+        </a>
+        <ul>
+          <li><a data-page="maintenance.overview">Overview</a></li>
+          <li><a data-page="maintenance.request">Request</a></li>
+        </ul>
+      </li>
+
+      <li>
+        <a data-page="oee" data-title="OEE">
+          <i class="fa fa-line-chart"></i><span>OEE</span>
+        </a>
+      </li>
+
+      ${role === 'admin' ? `
+      <li class="sub-menu">
+        <a href="javascript:void(0);" data-title="Admin">
+          <i class="fa fa-cog"></i><span>Admin</span>
+          <i class="arrow fa fa-angle-right"></i>
+        </a>
+        <ul>
+          <li><a data-page="admin.alarm">Alarm Handle</a></li>
+          <li><a data-page="admin.database">Database</a></li>
+        </ul>
+      </li>` : ''}
+
+    </ul>
+  </div>
+  `;
+}
+
+
+/* ===== Hover preview when sidebar collapsed ===== */
+
+.layout.sidebar-collapsed .sub-menu {
+  position: relative;
+}
+
+/* First level floating menu */
+.layout.sidebar-collapsed .sub-menu > ul {
+  position: absolute;
+  top: 0;
+  left: 64px; /* collapsed sidebar width */
+  min-width: 220px;
+
+  background: #1e1e2d;
+  border-radius: 6px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.35);
+
+  display: none;
+  padding: 6px 0;
+  z-index: 999;
+}
+.layout.sidebar-collapsed .sub-menu:hover > ul {
+  display: block;
+}
+/* Nested floating submenu */
+.layout.sidebar-collapsed .sub-menu ul .sub-menu > ul {
+  top: 0;
+  left: 100%;
+  margin-left: 4px;
+}
+.layout.sidebar-collapsed .sub-menu ul li a {
+  padding: 10px 16px;
+  color: #cfd2dc;
+}
+
+.layout.sidebar-collapsed .sub-menu ul li a:hover {
+  background: rgba(255,255,255,0.08);
+  color: #fff;
+}
+.layout.sidebar-collapsed .sub-menu > a .arrow {
+  display: block;
+  margin-left: auto;
+}
+.layout.sidebar-collapsed .sub-menu > ul {
+  animation: hoverSlide 0.18s ease;
+}
+
+@keyframes hoverSlide {
+  from {
+    opacity: 0;
+    transform: translateX(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+.layout.sidebar-collapsed .sub-menu > ul:hover {
+  display: block;
+}

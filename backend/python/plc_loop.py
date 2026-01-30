@@ -132,18 +132,18 @@ def start_loop(plc_location, read_config, socket_clients_list):
     # Start background thread
     loop_read_PLC_thread = threading.Thread(target=_loop_read_plc_worker, daemon=True)
     loop_read_PLC_thread.start()
-    loop_main_queue_thread = threading.Thread(target=_main_queue_intersection, daemon=True)
-    loop_main_queue_thread.start()
-    loop_press_clean_thread = threading.Thread(target=_loop_clean_press_data_worker, daemon=True)
-    loop_press_clean_thread.start()
-    loop_heat_clean_thread = threading.Thread(target=_loop_clean_heat_data_worker, daemon=True)
-    loop_heat_clean_thread.start()
-    # loop_lathe_clean_thread = threading.Thread(target=_loop_clean_lathe_data_worker, daemon=True)
-    # loop_lathe_clean_thread.start()
-    # loop_eq_press_clean_thread = threading.Thread(target=_loop_clean_eq_press_data_worker, daemon=True)
-    # loop_eq_press_clean_thread.start()
-    loop_write_DB_thread = threading.Thread(target=_loop_writer_db_worker, daemon=True)
-    loop_write_DB_thread.start()
+    # loop_main_queue_thread = threading.Thread(target=_main_queue_intersection, daemon=True)
+    # loop_main_queue_thread.start()
+    # loop_press_clean_thread = threading.Thread(target=_loop_clean_press_data_worker, daemon=True)
+    # loop_press_clean_thread.start()
+    # loop_heat_clean_thread = threading.Thread(target=_loop_clean_heat_data_worker, daemon=True)
+    # loop_heat_clean_thread.start()
+    # # loop_lathe_clean_thread = threading.Thread(target=_loop_clean_lathe_data_worker, daemon=True)
+    # # loop_lathe_clean_thread.start()
+    # # loop_eq_press_clean_thread = threading.Thread(target=_loop_clean_eq_press_data_worker, daemon=True)
+    # # loop_eq_press_clean_thread.start()
+    # loop_write_DB_thread = threading.Thread(target=_loop_writer_db_worker, daemon=True)
+    # loop_write_DB_thread.start()
     return True
 
 def stop_loop():
@@ -203,7 +203,7 @@ def _process_write_commands():
         except Empty:
             break
 
-def _loop_read_plc_worker():
+def _loop_read_plc_workers():
     """Main read loop."""
     global mc
     connected = False
@@ -280,6 +280,46 @@ def _loop_read_plc_worker():
         main_q_intersection.put_nowait(STOP)
     else:
         print("🛑 PLC loop stopped, ⚠️ Error mc")
+# Add this near the top with other global variables
+_state_counter = 0
+_state_cycle = [
+    {"running": 1, "idle": 0, "alarm": 0},  # Running state (10 iterations)
+    {"running": 0, "idle": 1, "alarm": 0},  # Idle state (10 iterations)
+    {"running": 0, "idle": 0, "alarm": 1}   # Alarm state (10 iterations)
+]
+
+def get_sample_state():
+    """Generate sample state data cycling through running -> idle -> alarm."""
+    global _state_counter
+    state_index = (_state_counter // 10) % 3  # Change state every 10 iterations
+    sample_data = _state_cycle[state_index]
+    _state_counter += 1
+    return sample_data
+
+def _loop_read_plc_worker():
+    while _running and not _stop_event.is_set():
+        try:
+            # Get sample data instead of undefined variables
+            state = get_sample_state()
+            tags_broadcast = {
+                "running": state["running"],
+                "idle": state["idle"],
+                "alarm": state["alarm"]
+            }
+            _broadcast_plc_data(tags_broadcast)
+
+            for client_sock, addr in _socket_clients[:]:
+                try:
+                    send_heartbeat(client_sock)
+                except Exception as e:
+                    print(f"🔌 Heartbeat failed for {addr}: {e}")
+            
+            time.sleep(1)
+        except Exception as e:
+            print(f"⚠️send error:{e}")
+            time.sleep(0.3)
+    print("🛑 PLC loop stopped")
+
 
 def _main_queue_intersection():
     while True:

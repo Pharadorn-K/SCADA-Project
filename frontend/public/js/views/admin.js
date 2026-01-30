@@ -1,5 +1,5 @@
 // frontend/public/js/views/admin.js
-export function adminView() {
+export function adminAlarmView() {
   return `
       <h1>⚙️ Admin Panel</h1>
       <p>Manage PLC and view real-time data.</p>
@@ -36,6 +36,14 @@ export function adminView() {
         <h3>🧾 Alarm History</h3>
         <ul id="alarm-history" class="alarm-history"></ul>
       </div>
+  `;
+}
+
+export function adminDatabaseView() {
+  return `
+    <div class="card">
+      <h2>Database Management</h2>
+    </div>
   `;
 }
 
@@ -90,7 +98,7 @@ function updateUIFromStatus(status) {
   }
 }
 
-export async function adminMount() {
+export async function adminAlarmMount() {
   // Initial status fetch
   const status = await refreshPlcStatus();
   const alarmList = document.getElementById('alarm-list');
@@ -204,6 +212,6 @@ export async function adminMount() {
 
 }
 
-export function adminUnmount() {
+export function adminAlarmUnmount() {
   if (alarmTimer) clearInterval(alarmTimer);
 }
