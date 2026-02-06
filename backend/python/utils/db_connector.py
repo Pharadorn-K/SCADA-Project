@@ -29,3 +29,10 @@ def create_pool():
     except Exception as e:
         print(f"❌ Failed to create DB pool: {e}")
         return None
+    
+if __name__ == "__main__":
+    try:
+        db_pool = create_pool()
+        print(db_pool)
+    except Exception as e:
+        print(f"{e}")

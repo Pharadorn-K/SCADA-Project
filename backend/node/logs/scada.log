@@ -234,3 +234,20 @@
 {"ts":"2026-01-30T08:16:16.060Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_STOPPED_MANUAL","message":"PLC stopped by operator","meta":{}}
 {"ts":"2026-01-30T08:16:16.060Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"STOP_PLC","code":null,"message":"PLC stop requested","meta":{}}
 {"ts":"2026-01-30T09:17:11.411Z","type":"ALARM","severity":"ERROR","user":"system","role":"system","action":null,"code":"PLC_DISCONNECTED","message":"Lost connection to Python PLC service","meta":{}}
+{"ts":"2026-02-02T00:12:17.956Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"LOGIN","code":null,"message":"User logged in","meta":{}}
+{"ts":"2026-02-04T02:35:01.670Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"LOGIN","code":null,"message":"User logged in","meta":{}}
+{"ts":"2026-02-04T02:35:14.294Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"START_PLC","code":null,"message":"PLC start requested","meta":{}}
+{"ts":"2026-02-04T02:35:21.515Z","type":"ALARM","severity":"ERROR","user":"system","role":"system","action":null,"code":"PLC_FAULT","message":"PLC heartbeat timeout","meta":{}}
+{"ts":"2026-02-04T02:35:21.515Z","type":"ALARM","severity":"WARN","user":"system","role":"system","action":null,"code":"PLC_RECOVERING","message":"Auto-recover attempt 1","meta":{}}
+{"ts":"2026-02-04T02:35:21.553Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_RECOVERED","message":"PLC heartbeat restored","meta":{}}
+{"ts":"2026-02-04T02:35:21.553Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_FAULT","message":"Alarm cleared (condition recovered)","meta":{}}
+{"ts":"2026-02-04T02:35:23.523Z","type":"ALARM","severity":"ERROR","user":"system","role":"system","action":null,"code":"PLC_DISCONNECTED","message":"Lost connection to Python PLC service","meta":{}}
+{"ts":"2026-02-04T02:35:26.698Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_RECOVERED","message":"PLC heartbeat restored","meta":{}}
+{"ts":"2026-02-04T02:35:26.698Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_DISCONNECTED","message":"Alarm cleared (condition recovered)","meta":{}}
+{"ts":"2026-02-04T02:35:33.709Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"STOP_PLC","code":null,"message":"PLC stop requested","meta":{}}
+{"ts":"2026-02-04T02:35:33.709Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_STOPPED_MANUAL","message":"PLC stopped by operator","meta":{}}
+{"ts":"2026-02-04T02:51:27.659Z","type":"ALARM","severity":"ERROR","user":"system","role":"system","action":null,"code":"PLC_DISCONNECTED","message":"Lost connection to Python PLC service","meta":{}}
+{"ts":"2026-02-04T02:51:57.296Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"START_PLC","code":null,"message":"PLC start requested","meta":{}}
+{"ts":"2026-02-04T02:52:10.425Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"STOP_PLC","code":null,"message":"PLC stop requested","meta":{}}
+{"ts":"2026-02-04T02:52:10.424Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_STOPPED_MANUAL","message":"PLC stopped by operator","meta":{}}
+{"ts":"2026-02-04T03:01:55.630Z","type":"ALARM","severity":"ERROR","user":"system","role":"system","action":null,"code":"PLC_DISCONNECTED","message":"Lost connection to Python PLC service","meta":{}}

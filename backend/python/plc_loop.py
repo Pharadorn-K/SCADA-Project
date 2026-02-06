@@ -39,9 +39,8 @@ press_clean_q = Queue(maxsize=1000)
 heat_clean_q = Queue(maxsize=1000)
 lathe_clean_q = Queue(maxsize=1000)
 eq_press_clean_q = Queue(maxsize=1000)
-
 clean_db_q = Queue(maxsize=1000)
-_db_pool = None
+
 # Python sends heartbeat
 def send_heartbeat(socket):
     msg = {
@@ -49,13 +48,34 @@ def send_heartbeat(socket):
         "ts": time.time()
     }
     socket.sendall((json.dumps(msg) + "\n").encode())
-# _db_pool = db_connector.create_pool()
-# plc_location = clean_data.get_all_location(_db_pool,"PLC")
-# status_location = clean_data.get_all_location(_db_pool,"Read_location")
-# all_range = clean_data.get_all_location(_db_pool,"All")
-# all_range_equipment = clean_data.get_all_location(_db_pool,"Equipment")
-# all_department,all_machine,all_data,all_category = clean_data.get_range(all_range)
-# all_department_eq,all_machine_eq,all_category_eq,all_data_eq = clean_data.get_range_equipment(all_range_equipment)
+
+_db_pool = None
+_db_pool = db_connector.create_pool()
+plc_location = clean_data.get_all_location(_db_pool,"PLC")
+status_location = clean_data.get_all_location(_db_pool,"Read_location")
+all_range = clean_data.get_all_location(_db_pool,"All")
+all_range_equipment = clean_data.get_all_location(_db_pool,"Equipment")
+all_department,all_machine,all_data,all_category = clean_data.get_range(all_range)
+all_department_eq,all_machine_eq,all_category_eq,all_data_eq = clean_data.get_range_equipment(all_range_equipment)
+print(f"plc_location:{plc_location}")
+print(f"status_location:{status_location}")
+print(f"all_range:{all_range}")
+print(f"all_range_equipment:{all_range_equipment}")
+print(f"all_department:{all_department}")
+print(f"all_machine:{all_machine}")
+print(f"all_data:{all_data}")
+print(f"all_category:{all_category}")
+print(f"all_department_eq:{all_department_eq}")
+print(f"all_machine_eq:{all_machine_eq}")
+print(f"all_data_eq:{all_data_eq}")
+print(f"all_category_eq:{all_category_eq}")
+
+# --- Get connection pool ---
+def get_db_pool():
+    global _db_pool
+    if _db_pool is None:
+        _db_pool = db_connector.create_pool()
+    return _db_pool
 
 # --- read head & size function ---
 def get_read_head_and_size():
@@ -132,16 +152,16 @@ def start_loop(plc_location, read_config, socket_clients_list):
     # Start background thread
     loop_read_PLC_thread = threading.Thread(target=_loop_read_plc_worker, daemon=True)
     loop_read_PLC_thread.start()
-    # loop_main_queue_thread = threading.Thread(target=_main_queue_intersection, daemon=True)
-    # loop_main_queue_thread.start()
-    # loop_press_clean_thread = threading.Thread(target=_loop_clean_press_data_worker, daemon=True)
-    # loop_press_clean_thread.start()
-    # loop_heat_clean_thread = threading.Thread(target=_loop_clean_heat_data_worker, daemon=True)
-    # loop_heat_clean_thread.start()
-    # # loop_lathe_clean_thread = threading.Thread(target=_loop_clean_lathe_data_worker, daemon=True)
-    # # loop_lathe_clean_thread.start()
-    # # loop_eq_press_clean_thread = threading.Thread(target=_loop_clean_eq_press_data_worker, daemon=True)
-    # # loop_eq_press_clean_thread.start()
+    loop_main_queue_thread = threading.Thread(target=_main_queue_intersection, daemon=True)
+    loop_main_queue_thread.start()
+    loop_press_clean_thread = threading.Thread(target=_loop_clean_press_data_worker, daemon=True)
+    loop_press_clean_thread.start()
+    loop_heat_clean_thread = threading.Thread(target=_loop_clean_heat_data_worker, daemon=True)
+    loop_heat_clean_thread.start()
+    # loop_lathe_clean_thread = threading.Thread(target=_loop_clean_lathe_data_worker, daemon=True)
+    # loop_lathe_clean_thread.start()
+    # loop_eq_press_clean_thread = threading.Thread(target=_loop_clean_eq_press_data_worker, daemon=True)
+    # loop_eq_press_clean_thread.start()
     # loop_write_DB_thread = threading.Thread(target=_loop_writer_db_worker, daemon=True)
     # loop_write_DB_thread.start()
     return True
@@ -163,7 +183,6 @@ def write_tag(tag, value):
     # Use consistent keys for the queued command
     _command_queue.put({"tag": tag, "value": value})
     print(f"➕ Enqueued write command: {tag} = {value}")
-
 def _process_write_commands():
     """Process all pending write commands."""
     while not _command_queue.empty():
@@ -203,7 +222,7 @@ def _process_write_commands():
         except Empty:
             break
 
-def _loop_read_plc_workers():
+def _loop_read_plc_worker():
     """Main read loop."""
     global mc
     connected = False
@@ -235,12 +254,12 @@ def _loop_read_plc_workers():
             word_data = raw_word_data.copy()
 
             tags = (timestamp, bit_data, word_data)
+            # print(f"📡 Read data: {tags}")
 
             # print(f"📡 Read data: {tags[0]}")
             tags_broadcast = {
                 "timestamp": timestamp,
             }
-            print(f"📡 Read data at {timestamp}")
             # tags = {
             #     "timestamp": timestamp,
             #     "bits": bit_data,
@@ -249,10 +268,10 @@ def _loop_read_plc_workers():
             # }
 
             # 1. Send data to Queue for Clean
-            # main_q_intersection.put(tags , timeout=1)
+            main_q_intersection.put(tags , timeout=1)
 
             # 2. Broadcast to all connected Node.js clients
-            _broadcast_plc_data(tags_broadcast)
+            # _broadcast_plc_data(tags_broadcast)
             
             # 3. Send heartbeat to confirm PLC is alive
             for client_sock, addr in _socket_clients[:]:
@@ -261,7 +280,7 @@ def _loop_read_plc_workers():
                 except Exception as e:
                     print(f"🔌 Heartbeat failed for {addr}: {e}")
             
-            time.sleep(1)  # 0.3-second loop
+            time.sleep(0.3)  # 0.3-second loop
 
         except Exception as e:
             print(f"⚠️ Read error, reconnecting: {e}")
@@ -280,46 +299,6 @@ def _loop_read_plc_workers():
         main_q_intersection.put_nowait(STOP)
     else:
         print("🛑 PLC loop stopped, ⚠️ Error mc")
-# Add this near the top with other global variables
-_state_counter = 0
-_state_cycle = [
-    {"running": 1, "idle": 0, "alarm": 0},  # Running state (10 iterations)
-    {"running": 0, "idle": 1, "alarm": 0},  # Idle state (10 iterations)
-    {"running": 0, "idle": 0, "alarm": 1}   # Alarm state (10 iterations)
-]
-
-def get_sample_state():
-    """Generate sample state data cycling through running -> idle -> alarm."""
-    global _state_counter
-    state_index = (_state_counter // 10) % 3  # Change state every 10 iterations
-    sample_data = _state_cycle[state_index]
-    _state_counter += 1
-    return sample_data
-
-def _loop_read_plc_worker():
-    while _running and not _stop_event.is_set():
-        try:
-            # Get sample data instead of undefined variables
-            state = get_sample_state()
-            tags_broadcast = {
-                "running": state["running"],
-                "idle": state["idle"],
-                "alarm": state["alarm"]
-            }
-            _broadcast_plc_data(tags_broadcast)
-
-            for client_sock, addr in _socket_clients[:]:
-                try:
-                    send_heartbeat(client_sock)
-                except Exception as e:
-                    print(f"🔌 Heartbeat failed for {addr}: {e}")
-            
-            time.sleep(1)
-        except Exception as e:
-            print(f"⚠️send error:{e}")
-            time.sleep(0.3)
-    print("🛑 PLC loop stopped")
-
 
 def _main_queue_intersection():
     while True:
@@ -341,7 +320,6 @@ def _main_queue_intersection():
         time.sleep(0.3)
 
 def _loop_clean_press_data_worker():
-    return
     while True :
         data = press_clean_q.get() 
         try:
@@ -363,7 +341,6 @@ def _loop_clean_press_data_worker():
         time.sleep(0.2)
 
 def _loop_clean_heat_data_worker():
-    return
     while True :
         data = heat_clean_q.get() 
         try:
@@ -371,29 +348,19 @@ def _loop_clean_heat_data_worker():
                 print("🛑 Heat worker finished, stopped By STOP")                
                 clean_db_q.put_nowait(WORKER_DONE)
                 break
-            cleaned_heat = clean_data.heat_clean(_db_pool,all_department,all_machine,all_data,data)
+            # cleaned_heat = clean_data.heat_clean(_db_pool,all_department,all_machine,all_data,data)
             # heat to DB writer queue
-
-            if cleaned_heat is not None :
-                pass
-                # print( cleaned_heat)
-                # for i in cleaned_heat:
-                #     print("cleaned_heat",i)
-            #   try :
-            #         clean_db_q.put(cleaned_heat, timeout=1)
-            #     except Exception as e:
-            #         print(f"⚠️ clean_db_q full , drop heat data: {e}")
+            # if cleaned_heat is not None :
+            #     print( cleaned_heat)                
+            #     try :
+            #         pass                    
+                    # clean_db_q.put(cleaned_heat, timeout=1)
+                # except Exception as e:
+                #     print(f"⚠️ clean_db_q full , drop heat data: {e}")
         finally:
             heat_clean_q.task_done()
         time.sleep(0.2)
 
-# --- Get connection pool ---
-def get_db_pool():
-    return
-    global _db_pool
-    if _db_pool is None:
-        _db_pool = db_connector.create_pool()
-    return _db_pool
 def _loop_writer_db_worker():
     return
     """Worker thread to write PLC data to DB."""
@@ -431,10 +398,16 @@ def _loop_writer_db_worker():
         time.sleep(0.2)
 
 # --- Broadcast function ---
-def _broadcast_plc_data(data):
-    """Send JSON data to all connected TCP clients (Node.js)."""
+# def _broadcast_plc_data(data):
+#     """Send JSON data to all connected TCP clients (Node.js)."""
+#     message = json.dumps({
+#         "type": "plc_data",
+#         "tags": data
+#     }) + "\n"
+def _broadcast_plc_data(source, data):
     message = json.dumps({
         "type": "plc_data",
+        "source": source,   # 👈 press / heat / lathe / eq
         "tags": data
     }) + "\n"
 
@@ -448,3 +421,44 @@ def _broadcast_plc_data(data):
 
     for dead in dead_clients:
         _socket_clients.remove(dead)
+
+
+# # Add this near the top with other global variables
+# _state_counter = 0
+# _state_cycle = [
+#     {"running": 1, "idle": 0, "alarm": 0},  # Running state (10 iterations)
+#     {"running": 0, "idle": 1, "alarm": 0},  # Idle state (10 iterations)
+#     {"running": 0, "idle": 0, "alarm": 1}   # Alarm state (10 iterations)
+# ]
+
+# def get_sample_state():
+#     """Generate sample state data cycling through running -> idle -> alarm."""
+#     global _state_counter
+#     state_index = (_state_counter // 10) % 3  # Change state every 10 iterations
+#     sample_data = _state_cycle[state_index]
+#     _state_counter += 1
+#     return sample_data
+
+# def _loop_read_plc_worker():
+#     while _running and not _stop_event.is_set():
+#         try:
+#             # Get sample data instead of undefined variables
+#             state = get_sample_state()
+#             tags_broadcast = {
+#                 "running": state["running"],
+#                 "idle": state["idle"],
+#                 "alarm": state["alarm"]
+#             }
+#             _broadcast_plc_data(tags_broadcast)
+
+#             for client_sock, addr in _socket_clients[:]:
+#                 try:
+#                     send_heartbeat(client_sock)
+#                 except Exception as e:
+#                     print(f"🔌 Heartbeat failed for {addr}: {e}")
+            
+#             time.sleep(1)
+#         except Exception as e:
+#             print(f"⚠️send error:{e}")
+#             time.sleep(0.3)
+#     print("🛑 PLC loop stopped")

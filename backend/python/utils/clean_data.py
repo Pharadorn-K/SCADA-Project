@@ -122,9 +122,7 @@ def get_range_equipment(all_range_equipment):
 # Filter process Press
 compare_press_count,compare_press_status = [[],[],[],[],[],[],[],[],[],[],[],[],[]],[[],[],[],[],[],[],[],[],[],[],[],[],[]]
 
-def heat_clean(data):
-    print("Heat clean data start",data[1][0:3])
-    return data[1][0:3]
+
 def lathe_clean(data):
     print("Lathe clean data start",data[1][0:3])
     return data[1][0:3]
