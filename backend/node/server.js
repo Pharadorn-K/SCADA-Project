@@ -23,7 +23,7 @@ global.services.alarmService = alarmService;
 
 // Import services
 const plcRoutes = require('./routes/api/plc');
-const setupWebsocket = require('./routes/websocket');
+// const setupWebsocket = require('./routes/websocket');
 // Add after other route imports
 const authRoutes = require('./routes/api/auth');
 const auditRoutes = require('./routes/api/audit');
@@ -130,6 +130,9 @@ global.services.wss = wss;
 const pythonBridge = require('./services/pythonBridge');
 const plcMonitor = require('./services/plcMonitor');
 
+// Wire plcMonitor to the WSS so it can broadcast
+plcMonitor.setWss(wss);
+
 // Add pythonBridge and plcMonitor to global services
 global.services.pythonBridge = pythonBridge;
 global.services.plcMonitor = plcMonitor;
@@ -147,7 +150,7 @@ if (state.lastIntent === 'RUNNING') {
 }
 
 // Set up WebSocket message handling & broadcast
-setupWebsocket(wss, plcMonitor);
+// setupWebsocket(wss, plcMonitor);
 
 // Graceful shutdown
 process.on('SIGTERM', () => {

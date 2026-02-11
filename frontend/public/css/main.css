@@ -235,6 +235,86 @@ li.sub-menu.open > a > .arrow {
   background: var(--content-bg);
 }
 
+/* ===== Departments ===== */
+.department-section {
+  margin-bottom: 2rem;
+}
+
+.department-title {
+  margin: 1rem 0 0.5rem;
+  padding-bottom: 0.3rem;
+  border-bottom: 2px solid #444;
+  color: #000000;
+}
+
+.department-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 1rem;
+}
+
+/* ==== Machine Card ==== */
+.machine-card {
+  background: #fff;
+  border-radius: 10px;
+  padding: 16px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.machine-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 18px rgba(0,0,0,0.15);
+}
+
+/* ==== Machine Card Content ==== */
+.machine-image {
+  width: 100%;
+  height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 10px;
+}
+
+.machine-image img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.machine-title {
+  font-weight: 600;
+  font-size: 1rem;
+  margin-bottom: 6px;
+}
+
+.machine-status {
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+ 
+/* ==== Machine Status ==== */
+.machine-card.running {
+  border-left: 6px solid #2e7d32;
+}
+
+.machine-card.idle {
+  border-left: 6px solid #f9a825;
+}
+
+.machine-card.alarm {
+  border-left: 6px solid #c62828;
+  animation: pulseAlarm 1.5s infinite;
+}
+
+@keyframes pulseAlarm {
+  0% { box-shadow: 0 0 0 rgba(198,40,40,0.4); }
+  50% { box-shadow: 0 0 15px rgba(198,40,40,0.6); }
+  100% { box-shadow: 0 0 0 rgba(198,40,40,0.4); }
+}
+
+
 /* ===== Cards ===== */
 .card {
   background: white;

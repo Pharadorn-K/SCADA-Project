@@ -7,7 +7,6 @@ import * as OEE from './views/oee.js';
 
 export const routes = {
   home: {
-    view: Home.homeView,
     mount: Home.homeMount,
     unmount: Home.homeUnmount
   },

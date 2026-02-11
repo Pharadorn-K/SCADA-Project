@@ -1,35 +1,129 @@
 // frontend/public/js/views/home.js
-export function homeView() {
-  return `
-      <h1>🏭 SCADA Dashboard – Home</h1>
-      <div class="card">
-        <p>Welcome to the SCADA system.</p>
-        <p>Use navigation above to switch views.</p>
-        <div class="card">
-          <h3>📡 Live PLC Data</h3>
-          <pre id="status-data">No data...</pre>
-        </div>
-      </div>
-  `;
-}
-
-
 import { scadaStore } from '../store.js';
+const DEPT_ORDER = ['press', 'heat', 'lathe', 'grinding'];
 
 let unsubscribe = null;
 
-export function homeMount() {
-  const dataEl = document.getElementById('status-data');
+export function homeMount(container) {
+  const plantId = 'plant1'; // home focuses on Plant 1
 
-  // PLC live data
-  unsubscribe = scadaStore.subscribe((data) => {
-    dataEl.textContent = JSON.stringify(data, null, 2);
-  });
+  container.innerHTML = `
+    <h1>🏭 SCADA Dashboard – Home</h1>
+
+    <section class="plant-header">
+      <h2>Plant 1 Overview</h2>
+      <span id="plant-timestamp"></span>
+
+    </section>
+
+    <section id="machine-grid" class="machine-grid"></section>
+  `;
+
+  const grid = container.querySelector('#machine-grid');
+  const tsEl = container.querySelector('#plant-timestamp');
+
+  function statusClass(machine) {
+    if (machine.alarms?.length) return 'alarm';
+    return machine.status?.toLowerCase() || 'idle';
+  }
+
+    unsubscribe = scadaStore.subscribe(state => {
+      const machines = Object.entries(state.machines);
+
+      grid.innerHTML = '';
+
+      const groups = {};
+
+      machines.forEach(([id, m]) => {
+        const [dept] = id.split('_');
+        if (!groups[dept]) groups[dept] = [];
+        groups[dept].push([id, m]);
+      });
+
+      DEPT_ORDER.forEach(dept => {
+        const list = groups[dept];
+        if (!list) return;
+
+        const section = document.createElement('section');
+        section.className = 'department-section';
+
+        section.innerHTML = `
+          <h2 class="department-title">${dept.toUpperCase()}</h2>
+          <div class="department-grid"></div>
+        `;
+
+        const deptGrid = section.querySelector('.department-grid');
+
+        list.forEach(([id, m]) => {
+          const card = document.createElement('div');
+          card.className = `machine-card ${statusClass(m)}`;
+
+          // card.innerHTML = `
+          //   <div class="machine-title">${id.split('_')[1]}</div>
+
+          //   <div class="machine-status">
+          //     Status: ${m.status ?? '--'}
+          //   </div>
+
+          //   <div class="machine-tags">
+          //     <div>Cycle: ${m.tags?.cycle_time ?? '--'} s</div>
+          //     <div>Count today: ${m.tags?.count_today ?? '--'}</div>
+          //   </div>
+
+          //   <div class="machine-meta">
+          //     <div>Operator: ${m.context?.operator_id ?? '--'}</div>
+          //     <div>Part: ${m.context?.part_name ?? '--'}</div>
+          //     <div>
+          //       Last Updated:
+          //       ${m.timestamp
+          //         ? new Date(m.timestamp).toLocaleTimeString()
+          //         : '--'}
+          //     </div>
+          //   </div>
+          // `;
+        card.innerHTML = `
+          <div class="machine-image">
+            <img src="/images/${id}.png" alt="${id}" />
+          </div>
+
+          <div class="machine-title">
+            ${id.split('_')[1]}
+          </div>
+
+          <div class="machine-status">
+            Status: ${m.status ?? '--'}
+          </div>
+
+          <div class="machine-tags">
+            <div>Cycle: ${m.tags?.cycle_time ?? '--'} s</div>
+            <div>Count today: ${m.tags?.count_today ?? '--'}</div>
+          </div>
+
+          <div class="machine-meta">
+            <div>Operator: ${m.context?.operator_id ?? '--'}</div>
+            <div>Part: ${m.context?.part_name ?? '--'}</div>
+            <div>
+              Last Updated:
+              ${m.timestamp
+                ? new Date(m.timestamp).toLocaleTimeString()
+                : '--'}
+            </div>
+          </div>
+        `;
+
+          deptGrid.appendChild(card);
+        });
+
+        grid.appendChild(section);
+      });
+
+      tsEl.textContent = state.timestamp
+        ? new Date(state.timestamp).toLocaleTimeString()
+        : '';
+    });
 
 }
 
 export function homeUnmount() {
   if (unsubscribe) unsubscribe();
 }
-
-

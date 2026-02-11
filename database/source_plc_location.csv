@@ -1,0 +1,134 @@
+id_row,category_,type_,department_,machine_,target_,range_,note_,descripton_
+1,NULL,PLC,All,RCPU,10.207.1.24,5010,Port_1,RCPU
+2,NULL,PLC,All,RCPU,10.207.1.24,5011,Port_2,RCPU
+3,NULL,PLC,All,RCPU,10.207.1.24,5012,Port_3,RCPU
+4,NULL,BIT,All,RCPU,B0,7168,Read_location,"On-Off status"
+5,NULL,WORD,All,RCPU,W0,960,Read_location,"Word status"
+6,NULL,WORD,All,RCPU,W3C0,960,Read_location,"Word status"
+7,NULL,WORD,All,RCPU,W780,960,Read_location,"Word status"
+8,NULL,WORD,All,RCPU,W0B40,960,Read_location,"Word status"
+9,NULL,WORD,All,RCPU,W0F00,960,Read_location,"Word status"
+10,NULL,WORD,All,RCPU,W12C0,960,Read_location,"Word status"
+11,NULL,WORD,All,RCPU,W1680,960,Read_location,"Word status"
+12,NULL,Machine,Press,AIDA630T,W1500,10,Part_Name,"Part Name"
+13,NULL,Machine,Press,AIDA630T,W1512,1,Plan,PLAN
+14,NULL,Machine,Press,AIDA630T,W150B,3,ID_Operator,"USER NAME"
+15,NULL,Machine,Press,AIDA630T,B1900,1,Status,"Count part"
+16,NULL,Machine,Press,AIDA630T,B1901,1,Status,Run
+17,NULL,Machine,Press,AIDA630T,B1902,1,Status,IDEL
+18,NULL,Machine,Press,AIDA630T,B1903,1,Status,Alarm
+19,NULL,Machine,Press,AIDA630T,B190A,1,Status,Offline
+20,NULL,Machine,Press,AIDA630T,W1511,1,Alarm_Code,"ALARM CODE"
+21,NULL,Robot,Press,M-20id/25,W1500,10,Part_Name,"Part Name"
+22,NULL,Robot,Press,M-20id/25,W1512,1,Plan,PLAN
+23,NULL,Robot,Press,M-20id/25,W150B,3,ID_Operator,"USER NAME"
+24,NULL,Robot,Press,M-20id/25,B1904,1,Status,"Count part"
+25,NULL,Robot,Press,M-20id/25,B1905,1,Status,Run
+26,NULL,Robot,Press,M-20id/25,B1906,1,Status,IDEL
+27,NULL,Robot,Press,M-20id/25,B1907,1,Status,Alarm
+28,NULL,Robot,Press,M-20id/25,B190A,1,Status,Offline
+29,NULL,Robot,Press,M-20id/25,W1511,1,Alarm_Code,"ALARM CODE"
+30,A001,Cylinder,Press,AIDA630T,B190B,4,Equipment,"(load in)Conveyor gate forward start /end - reverse start/end"
+31,A002,Cylinder,Press,AIDA630T,B190F,4,Equipment,"(load in)Pusher forward start /end - reverse start/end"
+32,A003,Cylinder,Press,AIDA630T,B1913,4,Equipment,"(load out)Receiver forward start /end - reverse start/end"
+33,A004,Cylinder,Press,AIDA630T,B1917,4,Equipment,"(load out)Unloader forward start /end - reverse start/end"
+34,A005,Actuator,Press,AIDA630T,B191B,6,Equipment,"(load in)Actuator P1 start/end - P2 start/end -  P3 start/end"
+35,A006,Cylinder,Press,AIDA630T,B1921,4,Equipment,"(load out)Box scrap forward start /end - reverse start/end"
+36,NULL,Machine,Heat,DKK1,W19,12,Part_Name,"Part No. "
+37,NULL,Machine,Heat,DKK1,W25,1,Plan,PLAN
+38,NULL,Machine,Heat,DKK1,W3D,3,ID_Operator,"USER NAME"
+39,NULL,Machine,Heat,DKK1,B180,1,Status,RUNNING
+40,NULL,Machine,Heat,DKK1,B181,1,Status,"HEAT WORKING"
+41,NULL,Machine,Heat,DKK1,B182,1,Status,"PRODUCTION COUNT"
+42,NULL,Machine,Heat,DKK1,B183,1,Status,IDLE
+43,NULL,Machine,Heat,DKK1,B184,1,Status,SETTING
+44,NULL,Machine,Heat,DKK1,B185,1,Status,ALARM
+45,NULL,Machine,Heat,DKK1,B186,1,Status,"NO PLAN"
+46,NULL,Machine,Heat,DKK1,W3A,1,Alarm_Code,"ALARM CODE "
+47,NULL,Machine,Heat,DKK2,W2D,12,Part_Name,"Part No. "
+48,NULL,Machine,Heat,DKK2,W39,1,Plan,PLAN
+49,NULL,Machine,Heat,DKK2,W3D,3,ID_Operator,"USER NAME"
+50,NULL,Machine,Heat,DKK2,B190,1,Status,RUNNING
+51,NULL,Machine,Heat,DKK2,B191,1,Status,"HEAT WORKING"
+52,NULL,Machine,Heat,DKK2,B192,1,Status,"PRODUCTION COUNT"
+53,NULL,Machine,Heat,DKK2,B193,1,Status,IDLE
+54,NULL,Machine,Heat,DKK2,B194,1,Status,SETTING
+55,NULL,Machine,Heat,DKK2,B195,1,Status,ALARM
+56,NULL,Machine,Heat,DKK2,B196,1,Status,"NO PLAN"
+57,NULL,Machine,Heat,DKK2,W3A,1,Alarm_Code,"ALARM CODE "
+58,NULL,Machine,Heat,K3,W89,12,Part_Name,"Part No. "
+59,NULL,Machine,Heat,K3,W94,1,Plan,PLAN
+60,NULL,Machine,Heat,K3,W0AD,3,ID_Operator,"USER NAME"
+61,NULL,Machine,Heat,K3,B480,1,Status,RUNNING
+62,NULL,Machine,Heat,K3,B481,1,Status,"HEAT WORKING"
+63,NULL,Machine,Heat,K3,B482,1,Status,"PRODUCTION COUNT"
+64,NULL,Machine,Heat,K3,B483,1,Status,IDLE
+65,NULL,Machine,Heat,K3,B484,1,Status,SETTING
+66,NULL,Machine,Heat,K3,B485,1,Status,ALARM
+67,NULL,Machine,Heat,K3,B486,1,Status,"NO PLAN"
+68,NULL,Machine,Heat,K3,W0AA,1,Alarm_Code,"ALARM CODE "
+69,NULL,Machine,Heat,K4,W9D,12,Part_Name,"Part No. "
+70,NULL,Machine,Heat,K4,W0A9,1,Plan,PLAN
+71,NULL,Machine,Heat,K4,W0AD,3,ID_Operator,"USER NAME"
+72,NULL,Machine,Heat,K4,B490,1,Status,RUNNING
+73,NULL,Machine,Heat,K4,B491,1,Status,"HEAT WORKING"
+74,NULL,Machine,Heat,K4,B492,1,Status,"PRODUCTION COUNT"
+75,NULL,Machine,Heat,K4,B493,1,Status,IDLE
+76,NULL,Machine,Heat,K4,B494,1,Status,SETTING
+77,NULL,Machine,Heat,K4,B495,1,Status,ALARM
+78,NULL,Machine,Heat,K4,B496,1,Status,"NO PLAN"
+79,NULL,Machine,Heat,K4,W0AA,1,Alarm_Code,"ALARM CODE "
+80,NULL,Machine,Heat,K5,W169,12,Part_Name,"Part No. "
+81,NULL,Machine,Heat,K5,W175,1,Plan,PLAN
+82,NULL,Machine,Heat,K5,W18D,3,ID_Operator,"USER NAME"
+83,NULL,Machine,Heat,K5,B1080,1,Status,RUNNING
+84,NULL,Machine,Heat,K5,B1081,1,Status,"HEAT WORKING"
+85,NULL,Machine,Heat,K5,B1082,1,Status,"PRODUCTION COUNT"
+86,NULL,Machine,Heat,K5,B1083,1,Status,IDLE
+87,NULL,Machine,Heat,K5,B1084,1,Status,SETTING
+88,NULL,Machine,Heat,K5,B1085,1,Status,ALARM
+89,NULL,Machine,Heat,K5,B1086,1,Status,"NO PLAN"
+90,NULL,Machine,Heat,K5,W18A,1,Alarm_Code,"ALARM CODE "
+91,NULL,Machine,Heat,K6,W17D,12,Part_Name,"Part No. "
+92,NULL,Machine,Heat,K6,W189,1,Plan,PLAN
+93,NULL,Machine,Heat,K6,W18D,3,ID_Operator,"USER NAME"
+94,NULL,Machine,Heat,K6,B1090,1,Status,RUNNING
+95,NULL,Machine,Heat,K6,B1091,1,Status,"HEAT WORKING"
+96,NULL,Machine,Heat,K6,B1092,1,Status,"PRODUCTION COUNT"
+97,NULL,Machine,Heat,K6,B1093,1,Status,IDLE
+98,NULL,Machine,Heat,K6,B1094,1,Status,SETTING
+99,NULL,Machine,Heat,K6,B1095,1,Status,ALARM
+100,NULL,Machine,Heat,K6,B1096,1,Status,"NO PLAN"
+101,NULL,Machine,Heat,K6,W18A,1,Alarm_Code,"ALARM CODE "
+102,NULL,Machine,Heat,K7,W0F9,12,Part_Name,"Part No. "
+103,NULL,Machine,Heat,K7,W105,1,Plan,PLAN
+104,NULL,Machine,Heat,K7,W11D,3,ID_Operator,"USER NAME"
+105,NULL,Machine,Heat,K7,B780,1,Status,RUNNING
+106,NULL,Machine,Heat,K7,B781,1,Status,"HEAT WORKING"
+107,NULL,Machine,Heat,K7,B782,1,Status,"PRODUCTION COUNT"
+108,NULL,Machine,Heat,K7,B783,1,Status,IDLE
+109,NULL,Machine,Heat,K7,B784,1,Status,SETTING
+110,NULL,Machine,Heat,K7,B785,1,Status,ALARM
+111,NULL,Machine,Heat,K7,B786,1,Status,"NO PLAN"
+112,NULL,Machine,Heat,K7,W11A,1,Alarm_Code,"ALARM CODE "
+113,NULL,Machine,Heat,K8,W10D,12,Part_Name,"Part No. "
+114,NULL,Machine,Heat,K8,W119,1,Plan,PLAN
+115,NULL,Machine,Heat,K8,W11D,3,ID_Operator,"USER NAME"
+116,NULL,Machine,Heat,K8,B790,1,Status,RUNNING
+117,NULL,Machine,Heat,K8,B791,1,Status,"HEAT WORKING"
+118,NULL,Machine,Heat,K8,B792,1,Status,"PRODUCTION COUNT"
+119,NULL,Machine,Heat,K8,B793,1,Status,IDLE
+120,NULL,Machine,Heat,K8,B794,1,Status,SETTING
+121,NULL,Machine,Heat,K8,B795,1,Status,ALARM
+122,NULL,Machine,Heat,K8,B796,1,Status,"NO PLAN"
+123,NULL,Machine,Heat,K8,W11A,1,Alarm_Code,"ALARM CODE "
+124,NULL,Machine,Lathe,"Rotor TK1",W1000,6,Part_Name,"Part No."
+125,,Machine,Lathe,"Rotor TK4",W1006,6,Part_Name,"Part No."
+126,NULL,Machine,Lathe,"Rotor TK1",B1400,1,Status,"Door open"
+127,NULL,Machine,Lathe,"Rotor TK1",B1401,1,Status,"Cycle start"
+128,NULL,Machine,Lathe,"Rotor TK1",B1402,1,Status,Alarm
+129,NULL,Machine,Lathe,"Rotor TK1",B1403,1,Status,"Count part"
+130,NULL,Machine,Lathe,"Rotor TK4",B1404,1,Status,"Door open "
+131,NULL,Machine,Lathe,"Rotor TK4",B1405,1,Status,"Cycle start"
+132,NULL,Machine,Lathe,"Rotor TK4",B1406,1,Status,"Alarm "
+133,NULL,Machine,Lathe,"Rotor TK4",B1407,1,Status,"Count part"

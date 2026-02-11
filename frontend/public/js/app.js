@@ -5,7 +5,7 @@ import { routes } from './routes.js';
 import { scadaStore } from './store.js';
 let currentUnmount = null;
 let currentUserRole = null;
-
+window.scadaStore = scadaStore; // 👈 debug only
 
 // Auth check
 async function checkAuth() {
@@ -55,8 +55,17 @@ function initWebSocket() {
 
   ws.onmessage = (event) => {
     const msg = JSON.parse(event.data);
+
+    if (msg.type === 'plc_snapshot') {
+      scadaStore.setSnapshot(msg.payload);
+    }
+
     if (msg.type === 'plc_update') {
-      scadaStore.setData(msg.data); // notify all subscribers
+      scadaStore.applyUpdate(msg.payload);
+    }
+
+    if (msg.type === 'plc_clean') {
+      scadaStore.applyPlcClean(msg.payload);
     }
   };
 
@@ -112,9 +121,9 @@ export async function navigate(route) {
     node = node?.[part];
   }
 
-  if (!node || !node.view) {
+  if (!node) {
     console.warn('Route not found:', route);
-    return navigate('home');
+    return;
   }
 
   // Role guard
@@ -126,8 +135,17 @@ export async function navigate(route) {
   // Page wrapper class
   app.classList.add(`page-${parts[0]}`);
 
-  app.innerHTML = node.view();
-  node.mount?.();
+  // Clear page
+  app.innerHTML = '';
+
+  // Render static HTML if provided
+  if (node.view) {
+    app.innerHTML = node.view();
+  }
+
+  // Mount dynamic logic (WS, subscriptions, DOM updates)
+  node.mount?.(app);
+
   currentUnmount = node.unmount || null;
 
   // Sync sidebar

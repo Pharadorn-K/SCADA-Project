@@ -54,27 +54,30 @@ scada-project/
 │ 
 ├── backend/ 
 │   ├── python/ 
+│   │   ├── __pycache__/
 │   │   ├── __init__.py 
-│   │   ├── plc_service.py              # ✅ Main orchestrator: start/stop/read/write loop + DB 
-│   │   ├── plc_loop.py                 # 🔁 Dedicated 1-sec loop (logic moved from service) 
+│   │   ├── plc_service.py              
+│   │   ├── plc_loop.py                 
 │   │   └── utils/
+│   │       ├── __pycache__/
 │   │       ├── clean_data.py
 │   │       ├── db_connector.py
-│   │       ├── plc_driver.py           # 🛠️ Low-level PLC comms (e.g., pycomm3, snap7) 
-│   │       └── db_writer.py            # 📝 DB insert/update logic (decoupled from loop) 
+│   │       ├── plc_driver.py          
+│   │       └── db_writer.py            
 │   └── node/ 
-│       ├── server.js                   # ✅ Entry point: HTTP + WebSocket server (ws or socket.io) 
+│       ├── server.js                 
 │       ├── package.json 
 │       ├── package-lock.json 
 │       ├── .env                        
 │       ├── node_modules/ ...
 │       ├── routes/ 
-│       │   ├── api/                    # REST endpoints (e.g., /api/plc/start) 
-│       │   │   ├── alam.js   
+│       │   ├── api/                    
+│       │   │   ├── alam.js
+│       │   │   ├── alamHistory.js   
 │       │   │   ├── audit.js   
 │       │   │   ├── auth.js              
 │       │   │   └── plc.js              
-│       │   └── websocket.js            # 🔄 WS message handler (e.g., broadcast PLC data) 
+│       │   └── websocket.js           
 │       ├── data/ 
 │       │   └── systemState.json
 │       ├── logs/ 
@@ -98,13 +101,28 @@ scada-project/
 │   │   │   ├── fontawesome/
 │   │   │   ├── webfonts/
 │   │   │   └── main.css
+│   │   ├── images/
+│   │   │   ├── press_AIDA630T.png
+│   │   │   ├── press_M-20id-25.png
+│   │   │   ├── heat_DKK1.png
+│   │   │   ├── heat_DKK2.png
+│   │   │   ├── heat_K3.png
+│   │   │   ├── heat_K4.png
+│   │   │   ├── heat_K5.png
+│   │   │   ├── heat_K6.png
+│   │   │   ├── heat_K7.png
+│   │   │   └── heat_K8.png
 │   │   └── js/
 │   │       ├── app.js
 │   │       ├── api.js
+│   │       ├── routes.js
+│   │       ├── sidebar-behavior.js
 │   │       ├── sidebar.js
 │   │       ├── store.js
+│   │       ├── storeSelectors.js
 │   │       └── views/            
 │   │           ├── home.js
+│   │           ├── oee.js
 │   │           ├── production.js
 │   │           ├── maintenance.js
 │   │           └── admin.js
@@ -181,912 +199,813 @@ scada-project/
   }
 }
 
-│ 
-├── frontend/ 
-│   ├── public/                        
-│   │   ├── favicon.ico
-│   │   ├── index.html
-│   │   ├── login.html
-│   │   ├── css/
-│   │   │   ├── fontawesome/
-│   │   │   ├── webfonts/
-│   │   │   └── main.css
-│   │   └── js/
-│   │       ├── app.js
-│   │       ├── api.js
-│   │       ├── sidebar.js
-│   │       ├── store.js
-│   │       └── views/            
-│   │           ├── home.js
-│   │           ├── production.js
-│   │           ├── maintenance.js
-│   │           └── admin.js
-│   └── src/                            
-│       ├── main.js                     
-│       ├── dashboard.js                
-│       ├── api.js                      
-│       └── styles/ 
-│           └── main.css 
-│
 
-<!-- // frontend/public/index.html -->
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>SCADA.SET</title>
-    <link rel="stylesheet" href="/css/fontawesome/all.min.css">
-    <link rel="stylesheet" href="/css/main.css">
-  </head>
-  <body>
-    <header id="topbar">
-      <div class="topbar-left">
-        <h1>SCADA.SET</h1>
-      </div>
+# backend/python/plc_loop.py
+...
+def _broadcast_to_node(payload):
+    message = json.dumps({
+        "type": "plc_clean",
+        "payload": payload
+    }, default=str) + "\n"
 
-      <div class="topbar-right">
-        <span id="user-role"></span>
-        <button id="logout-btn">Logout <i class="fa-solid fa-right-to-bracket fa-flip-horizontal"></i></i></button>
-      </div>
-      <button id="sidebar-toggle"><i class="fa-solid fa-house-signal" style="font-size: 24px;"></i></button>
-    </header>
+    for client_sock, addr in _socket_clients[:]:
+        try:
+            client_sock.sendall(message.encode())
+        except Exception:
+            _socket_clients.remove((client_sock, addr))
 
-    <div class="layout">
-      <aside id="sidebar"></aside>
-      <main id="app" class="page"></main>
-    </div>
+
+# backend/python/utils/clean_data.py
+...
+def press_clean(_db_pool,all_department,all_machine,all_data,data,clean_db_q,broadcast_q):
+    point_int = [7,1,13,6,0]
+    point_str = ["idle_","alarm_","offline_"]
+    try :                    
+        machine_data = [] 
+        current_time,bit_received,word_received = data
+        for machine in all_machine[point_int[4]]:
+            each_machine = []
+            each_machine.append(current_time)
+            each_machine.append(all_department[point_int[4]])
+            each_machine.append(machine)
+            for data in (all_data[point_int[4]]):
+                if data["machine_"] == machine:
+                    if len(each_machine) <=3:
+                        each_machine.append(data["type_"])
+                    if data["note_"] == "Part_Name":
+                        pick_up = word_received[data["target_"]:data["target_"]+data["range_"]]
+                        string_pick = plc_received_to_string(pick_up)
+                        each_machine.append(string_pick)
+                    elif data["note_"] == "Plan" :
+                        pick_up = word_received[data["target_"]:data["target_"]+data["range_"]][0]
+                        each_machine.append(pick_up)
+                    elif data["note_"] == "Alarm_Code":
+                        pick_up = word_received[data["target_"]:data["target_"]+data["range_"]][0]
+                        each_machine.append(pick_up)
+                    elif data["note_"] == "ID_Operator":
+                        pick_up = word_received[data["target_"]:data["target_"]+data["range_"]]
+                        string_pick = plc_received_to_string(pick_up)
+                        each_machine.append(string_pick)
+                    elif data["note_"] == "Status":
+                        pick_up = bit_received[data["target_"]:data["target_"]+data["range_"]]
+                        int_pick = int(pick_up[0])
+                        each_machine.append(int_pick)
+            machine_data.append(each_machine)    
+        # return machine_data
+        if machine_data != []:
+            for list_data in range(len(machine_data)):
+                # status_check,count_check,status_count_check = [],[],[]
+                status_check = machine_data[list_data].copy()  
+                status_check[point_int[0]] = 0
+                if status_check[point_int[1]:point_int[2]] != compare_press_status[list_data]:
+                    cycle_time = 0
+                    count_today = 0
+                    # queue_save_press.put((status_check,cycle_time,count_today))
+                    compare_press_status[list_data] = status_check[point_int[1]:point_int[2]]
+                    # print(status_check,cycle_time,count_today)
+                    # clean_db_q.put((status_check,cycle_time,count_today))
+                    clean_db_q.put({
+                        "event": "plc_clean",
+                        "source": "clean_press",
+                        "department": "Press",
+                        "machine": status_check[2],
+                        "machine_type": status_check[3],
+                        "timestamp": status_check[0],
+
+                        "context": {
+                            "part_name": status_check[4],
+                            "plan": status_check[5],
+                            "operator_id": status_check[6],
+                        },
+
+                        "metrics": {
+                            "count_signal": status_check[7],
+                            "run": status_check[8],
+                            "idle": status_check[9],
+                            "alarm": status_check[10],
+                            "offline": status_check[11],
+                            "alarm_code": status_check[12],
+                            "cycle_time": cycle_time,
+                            "count_today": count_today
+                        }
+                    })
+                    broadcast_q.put({
+                        "event": "plc_clean",
+                        "source": "clean_press",
+                        "department": "Press",
+                        "machine": status_check[2],
+                        "machine_type": status_check[3],
+                        "timestamp": status_check[0],
+
+                        "context": {
+                            "part_name": status_check[4],
+                            "plan": status_check[5],
+                            "operator_id": status_check[6],
+                        },
+
+                        "metrics": {
+                            "count_signal": status_check[7],
+                            "run": status_check[8],
+                            "idle": status_check[9],
+                            "alarm": status_check[10],
+                            "offline": status_check[11],
+                            "alarm_code": status_check[12],
+                            "cycle_time": cycle_time,
+                            "count_today": count_today
+                        }
+                    })
+                    # return status_check,cycle_time,count_today
+                else : 
+                    pass
+                
+                status_count_check = machine_data[list_data].copy()
+                count_check = status_count_check[point_int[0]]
+                if count_check != 0:
+                    if count_check != compare_press_count[list_data]:
+                        old_row = row_after_output(_db_pool,status_count_check[0],all_department[point_int[4]],status_count_check[2],status_count_check[4])
+                        cycle_time = 0
+                        if old_row == () or old_row == None:
+                            cycle_time = point_int[3]
+                        else:
+                            for row in old_row:
+                                if row[point_str[0]] == 1 or row[point_str[1]] == 1 or row[point_str[2]] == 1:
+                                    cycle_time = point_int[3]
+                                    break
+                            if cycle_time != point_int[3]:
+                                cycle_time = (status_count_check[0] - old_row[0]["time_stamp"]).total_seconds()
+                        count_today = count_production(_db_pool,status_count_check[0],all_department[point_int[4]],status_count_check[2]) + 1  
+                        compare_press_count[list_data] = count_check
+                        clean_db_q.put({
+                            "event": "plc_clean",
+                            "source": "clean_press",
+                            "department": "Press",
+                            "machine": status_check[2],
+                            "machine_type": status_check[3],
+                            "timestamp": status_check[0],
+
+                            "context": {
+                                "part_name": status_check[4],
+                                "plan": status_check[5],
+                                "operator_id": status_check[6],
+                            },
+
+                            "metrics": {
+                                "count_signal": status_check[7],
+                                "run": status_check[8],
+                                "idle": status_check[9],
+                                "alarm": status_check[10],
+                                "offline": status_check[11],
+                                "alarm_code": status_check[12],
+                                "cycle_time": cycle_time,
+                                "count_today": count_today
+                            }
+                        })
+                        broadcast_q.put({
+                            "event": "plc_clean",
+                            "source": "clean_press",
+                            "department": "Press",
+                            "machine": status_check[2],
+                            "machine_type": status_check[3],
+                            "timestamp": status_check[0],
+
+                            "context": {
+                                "part_name": status_check[4],
+                                "plan": status_check[5],
+                                "operator_id": status_check[6],
+                            },
+
+                            "metrics": {
+                                "count_signal": status_check[7],
+                                "run": status_check[8],
+                                "idle": status_check[9],
+                                "alarm": status_check[10],
+                                "offline": status_check[11],
+                                "alarm_code": status_check[12],
+                                "cycle_time": cycle_time,
+                                "count_today": count_today
+                            }
+                        })
+                        # return status_count_check,cycle_time,count_today
+                    else : 
+                        pass
+                else :
+                    compare_press_count[list_data] = count_check        
+        else:
+            print("❌ Press data is empty")
+    except Exception as e:
+        print("❌ Press clean data error:",e)
+  
+def heat_clean(_db_pool,all_department,all_machine,all_data,data,clean_db_q,broadcast_q):
+    point_int = [9,1,15,95,1]
+    point_str = ["alarm_","setting_"]
+    try :                    
+        machine_data = [] 
+        current_time,bit_received,word_received = data
+        for machine in all_machine[point_int[4]]:
+            each_machine = []
+            each_machine.append(current_time)
+            each_machine.append(all_department[point_int[4]])
+            each_machine.append(machine)
+            for data in (all_data[point_int[4]]):
+                if data["machine_"] == machine:
+                    if len(each_machine) <=3:
+                        each_machine.append(data["type_"])
+                    if data["note_"] == "Part_Name":
+                        pick_up = word_received[data["target_"]:data["target_"]+data["range_"]]
+                        string_pick = plc_received_to_string(pick_up)
+                        each_machine.append(string_pick)
+                    elif data["note_"] == "Plan" :
+                        pick_up = word_received[data["target_"]:data["target_"]+data["range_"]][0]
+                        each_machine.append(pick_up)
+                    elif data["note_"] == "Alarm_Code":
+                        pick_up = word_received[data["target_"]:data["target_"]+data["range_"]][0]
+                        each_machine.append(pick_up)
+                    elif data["note_"] == "ID_Operator":
+                        pick_up = word_received[data["target_"]:data["target_"]+data["range_"]]
+                        string_pick = plc_received_to_string(pick_up)
+                        each_machine.append(string_pick)
+                    elif data["note_"] == "Status":
+                        pick_up = bit_received[data["target_"]:data["target_"]+data["range_"]]
+                        int_pick = int(pick_up[0])
+                        each_machine.append(int_pick)
+            machine_data.append(each_machine)
+        # return machine_data
+
+        if machine_data != []:
+            for list_data in range(len(machine_data)):
+                # status_check,count_check,status_count_check = [],[],[]
+                status_check = machine_data[list_data].copy()  
+                status_check[point_int[0]] = 0
+                if status_check[point_int[1]:point_int[2]] != compare_heat_status[list_data]:
+                    cycle_time = 0
+                    count_today = 0
+                    # queue_save_heat.put((status_check,cycle_time,count_today))   
+                    compare_heat_status[list_data] = status_check[point_int[1]:point_int[2]]
+                    # return status_check,cycle_time,count_today
+                    # clean_db_q.put((status_check,cycle_time,count_today))
+                    clean_db_q.put({
+                        "event": "plc_clean",
+                        "source": "clean_heat",
+                        "department": "Heat",
+                        "machine": status_check[2],
+                        "machine_type": status_check[3],   # Machine / Robot
+                        "timestamp": status_check[0],
+
+                        "context": {
+                            "part_name": status_check[4],
+                            "plan": status_check[5],
+                            "operator_id": status_check[6],
+                        },
+
+                        "metrics": {
+                            "run": status_check[7],
+                            "heat": status_check[8],
+                            "count_signal": status_check[9],
+                            "idle": status_check[10],
+                            "setting": status_check[11],
+                            "alarm": status_check[12],
+                            "offline": status_check[13],
+                            "alarm_code": status_check[14],
+                            "cycle_time": cycle_time,
+                            "count_today": count_today
+                        }
+                    })
+                    broadcast_q.put({
+                        "event": "plc_clean",
+                        "source": "clean_heat",
+                        "department": "Heat",
+                        "machine": status_check[2],
+                        "machine_type": status_check[3],   # Machine / Robot
+                        "timestamp": status_check[0],
+
+                        "context": {
+                            "part_name": status_check[4],
+                            "plan": status_check[5],
+                            "operator_id": status_check[6],
+                        },
+
+                        "metrics": {
+                            "run": status_check[7],
+                            "heat": status_check[8],
+                            "count_signal": status_check[9],
+                            "idle": status_check[10],
+                            "setting": status_check[11],
+                            "alarm": status_check[12],
+                            "offline": status_check[13],
+                            "alarm_code": status_check[14],
+                            "cycle_time": cycle_time,
+                            "count_today": count_today
+                        }
+                    })
+
+                else : 
+                    pass
+                
+                status_count_check = machine_data[list_data].copy()
+                count_check = status_count_check[point_int[0]]
+                if count_check != 0:
+                    if count_check != compare_heat_count[list_data]:
+                        old_row = row_after_output(_db_pool,status_count_check[0],all_department[point_int[4]],status_count_check[2],status_count_check[4])
+                        cycle_time = 0
+                        if old_row == () or old_row == None:
+                            cycle_time = point_int[3]
+                        else:
+                            for row in old_row:
+                                if row[point_str[0]] == 1 or row[point_str[1]] == 1:
+                                    cycle_time = point_int[3]
+                                    break
+                            if cycle_time != point_int[3]:
+                                cycle_time = (status_count_check[0] - old_row[0]["time_stamp"]).total_seconds()
+                        count_today = count_production(_db_pool,status_count_check[0],all_department[point_int[4]],status_count_check[2]) + 1  
+                        compare_heat_count[list_data] = count_check
+                        clean_db_q.put({
+                            "event": "plc_clean",
+                            "source": "clean_heat",
+                            "department": "Heat",
+                            "machine": status_check[2],
+                            "machine_type": status_check[3],   # Machine / Robot
+                            "timestamp": status_check[0],
+
+                            "context": {
+                                "part_name": status_check[4],
+                                "plan": status_check[5],
+                                "operator_id": status_check[6],
+                            },
+
+                            "metrics": {
+                                "run": status_check[7],
+                                "heat": status_check[8],
+                                "count_signal": status_check[9],
+                                "idle": status_check[10],
+                                "setting": status_check[11],
+                                "alarm": status_check[12],
+                                "offline": status_check[13],
+                                "alarm_code": status_check[14],
+                                "cycle_time": cycle_time,
+                                "count_today": count_today
+                            }
+                        })                             
+                        broadcast_q.put({
+                            "event": "plc_clean",
+                            "source": "clean_heat",
+                            "department": "Heat",
+                            "machine": status_check[2],
+                            "machine_type": status_check[3],   # Machine / Robot
+                            "timestamp": status_check[0],
+
+                            "context": {
+                                "part_name": status_check[4],
+                                "plan": status_check[5],
+                                "operator_id": status_check[6],
+                            },
+
+                            "metrics": {
+                                "run": status_check[7],
+                                "heat": status_check[8],
+                                "count_signal": status_check[9],
+                                "idle": status_check[10],
+                                "setting": status_check[11],
+                                "alarm": status_check[12],
+                                "offline": status_check[13],
+                                "alarm_code": status_check[14],
+                                "cycle_time": cycle_time,
+                                "count_today": count_today
+                            }
+                        })
+                    else : 
+                        pass
+                else :
+                    compare_heat_count[list_data] = count_check
+        else:
+            pass
+    except Exception as e:
+        print("❌ Heat clean data error:",e)
+
+// backend/node/services/pythonBridge.js
+const net = require('net');
+const { updateData } = require('./plcMonitor');
+
+const PYTHON_HOST = '127.0.0.1';
+const PYTHON_PORT = parseInt(process.env.PYTHON_PORT) || 8081;
+const alarmService = global.services?.alarmService;
+const stateStore = global.services?.stateStore;
+
+// Helper to safely raise alarms
+function raiseAlarm(code, message, severity) {
+  if (alarmService && typeof alarmService.raise === 'function') {
+    alarmService.raise(code, message, severity);
+  } else {
+    console.warn(`[ALARM] ${severity} - ${code}: ${message}`);
+  }
+}
+
+// Helper to persist intent
+function saveIntent(intent) {
+  if (!stateStore) return;
+  stateStore.saveState({ lastIntent: intent });
+}
+
+let socket = null;
+let isConnected = false;
+let reconnectTimeout = null;
+let isShuttingDown = false;
+let plcRunning = false;
+let plcConnected = false;
+let lastHeartbeat = null;
+let plcHealthy = false;
+let plcStartTime = null;
+let autoRecoverEnabled = true;
+let recoverAttempts = 0;
+const MAX_RECOVER_ATTEMPTS = 5;
+let recovering = false;
+
+// Queue commands if not connected
+let commandQueue = [];
+
+function handleMessage(msg) {
+  if (msg.type === 'heartbeat') {
+    lastHeartbeat = Date.now();
     
-    <script type="module" src="/js/app.js"></script>
-  </body>
-</html>
+    // If transitioning from unhealthy → healthy, raise recovery alarm
+    if (!plcHealthy) {
+      raiseAlarm(
+        'PLC_RECOVERED',
+        'PLC heartbeat restored',
+        'INFO'
+      );
+    
+    // 👇 CLEAR fault alarms
+    global.services.alarmService.clear('PLC_FAULT');
+    global.services.alarmService.clear('PLC_DISCONNECTED');
+    }
+    plcHealthy = true;
+    recoverAttempts = 0; // reset on successful heartbeat
+    // console.log('💓 PLC heartbeat received');
+    return;
+  }
+  if (msg.type === 'plc_clean') {
+    global.services.stateStore.updatePlc(msg.payload);
 
-<!-- // frontend/public/login.html -->
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>SET SCADA : Login</title>
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/fontawesome/all.min.css">
-  <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-      font-family: "Poppins", sans-serif;
-    }
+    // Forward to plcMonitor (fan-out)
+    updateData(msg.payload);
+  }
+}
 
-    body {
-      background: #4973ff;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      min-height: 100vh;
-      overflow: hidden;
-    }
+// Watchdog: Monitor PLC health
+const HEARTBEAT_TIMEOUT = 5000; // 5 seconds
+const STARTUP_GRACE = 10000;    // 10 seconds - give PLC time to start
+setInterval(() => {
+  if (!plcRunning) {
+    plcHealthy = false;
+    return;
+  }
 
-    /* Wave Background */
-    .wave {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      z-index: -1;
-      box-shadow: inset 0 0 50px rgba(255, 255, 255, 0.5);
+  if (!lastHeartbeat) {
+    if (Date.now() - plcStartTime < STARTUP_GRACE) {
+      return; // ⏳ still starting
     }
-    .wave span {
-      position: absolute;
-      width: 700vh;
-      height: 700vh;
-      top: -900px;
-      left: 50%;
-      transform: translate(-50%, -75%);
-      background: #ffffff;
-    }
-    .wave span:nth-child(1) {
-      border-radius: 45%;
-      background: rgb(255, 255, 255);
-      animation: animate 20s linear infinite;
-    }
-    .wave span:nth-child(2) {
-      border-radius: 40%;
-      background: rgba(255, 255, 255, 0.5);
-      animation: animate 30s linear infinite;
-    }
-    .wave span:nth-child(3) {
-      border-radius: 42.5%;
-      background: rgba(186, 215, 248, 0.5);
-      animation: animate 40s linear infinite;
+    plcHealthy = false;
+    return;
+  }
+
+  const diff = Date.now() - lastHeartbeat;
+
+  if (diff > HEARTBEAT_TIMEOUT) {
+    if (plcHealthy) {
+      console.warn('🐶 PLC Watchdog timeout → FAULT');
+      
+      // Raise alarm for heartbeat timeout
+      raiseAlarm(
+        'PLC_FAULT',
+        'PLC heartbeat timeout',
+        'ERROR'
+      );
     }
 
-    @keyframes animate {
-      0% {
-        transform: translate(-50%, -75%) rotate(0deg);
-      }
-      100% {
-        transform: translate(-50%, -75%) rotate(360deg);
-      }
-    }
+    plcHealthy = false;
 
-    /* Login Card (unchanged, but adjusted for contrast) */
-    .login-card {
-      background: rgba(255, 255, 255, 0.92); /* Slight transparency for depth */
-      padding: 2rem;
-      border-radius: 12px;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
-      width: 320px;
-      z-index: 2;
+    if (autoRecoverEnabled && plcRunning && !recovering) {
+      attemptAutoRecover();
     }
-    .login-card h2 {
-      text-align: center;
-      margin-bottom: 1.5rem;
-      color: #1976d2;
-    }
-    .form-group input {
-      width: 100%;
-      padding: 0.5rem;
-      border: 1px solid #ccc;
-      border-radius: 6px;
-      box-sizing: border-box;
-      font-size: 1rem;
-      margin-bottom: 1rem;
-    }
-    .btn {
-      width: 100%;
-      padding: 0.75rem;
-      background: #1976d2;
-      color: white;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 1rem;
-      font-weight: 600;
-      transition: background 10s;
-    }
-    .btn:hover {
-      background: #1565c0;
-    }
-    .error {
-      color: #d32f2f;
-      text-align: center;
-      margin-top: 0.5rem;
-      font-size: 0.9rem;
-    }
-  </style>
+  }
+}, 1000);
 
-</head>
-<body>
-  <!-- Animated wave background -->
-  <div class="wave">
-    <span></span>
-    <span></span>
-    <span></span>
-  </div>
+function attemptAutoRecover() {
+  if (recoverAttempts >= MAX_RECOVER_ATTEMPTS) {
+    console.error('🚫 Auto-recover failed: max attempts reached');
+    return;
+  }
 
-  <!-- Login Form -->
-  <div class="login-card">
-    <h2>SCADA Login</h2>
-    <form id="loginForm">
-      <div class="form-group">
-        <input type="text" id="username" placeholder="Username" required />
-      </div>
-      <div class="form-group">
-        <input type="password" id="password" placeholder="Password" required />
-      </div>
-      <button type="submit" class="btn">Login <i class="fa-solid fa-arrow-right-to-bracket"> </i> </button>
-    </form>
-    <div id="error" class="error"></div>
-  </div>
+  recovering = true;
+  recoverAttempts++;
 
-  <script>
-    document.getElementById('loginForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const errorEl = document.getElementById('error');
-      errorEl.textContent = '';
+  const delay = Math.min(2000 * recoverAttempts, 10000); // backoff
+  console.log(`🔁 Auto-recover attempt ${recoverAttempts} in ${delay}ms`);
+  
+  // Raise alarm for recovery attempt
+  raiseAlarm(
+    'PLC_RECOVERING',
+    `Auto-recover attempt ${recoverAttempts}`,
+    'WARN'
+  );
 
+  setTimeout(() => {
+    console.log('🔄 Restarting PLC loop');
+
+    // Force reconnect cycle
+    if (socket) socket.destroy();
+
+    // Reset heartbeat so watchdog waits
+    lastHeartbeat = null;
+    plcHealthy = false;
+    plcStartTime = Date.now();
+
+    // Send start again
+    sendCommand({ cmd: 'start' });
+
+    recovering = false;
+  }, delay);
+}
+
+function connect() {
+  if (isShuttingDown) return;
+
+  socket = new net.Socket();
+  
+  socket.on('connect', () => {
+    console.log('🔗 Connected to Python PLC service');
+    isConnected = true;
+    plcConnected = true;
+
+    while (commandQueue.length > 0) {
+      const cmd = commandQueue.shift();
+      socket.write(JSON.stringify(cmd) + '\n');
+    }
+  });
+
+  socket.on('data', (data) => {
+    const messages = data.toString().split('\n').filter(msg => msg.trim());
+    for (const msg of messages) {
       try {
-        const res = await fetch('/api/auth/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'same-origin',
-          body: JSON.stringify({
-            username: document.getElementById('username').value,
-            password: document.getElementById('password').value
-          })
-        });
-
-        const data = await res.json();
-        if (data.success) {
-          window.location.href = '/'; // Redirect to dashboard
-        } else {
-          errorEl.textContent = data.message || 'Login failed';
+        const payload = JSON.parse(msg);
+        handleMessage(payload); // Process heartbeat and other messages
+        if (payload.type === 'plc_data') {
+          updateData(payload.tags); // Broadcast via WebSocket
         }
       } catch (err) {
-        errorEl.textContent = 'Network error';
+        console.error('❌ Invalid message from Python:', msg, err);
       }
-    });
-  </script>
-</body>
-</html>
-
-// frontend/public/js/api.js
-export async function sendPlcCommand(endpoint) {
-  const res = await fetch(`/api/plc/${endpoint}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'same-origin'
+    }
   });
-  return res.json();
+
+  socket.on('close', () => {
+    console.log('🔌 Disconnected from Python PLC service');
+    isConnected = false;
+    plcConnected = false;
+    plcHealthy = false;     // ✅ watchdog failure
+    // plcRunning stays TRUE
+    
+    // Raise alarm for lost PLC connection
+    raiseAlarm(
+      'PLC_DISCONNECTED',
+      'Lost connection to Python PLC service',
+      'ERROR'
+    );
+    
+    if (!isShuttingDown) scheduleReconnect();
+  });
+
+  socket.on('error', (err) => {
+    console.error('🚫 Python bridge socket error:', err.message);
+    socket.destroy();
+  });
+
+  socket.connect(PYTHON_PORT, PYTHON_HOST);
 }
 
-export async function writePlcTag(tag, value) {
-  const res = await fetch('/api/plc/write', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'same-origin',
-    body: JSON.stringify({ tag, value })
-  });
-  return res.json();
+function scheduleReconnect() {
+  if (reconnectTimeout) return;
+  console.log('⏳ Reconnecting to Python in 2s...');
+  reconnectTimeout = setTimeout(() => {
+    reconnectTimeout = null;
+    connect();
+  }, 2000);
 }
 
-// frontend/public/js/app.js
-import { homeView, homeMount, homeUnmount } from './views/home.js';
-import { productionView, productionMount, productionUnmount } from './views/production.js';
-import { maintenanceView, maintenanceMount, maintenanceUnmount } from './views/maintenance.js';
-import { adminView, adminMount, adminUnmount } from './views/admin.js';
-import { renderSidebar } from './sidebar.js';
-
-let currentUnmount = null;
-let currentUserRole = null;
-
-
-// Auth check
-async function checkAuth() {
-  const res = await fetch('/api/auth/status', { credentials: 'same-origin' });
-  const auth = await res.json();
-  if (!auth.authenticated) {
-    window.location.href = '/login.html';
+function sendCommand(cmd) {
+  const message = typeof cmd === 'string' ? { cmd } : cmd;
+  
+  if (isConnected && socket && socket.writable) {
+    socket.write(JSON.stringify(message) + '\n');
+    return true;
+  } else {
+    // Queue command if not connected
+    commandQueue.push(message);
+    if (!reconnectTimeout) connect(); // Trigger reconnect if needed
     return false;
   }
-  currentUserRole = auth.role;
-  return true;
 }
 
-function mountTopbar() {
-  const btn = document.getElementById('logout-btn');
-  const roleEl = document.getElementById('user-role');
-
-  if (roleEl) roleEl.textContent = currentUserRole;
-
-  if (btn) {
-    btn.addEventListener('click', async () => {
-      await fetch('/api/auth/logout', {
-        method: 'POST',
-        credentials: 'same-origin'
-      });
-      window.location.href = '/login.html';
-    });
+// Public API
+function start() {
+  if (plcRunning) {
+    console.log('⚠️ Start ignored: PLC already running');
+    return false;
   }
+  saveIntent('RUNNING'); // 🔄 persist intent
+
+  autoRecoverEnabled = true;
+  plcRunning = true;
+  plcHealthy = true;       // 🔥 assume healthy on start
+  lastHeartbeat = Date.now();    // 🔥 set initial timestamp
+  plcStartTime = Date.now();
+  recoverAttempts = 0;
+  return sendCommand({ cmd: 'start' });
 }
 
-export async function logout() {
-  await fetch('/api/auth/logout', { 
-    method: 'POST', 
-    credentials: 'same-origin' 
-  });
-  window.location.href = '/login.html';
-}
+function stop() {
+  if (!plcRunning) return false;
 
-import { scadaStore } from './store.js';
+  saveIntent('STOPPED'); // 🔄 persist intent
 
-function initWebSocket() {
-  if (scadaStore.ws) return;
-
-  // const ws = new WebSocket('ws://localhost:3000');
-  const protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-  const ws = new WebSocket(`${protocol}://${location.host}`);
-
-  scadaStore.ws = ws;
-
-  ws.onmessage = (event) => {
-    const msg = JSON.parse(event.data);
-    if (msg.type === 'plc_update') {
-      scadaStore.setData(msg.data); // notify all subscribers
-    }
-  };
-
-  ws.onopen = () => console.log('WS connected');
-  ws.onclose = () => {
-    console.log('WS disconnected');
-    setTimeout(initWebSocket, 2000); // auto-reconnect
-  };
-}
-
-function mountSidebar() {
-  const sidebar = document.getElementById('sidebar');
-  sidebar.innerHTML = renderSidebar(currentUserRole);
-
-  sidebar.addEventListener('click', (e) => {
-    const link = e.target.closest('a[data-page]');
-    if (!link) return;
-
-    e.preventDefault();
-    navigate(link.dataset.page);
-  });
-}
-
-function setActiveSidebar(page) {
-  document.querySelectorAll('#sidebar a[data-page]').forEach(a => {
-    a.classList.toggle('active', a.dataset.page === page);
-  });
-}
-
-function initSidebarToggle() {
-  const btn = document.getElementById('sidebar-toggle');
-  const layout = document.querySelector('.layout');
-
-  btn.addEventListener('click', () => {
-    layout.classList.toggle('sidebar-collapsed');
-
-    // Optional: remember state
-    localStorage.setItem(
-      'sidebar-collapsed',
-      layout.classList.contains('sidebar-collapsed')
-    );
-  });
-
-  // Restore state
-  if (localStorage.getItem('sidebar-collapsed') === 'true') {
-    layout.classList.add('sidebar-collapsed');
-  }
-}
-
-// // Main router
-export async function navigate(page) {
-  const isAuthenticated = await checkAuth();
-  if (!isAuthenticated) return;
-  setActiveSidebar(page);
-  if (currentUnmount) currentUnmount();
-
-  const app = document.getElementById('app');
-
-  // 🔥 RESET page classes
-  app.className = 'page';
-
-  switch (page) {
-    case 'home':
-      app.classList.add('page-home');
-      app.innerHTML = homeView();
-      homeMount?.();
-      currentUnmount = homeUnmount;
-      break;
-
-    case 'production':
-      app.classList.add('page-production');
-      app.innerHTML = productionView();
-      productionMount?.();
-      currentUnmount = productionUnmount;
-      break;
-
-    case 'maintenance':
-      app.classList.add('page-maintenance');
-      app.innerHTML = maintenanceView();
-      maintenanceMount?.();
-      currentUnmount = maintenanceUnmount;
-      break;
-
-    case 'admin':
-      if (currentUserRole !== 'admin') {
-        alert('Access denied');
-        return;
-      }
-      app.classList.add('page-admin');
-      app.innerHTML = adminView();
-      adminMount?.();
-      currentUnmount = adminUnmount;
-      break;
-
-    default:
-      navigate('home');
-  }
-}
-
-async function bootstrap() {
-  const ok = await checkAuth();
-  if (!ok) return;
-
-  initWebSocket();
-  mountTopbar();
-  mountSidebar();
-  initSidebarToggle();
-  navigate('home');
-}
-
-bootstrap();
-
-
-// Initialize
-document.addEventListener('DOMContentLoaded', () => {
-  initWebSocket();
-  // Restore page from URL hash or default to home
-  const page = window.location.hash.slice(1) || 'home';
-  navigate(page);
-});
-
-// frontend/public/js/sidebar.js
-export function renderSidebar(role) {
-  return `
-    <nav class="sidebar-nav">
-      <div class="sidebar-section">
-        <a data-page="home"><i class="fa-solid fa-display"></i></i> <span>Home</span></a>
-        <a data-page="production"><i class="fa-solid fa-industry"></i> <span>Production</span></a>
-        <a data-page="maintenance"><i class="fa-solid fa-screwdriver-wrench"></i> <span>Maintenance</span></a>
-
-      </div>
-
-      ${role === 'admin' ? `
-      <div class="sidebar-section">
-        <a data-page="admin"><i class="fa-solid fa-laptop-code"></i><span>    Admin</span></a>
-      </div>` : ''}
-    </nav>
-  `;
-}
-
-// frontend/public/js/store.js
-export const scadaStore = {
-  latestPlcData: null,
-  ws: null,
-  listeners: [], // functions to call when data updates
-
-  setData(data) {
-    this.latestPlcData = data;
-    this.listeners.forEach(fn => fn(data));
-  },
+  autoRecoverEnabled = false;
+  plcRunning = false;
+  recoverAttempts = 0;
   
-  subscribe(fn) {
-    this.listeners.push(fn);
+  // Raise alarm for manual stop
+  raiseAlarm(
+    'PLC_STOPPED_MANUAL',
+    'PLC stopped by operator',
+    'INFO'
+  );
+  
+  return sendCommand({ cmd: 'stop' });
+}
 
-    // 🔥 Immediately send latest data
-    if (this.latestPlcData) {
-      fn(this.latestPlcData);
-    }
+function writeTag(tag, value) {
+  return sendCommand({ cmd: 'write', tag, value });
+}
 
-    return () => {
-      this.listeners = this.listeners.filter(f => f !== fn);
+function shutdown() {
+  isShuttingDown = true;
+  if (socket) socket.destroy();
+  if (reconnectTimeout) clearTimeout(reconnectTimeout);
+}
+
+function getStatus() {
+  return {
+    running: plcRunning,
+    connected: plcConnected,
+    healthy: plcHealthy,
+    lastHeartbeat
+  };
+}
+
+
+// Start connection on module load
+connect();
+
+module.exports = { start, stop, writeTag, shutdown, getStatus };
+
+// backend/node/services/plcMonitor.js
+const WebSocket = require('ws');
+
+let wss = null;
+
+// In-memory canonical PLC UI state
+const plcState = {
+  timestamp: Date.now(),
+  machines: {}
+};
+
+function getSnapshot() {
+  return plcState;
+}
+
+function updateData({ machineId, status, tags = {}, alarms = [] }) {
+  if (!machineId) return;
+
+  if (!plcState.machines[machineId]) {
+    plcState.machines[machineId] = {
+      status: 'STOPPED',
+      tags: {},
+      alarms: []
     };
   }
 
+  const machine = plcState.machines[machineId];
+
+  if (status) machine.status = status;
+  Object.assign(machine.tags, tags);
+  if (alarms.length) machine.alarms = alarms;
+
+  plcState.timestamp = Date.now();
+
+  broadcast({
+    type: 'plc_clean',
+    payload: {
+      machineId,
+      changes: { status, tags, alarms },
+      timestamp: plcState.timestamp
+    }
+  });
+}
+
+function broadcast(message) {
+  if (!wss) return;
+
+  const data = JSON.stringify(message);
+
+  wss.clients.forEach(client => {
+    if (client.readyState === WebSocket.OPEN) {
+      client.send(data);
+    }
+  });
+}
+
+function setWss(server) {
+  wss = server;
+
+  wss.on('connection', (ws) => {
+    ws.send(JSON.stringify({
+      type: 'plc_snapshot',
+      payload: getSnapshot()
+    }));
+  });
+}
+
+module.exports = {
+  setWss,
+  updateData,
+  getSnapshot
 };
 
-// frontend/public/js/views/admin.js
-export function adminView() {
-  return `
-      <h1>⚙️ Admin Panel</h1>
-      <p>Manage PLC and view real-time data.</p>
-      <div class="card">
-        <strong>Status:</strong>
-        <span id="plc-badge" class="badge badge-gray">UNKNOWN</span>
-      </div>
+// backend/node/services/stateStore.js
+const fs = require('fs');
+const path = require('path');
 
-      <div class="card">
-        <button id="btn-start">▶️ Start</button>
-        <button id="btn-stop">⏹️ Stop</button>
-        <input id="write-tag" placeholder="Tag" value="B10">
-        <input id="write-value" type="number" value="1">
-        <button id="btn-write">✍️ Write</button>
-      </div>
+const STATE_FILE = path.join(__dirname, '../data/systemState.json');
 
-      <div class="card">
-        <label>Alarm History Range:</label>
-        <select id="alarm-range">
-          <option value="15">Last 15 minutes</option>
-          <option value="30">Last 30 minutes</option>
-          <option value="60" selected>Last 1 hour</option>
-          <option value="480">Last 8 hours</option>
-          <option value="1440">Last 24 hours</option>
-        </select>
-      </div>      
-
-      <div class="card">
-        <h3>🚨 Active Alarms</h3>
-        <ul id="alarm-list" class="alarm-list"></ul>
-      </div>
-
-      <div class="card">
-        <h3>🧾 Alarm History</h3>
-        <ul id="alarm-history" class="alarm-history"></ul>
-      </div>
-  `;
-}
-
-import { sendPlcCommand } from '../api.js';
-import { scadaStore } from '../store.js';
-
-
-let alarmTimer = null;  
-
-
-async function refreshPlcStatus() {
-  const res = await fetch('/api/plc/status', {
-    credentials: 'same-origin'
-  });
-  return res.json();
-}
-
-function updateUIFromStatus(status) {
-  const badge = document.getElementById('plc-badge');
-  const btnStart = document.getElementById('btn-start');
-  const btnStop = document.getElementById('btn-stop');
-
-  if (!status.connected && status.running) {
-    badge.textContent = 'PLC FAULT';
-    badge.className = 'badge badge-red';
-    btnStart.disabled = true;
-    btnStop.disabled = false;
+let runtimeState = {
+  plc: {},          // 👈 LIVE PLC DATA
+  meta: {
+    lastIntent: 'STOPPED'
   }
-  else if (!status.connected) {
-    badge.textContent = 'DISCONNECTED';
-    badge.className = 'badge badge-gray';
-    btnStart.disabled = true;
-    btnStop.disabled = true;
-  }
-  else if (status.running && !status.healthy) {
-    badge.textContent = 'PLC FAULT';
-    badge.className = 'badge badge-red';
-    btnStart.disabled = true;
-    btnStop.disabled = false;
-  }
-  else if (status.running) {
-    badge.textContent = 'RUNNING';
-    badge.className = 'badge badge-green';
-    btnStart.disabled = true;
-    btnStop.disabled = false;
-  }
-  else {
-    badge.textContent = 'STOPPED';
-    badge.className = 'badge badge-red';
-    btnStart.disabled = false;
-    btnStop.disabled = true;
-  }
-}
+};
 
-export async function adminMount() {
-  // Initial status fetch
-  const status = await refreshPlcStatus();
-  const alarmList = document.getElementById('alarm-list');
-  updateUIFromStatus(status);
+/* ------------------ PLC STATE ------------------ */
 
-  document.getElementById('btn-start').addEventListener('click', async () => {
-    await sendPlcCommand('start');
-    const status = await refreshPlcStatus();
-    updateUIFromStatus(status);
-  });
+function updatePlc(payload) {
+  const { department, machine, timestamp, data } = payload;
+  if (!department || !machine) return;
 
-  document.getElementById('btn-stop').addEventListener('click', async () => {
-    await sendPlcCommand('stop');
-    const status = await refreshPlcStatus();
-    updateUIFromStatus(status);
-  });
-
-  document.getElementById('btn-write').addEventListener('click', () => {
-    const tag = document.getElementById('write-tag').value;
-    const value = parseInt(document.getElementById('write-value').value);
-    sendPlcCommand('write', { tag, value });
-  });
-
-  function handleAlarmEvent(msg) {
-    if (msg.type !== 'alarm_event') return;
-    loadAlarms(); // re-render list instantly
+  if (!runtimeState.plc[department]) {
+    runtimeState.plc[department] = {};
   }
 
-  alarmList.onclick = async (e) => {
-    if (!e.target.classList.contains('ack-btn')) return;
-
-    const id = e.target.dataset.id;
-
-    await fetch(`/api/alarms/ack/${id}`, {
-      method: 'POST',
-      credentials: 'same-origin'
-    });
-
-    loadAlarms();
+  runtimeState.plc[department][machine] = {
+    lastUpdate: new Date(timestamp).getTime(),
+    data
   };
+}
 
-  async function loadAlarms() {
-    const rangeMin = document.getElementById('alarm-range')?.value || 60;
+function getPlcSnapshot() {
+  return runtimeState.plc;
+}
 
-    const from = new Date(Date.now() - rangeMin * 60 * 1000).toISOString();
+/* ------------------ SYSTEM STATE ------------------ */
 
-    const res = await fetch(
-      `/api/alarm-history?from=${encodeURIComponent(from)}`,
-      { credentials: 'same-origin' }
-    );
-
-    if (!res.ok) {
-      alarmList.innerHTML = '<li>No alarm access</li>';
-      return;
-    }
-
-    const alarms = await res.json();
-
-    if (!Array.isArray(alarms)) return;
-
-    alarmList.innerHTML = alarms
-      .slice()
-      .reverse()
-      .map(a => `
-        <li class="alarm ${a.severity.toLowerCase()}">
-          <strong>${a.code}</strong>
-          <span>${a.message}</span>
-          <small>${new Date(a.ts).toLocaleString()}</small>
-        </li>
-      `)
-      .join('');
+function loadState() {
+  try {
+    if (!fs.existsSync(STATE_FILE)) return runtimeState.meta;
+    runtimeState.meta = JSON.parse(fs.readFileSync(STATE_FILE, 'utf8'));
+    return runtimeState.meta;
+  } catch {
+    return runtimeState.meta;
   }
-
-  async function loadAlarmHistory() {
-    const el = document.getElementById('alarm-history');
-
-    const res = await fetch('/api/alarm-history', {
-      credentials: 'same-origin'
-    });
-
-    if (!res.ok) {
-      el.innerHTML = '<li>No access</li>';
-      return;
-    }
-
-    const logs = await res.json();
-
-    el.innerHTML = logs
-      .slice()
-      .reverse()
-      .map(l => `
-        <li class="alarm ${l.severity.toLowerCase()}">
-          <strong>${l.code}</strong>
-          <span>${l.message}</span>
-          <small>${new Date(l.ts).toLocaleString()}</small>
-        </li>
-      `)
-      .join('');
-  }
-  const ws = scadaStore.ws;
-  ws.addEventListener('message', (event) => {
-    const msg = JSON.parse(event.data);
-    handleAlarmEvent(msg);
-  });
-
-  document.getElementById('alarm-range')
-  .addEventListener('change', loadAlarms);
-
-  await loadAlarms();
-  await loadAlarmHistory();
-
 }
 
-export function adminUnmount() {
-  if (alarmTimer) clearInterval(alarmTimer);
+function saveState(state) {
+  runtimeState.meta = { ...runtimeState.meta, ...state };
+  fs.writeFileSync(STATE_FILE, JSON.stringify(runtimeState.meta, null, 2));
 }
 
-// frontend/public/js/views/home.js
-export function homeView() {
-  return `
-      <h1>🏭 SCADA Dashboard – Home</h1>
-      <div class="card">
-        <p>Welcome to the SCADA system.</p>
-        <p>Use navigation above to switch views.</p>
-        <p><i class="fasfa-desktop"></i> fontawesome</p>
-      </div>
-  `;
-}
-
-export function homeMount() {
-}
-
-export function homeUnmount() {
-}
-
-// frontend/public/js/views/maintenance.js
-export function maintenanceView() {
-  return `
-      <h1>🔧 Maintenance</h1>
-      <div class="card">
-        <p>Schedule maintenance, view logs, calibrate sensors.</p>
-        <!-- Add your maintenance tools here -->
-      </div>
-  `;
-}
-
-export function maintenanceMount() {
-}
-
-export function maintenanceUnmount() {
-}
-
-// frontend/public/js/views/production.js
-export function productionView() {
-  return `
-    <h2>🏭 Production Monitoring</h2>
-
-    <div class="card">
-      <h3>📡 Live PLC Data</h3>
-      <pre id="plc-data">No data...</pre>
-    </div>
-
-  `;
-}
-import { scadaStore } from '../store.js';
-
-let unsubscribe = null;
-
-export async function productionMount() {
-  const dataEl = document.getElementById('plc-data');
-
-  // PLC live data
-  unsubscribe = scadaStore.subscribe((data) => {
-    dataEl.textContent = JSON.stringify(data, null, 2);
-  });
-
-}
-
-export function productionUnmount() {
-  if (unsubscribe) unsubscribe();
-}
-
-/* frontend/public/css/main.css */
-/* ===== Page Wrapper ===== */
-
-.page {
-  min-height: calc(100vh - 60px);
-  padding: 20px;
-  background-color: #4ee298;
-}
-
-.page .card {
-  background: white;
-}
-
-.page-home {
-  color: #d32f2f;
-}
-.page-production {
-  color: #4caf50;
-}
-.page-maintenance {
-  color: #ff9800;
-}
-.page-admin {
-  color: #1976d2;
-}
-
-/* Admin page tweaks */
-.page-admin .card {
-  border-left: 4px solid #b319d2;
-}
-
-/* Production page tweaks */
-.page-production .card {
-  border-left: 4px solid #4caf50;
-}
-
-body {
-    font-family: sans-serif;
-    margin: 0;
-    background: #345cff;
-}
-
-/* ===== Header ===== */
-#topbar {
-  height: 60px;
-  background: #19537B;
-  color: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 20px;
-}
-
-.topbar-right {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-#logout-btn {
-  background: #d32f2f;
-  border: none;
-  color: white;
-  padding: 6px 12px;
-  border-radius: 6px;
-  cursor: pointer;
-}
-
-#logout-btn:hover {
-  background: #b71c1c;
-}
-
-/* ===== Layout ===== */
-.layout {
-  display: flex;
-  min-height: calc(100vh - 60px);
-}
-
-/* ===== Sidebar ===== */
-#sidebar {
-  width: 220px;
-  background: #19537B;
-  color: #fff;
-}
-
-.sidebar-nav {
-  padding: 16px;
-}
-
-.sidebar-section {
-  margin-bottom: 20px;
-}
-
-#sidebar a {
-  display: block;
-  padding: 10px 12px;
-  color: #ddd;
-  text-decoration: none;
-  border-radius: 6px;
-}
-
-#sidebar a.active {
-  background: #3f51b5;
-  color: #fff;
-  font-weight: 600;
-}
-
-#sidebar a:hover {
-  background: #2c2c44;
-  color: #fff;
-}
-
-.layout.sidebar-collapsed #sidebar {
-  width: 60px;
-}
-
-.layout.sidebar-collapsed #sidebar a span {
-  display: none;
-}
-
-.layout.sidebar-collapsed #app {
-  margin-left: 10px;
-}
-
-#sidebar {
-  transition: width 0.2s ease;
-}
-
-/* ===== Content ===== */
-#app {
-  flex: 1;
-  background: #f5f6fa;
-}
-
-
-
-
-
-
-
-
+module.exports = {
+  updatePlc,
+  getPlcSnapshot,
+  loadState,
+  saveState
+};
 
 
 // frontend/public/js/app.js
 import { renderSidebar } from './sidebar.js';
 import { initSidebarBehavior,setActiveSidebar } from './sidebar-behavior.js';
 import { routes } from './routes.js';
-
+import { scadaStore } from './store.js';
 let currentUnmount = null;
 let currentUserRole = null;
-
+window.scadaStore = scadaStore; // 👈 debug only
 
 // Auth check
 async function checkAuth() {
@@ -1125,8 +1044,6 @@ export async function logout() {
   window.location.href = '/login.html';
 }
 
-import { scadaStore } from './store.js';
-
 function initWebSocket() {
   if (scadaStore.ws) return;
 
@@ -1138,8 +1055,17 @@ function initWebSocket() {
 
   ws.onmessage = (event) => {
     const msg = JSON.parse(event.data);
+
+    if (msg.type === 'plc_snapshot') {
+      scadaStore.setSnapshot(msg.payload);
+    }
+
     if (msg.type === 'plc_update') {
-      scadaStore.setData(msg.data); // notify all subscribers
+      scadaStore.applyUpdate(msg.payload);
+    }
+
+    if (msg.type === 'plc_clean') {
+      scadaStore.applyPlcClean(msg.payload);
     }
   };
 
@@ -1158,13 +1084,15 @@ function mountSidebar() {
 }
 
 function initSidebarToggle() {
-  const btn = document.getElementById('sidebar-toggle');
   const layout = document.querySelector('.layout');
+
+  // IMPORTANT: button is inside sidebar
+  const btn = document.getElementById('toggleSidebar');
+  if (!btn || !layout) return;
 
   btn.addEventListener('click', () => {
     layout.classList.toggle('sidebar-collapsed');
 
-    // Optional: remember state
     localStorage.setItem(
       'sidebar-collapsed',
       layout.classList.contains('sidebar-collapsed')
@@ -1193,9 +1121,9 @@ export async function navigate(route) {
     node = node?.[part];
   }
 
-  if (!node || !node.view) {
+  if (!node) {
     console.warn('Route not found:', route);
-    return navigate('home');
+    return;
   }
 
   // Role guard
@@ -1207,8 +1135,17 @@ export async function navigate(route) {
   // Page wrapper class
   app.classList.add(`page-${parts[0]}`);
 
-  app.innerHTML = node.view();
-  node.mount?.();
+  // Clear page
+  app.innerHTML = '';
+
+  // Render static HTML if provided
+  if (node.view) {
+    app.innerHTML = node.view();
+  }
+
+  // Mount dynamic logic (WS, subscriptions, DOM updates)
+  node.mount?.(app);
+
   currentUnmount = node.unmount || null;
 
   // Sync sidebar
@@ -1221,45 +1158,119 @@ async function bootstrap() {
 
   initWebSocket();
   mountTopbar();
-  mountSidebar();
-  initSidebarToggle();
+  mountSidebar();        // injects sidebar HTML
+  initSidebarToggle();   // now button exists
   navigate('home');
 }
+
 
 bootstrap();
 
 
-<!-- // frontend/public/index.html -->
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>SCADA.SET</title>
-    <link rel="stylesheet" href="/css/fontawesome/all.min.css">
-    <link rel="stylesheet" href="/css/main.css">
-  </head>
-  <body>
-    <header id="topbar">
-      <div class="topbar-left">
-        <h1>SCADA.SET</h1>
-      </div>
 
-      <div class="topbar-right">
-        <span id="user-role"></span>
-        <button id="logout-btn">Logout <i class="fa-solid fa-right-to-bracket fa-flip-horizontal"></i></i></button>
-      </div>
-    </header>
+// frontend/public/js/store.js
+function deriveStatus(metrics) {
+  if (metrics.alarm) return 'ALARM';
+  if (metrics.run) return 'RUNNING';
+  if (metrics.idle) return 'IDLE';
+  return 'STOP';
+}
 
-    <div class="layout">
-      <aside id="sidebar"></aside>
-      <main id="app" class="page"></main>
-    </div>
-    
-    <script type="module" src="/js/app.js"></script>
-  </body>
-</html>
+export const scadaStore = {
+  state: {
+    timestamp: null,
+    machines: {}
+  },
 
+  ws: null,
+  listeners: new Set(),
+
+  // 🔐 Only entry point for WS data
+  setSnapshot(snapshot) {
+    this.state.timestamp = snapshot.timestamp ?? this.state.timestamp;
+    this.state.machines = snapshot.machines ?? this.state.machines;
+    this.notify();
+  },
+
+  applyUpdate({ machineId, changes }) {
+    if (!this.state.machines[machineId]) return;
+
+    const m = this.state.machines[machineId];
+
+    if (changes.status) m.status = changes.status;
+    if (changes.tags) Object.assign(m.tags, changes.tags);
+    if (changes.alarms) m.alarms = changes.alarms;
+
+    this.state.timestamp = Date.now();
+    this.notify();
+  },
+
+  applyPlcClean(payload) {
+    const key = `${payload.department.toLowerCase()}_${payload.machine}`;
+
+    this.state.machines[key] = {
+      department: payload.department,
+      machineType: payload.machine_type,
+      status: deriveStatus(payload.metrics),
+      tags: {
+        cycle_time: payload.metrics.cycle_time,
+        count_today: payload.metrics.count_today,
+        plan: payload.context.plan
+      },
+      alarms: payload.metrics.alarm ? [payload.metrics.alarm_code] : [],
+      lastUpdate: Date.now()
+    };
+
+    this.notify();
+  },
+
+
+  notify() {
+    this.listeners.forEach(fn => fn(this.state));
+  },
+
+  subscribe(fn) {
+    this.listeners.add(fn);
+
+    // immediate sync
+    fn(this.state);
+
+    return () => this.listeners.delete(fn);
+  }
+};
+
+// frontend/public/js/storeSelectors.js
+export function selectAllMachines(state) {
+  return Object.entries(state.machines);
+}
+
+export function selectByPlant(state, plantId) {
+  return Object.entries(state.machines)
+    .filter(([id]) => id.startsWith(plantId));
+}
+
+export function selectAlarms(state) {
+  return Object.entries(state.machines)
+    .flatMap(([id, m]) =>
+      m.alarms.map(code => ({
+        machineId: id,
+        code
+      }))
+    );
+}
+
+export function selectOverview(state) {
+  return {
+    total: Object.keys(state.machines).length,
+    running: Object.values(state.machines).filter(m => m.status === 'RUNNING').length,
+    fault: Object.values(state.machines).filter(m => m.alarms.length).length
+  };
+}
+
+export function selectPressMachines(state) {
+  return Object.entries(state.machines)
+    .filter(([id]) => id.toLowerCase().includes('press'));
+}
 
 // frontend/public/js/routes.js
 import * as Home from './views/home.js';
@@ -1270,7 +1281,6 @@ import * as OEE from './views/oee.js';
 
 export const routes = {
   home: {
-    view: Home.homeView,
     mount: Home.homeMount,
     unmount: Home.homeUnmount
   },
@@ -1278,7 +1288,8 @@ export const routes = {
   production: {
     history: {
       view: Production.productionHistoryView,
-      mount: Production.productionHistoryMount
+      mount: Production.productionHistoryMount,
+      unmount: Production.productionHistoryUnmount
     },
     press: {
       view: Production.productionPressView
@@ -1293,284 +1304,118 @@ export const routes = {
 
   maintenance: {
     overview: {
-      view: Maintenance.maintenanceOverviewView
+      plant1: { view: Maintenance.plant1View },
+      plant2: { view: Maintenance.plant2View }
     },
-    request: {
-      view: Maintenance.maintenanceRequestView
-    }
+    request: { view: Maintenance.requestView },
+    report: { view: Maintenance.reportView }
   },
+
+  oee: {
+    view: OEE.oeeView
+  },  
 
   admin: {
     alarm: {
       view: Admin.adminAlarmView,
+      mount: Admin.adminAlarmMount,
+      unmount: Admin.adminAlarmUnmount,
       role: 'admin'
     },
     database: {
       view: Admin.adminDatabaseView,
       role: 'admin'
     }
-  },
-
-  oee: {
-    view: OEE.oeeView
   }
+
 };
 
-
-
-// frontend/public/js/sidebar-behavior.js
-// export function initSidebarBehavior(navigate) {
-//   const sidebar = document.querySelector('.sidebar');
-
-//   // Toggle collapse
-//   document.getElementById('toggleSidebar')?.addEventListener('click', () => {
-//     sidebar.classList.toggle('collapsed');
-
-//     // close all submenus when collapsed
-//     if (sidebar.classList.contains('collapsed')) {
-//       document.querySelectorAll('.sub-menu ul').forEach(ul => {
-//         ul.style.display = 'none';
-//       });
-//     }
-//   });
-
-//   // Handle submenu toggle
-//   sidebar.addEventListener('click', (e) => {
-//     const link = e.target.closest('.sub-menu > a');
-//     if (!link) return;
-
-//     e.preventDefault();
-
-//     if (sidebar.classList.contains('collapsed')) {
-//       sidebar.classList.remove('collapsed');
-//       return;
-//     }
-
-//     const parent = link.parentElement;
-//     const submenu = parent.querySelector('ul');
-
-//     // close siblings
-//     // parent.parentElement.querySelectorAll(':scope > .sub-menu').forEach(li => {
-//     //   if (li !== parent) li.querySelector('ul')?.style.display = 'none';
-//     // });
-// parent.parentElement.querySelectorAll(':scope > .sub-menu').forEach(li => {
-// if (li !== parent) {
-// const ul = li.querySelector('ul');
-// if (ul) ul.style.display = 'none';
-// }
-// });
-
-//     submenu.style.display =
-//       submenu.style.display === 'block' ? 'none' : 'block';
-//   });
-
-//   // Handle navigation clicks
-//   sidebar.addEventListener('click', (e) => {
-//     const pageLink = e.target.closest('a[data-page]');
-//     if (!pageLink) return;
-
-//     e.preventDefault();
-//     setActiveSidebar(pageLink.dataset.page);
-//     navigate(pageLink.dataset.page);
-//   });
-// }
-export function initSidebarBehavior(navigate) {
-  const sidebar = document.querySelector('.sidebar');
-
-  // Toggle collapse
-  const toggleBtn = document.getElementById('toggleSidebar');
-
-  if (toggleBtn) {
-    toggleBtn.addEventListener('click', () => {
-      sidebar.classList.toggle('collapsed');
-
-      // close all submenus when collapsed
-      if (sidebar.classList.contains('collapsed')) {
-        document.querySelectorAll('.sub-menu ul').forEach(ul => {
-          ul.style.display = 'none';
-        });
-      }
-    });
-  }
-
-  // Handle submenu toggle
-  sidebar.addEventListener('click', (e) => {
-    const link = e.target.closest('.sub-menu > a');
-    if (!link) return;
-
-    e.preventDefault();
-
-    if (sidebar.classList.contains('collapsed')) {
-      sidebar.classList.remove('collapsed');
-      return;
-    }
-
-    const parent = link.parentElement;
-    const submenu = parent.querySelector('ul');
-
-    parent.parentElement.querySelectorAll(':scope > .sub-menu').forEach(li => {
-      if (li !== parent) {
-        const ul = li.querySelector('ul');
-        if (ul) ul.style.display = 'none';
-      }
-    });
-
-    submenu.style.display =
-      submenu.style.display === 'block' ? 'none' : 'block';
+// frontend/public/js/api.js
+export async function sendPlcCommand(endpoint) {
+  const res = await fetch(`/api/plc/${endpoint}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'same-origin'
   });
-
-  // Handle navigation clicks
-  sidebar.addEventListener('click', (e) => {
-    const pageLink = e.target.closest('a[data-page]');
-    if (!pageLink) return;
-
-    e.preventDefault();
-    setActiveSidebar(pageLink.dataset.page);
-    navigate(pageLink.dataset.page);
-  });
-}
-export function setActiveSidebar(page) {
-  document.querySelectorAll('#leftside-navigation li')
-    .forEach(li => li.classList.remove('active'));
-
-  const activeLink = document.querySelector(`a[data-page="${page}"]`);
-  if (!activeLink) return;
-
-  let li = activeLink.closest('li');
-  while (li) {
-    li.classList.add('active');
-    li = li.parentElement.closest('li');
-  }
-
-  // ensure parents are open
-  document.querySelectorAll('.sub-menu.active > ul')
-    .forEach(ul => ul.style.display = 'block');
+  return res.json();
 }
 
+export async function writePlcTag(tag, value) {
+  const res = await fetch('/api/plc/write', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'same-origin',
+    body: JSON.stringify({ tag, value })
+  });
+  return res.json();
+}
 
+// frontend/public/js/views/home.js
+import { scadaStore } from '../store.js';
+// import { selectByPlant } from '../storeSelectors.js';
+import { selectPressMachines } from '../storeSelectors.js';
 
-export function renderSidebar(role) {
-  return `
-  <div class="sidebar-header">
-    <button class="toggle-sidebar" id="toggleSidebar">
-      <i class="fa fa-bars"></i>
-    </button>
-  </div>
+let unsubscribe = null;
 
-  <div id="leftside-navigation">
-    <ul class="nano-content">
+export function homeMount(container) {
+  const plantId = 'plant1'; // home focuses on Plant 1
 
-      <li>
-        <a data-page="home" data-title="Home">
-          <i class="fa fa-dashboard"></i><span>Home</span>
-        </a>
-      </li>
+  container.innerHTML = `
+    <h1>🏭 SCADA Dashboard – Home</h1>
 
-      <li class="sub-menu">
-        <a href="javascript:void(0);" data-title="Production">
-          <i class="fa fa-table"></i><span>Production</span>
-          <i class="arrow fa fa-angle-right"></i>
-        </a>
-        <ul>
-          <li><a data-page="production.history">History</a></li>
-          <li><a data-page="production.press">Press</a></li>
-          <li><a data-page="production.heat">Heat</a></li>
-          <li><a data-page="production.lathe">Lathe</a></li>
-        </ul>
-      </li>
+    <section class="plant-header">
+      <h2>Plant 1 Overview</h2>
+      <span id="plant-timestamp"></span>
 
-      <li class="sub-menu">
-        <a href="javascript:void(0);" data-title="Maintenance">
-          <i class="fa fa-tasks"></i><span>Maintenance</span>
-          <i class="arrow fa fa-angle-right"></i>
-        </a>
-        <ul>
-          <li><a data-page="maintenance.overview">Overview</a></li>
-          <li><a data-page="maintenance.request">Request</a></li>
-        </ul>
-      </li>
+    </section>
 
-      <li>
-        <a data-page="oee" data-title="OEE">
-          <i class="fa fa-line-chart"></i><span>OEE</span>
-        </a>
-      </li>
-
-      ${role === 'admin' ? `
-      <li class="sub-menu">
-        <a href="javascript:void(0);" data-title="Admin">
-          <i class="fa fa-cog"></i><span>Admin</span>
-          <i class="arrow fa fa-angle-right"></i>
-        </a>
-        <ul>
-          <li><a data-page="admin.alarm">Alarm Handle</a></li>
-          <li><a data-page="admin.database">Database</a></li>
-        </ul>
-      </li>` : ''}
-
-    </ul>
-  </div>
+    <section id="machine-grid" class="machine-grid"></section>
   `;
-}
 
+  const grid = container.querySelector('#machine-grid');
+  const tsEl = container.querySelector('#plant-timestamp');
 
-/* ===== Hover preview when sidebar collapsed ===== */
-
-.layout.sidebar-collapsed .sub-menu {
-  position: relative;
-}
-
-/* First level floating menu */
-.layout.sidebar-collapsed .sub-menu > ul {
-  position: absolute;
-  top: 0;
-  left: 64px; /* collapsed sidebar width */
-  min-width: 220px;
-
-  background: #1e1e2d;
-  border-radius: 6px;
-  box-shadow: 0 8px 20px rgba(0,0,0,0.35);
-
-  display: none;
-  padding: 6px 0;
-  z-index: 999;
-}
-.layout.sidebar-collapsed .sub-menu:hover > ul {
-  display: block;
-}
-/* Nested floating submenu */
-.layout.sidebar-collapsed .sub-menu ul .sub-menu > ul {
-  top: 0;
-  left: 100%;
-  margin-left: 4px;
-}
-.layout.sidebar-collapsed .sub-menu ul li a {
-  padding: 10px 16px;
-  color: #cfd2dc;
-}
-
-.layout.sidebar-collapsed .sub-menu ul li a:hover {
-  background: rgba(255,255,255,0.08);
-  color: #fff;
-}
-.layout.sidebar-collapsed .sub-menu > a .arrow {
-  display: block;
-  margin-left: auto;
-}
-.layout.sidebar-collapsed .sub-menu > ul {
-  animation: hoverSlide 0.18s ease;
-}
-
-@keyframes hoverSlide {
-  from {
-    opacity: 0;
-    transform: translateX(-6px);
+  function statusClass(machine) {
+    if (machine.alarms?.length) return 'alarm';
+    return machine.status?.toLowerCase() || 'idle';
   }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
+
+  unsubscribe = scadaStore.subscribe(state => {
+    // const machines = selectByPlant(state, plantId);
+    const machines = selectPressMachines(state);
+
+
+    grid.innerHTML = '';
+    machines.forEach(([id, m]) => {
+      const card = document.createElement('div');
+      card.className = `machine-card ${statusClass(m)}`;
+
+      card.innerHTML = `
+        <div class="machine-title">${id}</div>
+        <div class="machine-status">Status: ${m.status}</div>
+
+        <div>Status: ${m.status}</div>
+
+        <div class="machine-tags">
+          <div>Cycle: ${m.tags?.cycle_time ?? '--'} s</div>
+          <div>Count: ${m.tags?.part_count ?? '--'}</div>
+        </div>
+
+        ${m.alarms?.length
+          ? `<div class="alarm-badge">${m.alarms.length} ALARM</div>`
+          : ''
+        }
+      `;
+
+      grid.appendChild(card);
+    });
+
+    tsEl.textContent = state.timestamp
+      ? new Date(state.timestamp).toLocaleTimeString()
+      : '';
+  });
 }
-.layout.sidebar-collapsed .sub-menu > ul:hover {
-  display: block;
+
+export function homeUnmount() {
+  if (unsubscribe) unsubscribe();
 }

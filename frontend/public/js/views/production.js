@@ -10,6 +10,7 @@
 
 //   `;
 // }
+// frontend/public/js/views/production.js
 export function productionHistoryView() {
   return `
     <div class="card">

@@ -121,14 +121,7 @@ def get_range_equipment(all_range_equipment):
 
 # Filter process Press
 compare_press_count,compare_press_status = [[],[],[],[],[],[],[],[],[],[],[],[],[]],[[],[],[],[],[],[],[],[],[],[],[],[],[]]
-
-
-def lathe_clean(data):
-    print("Lathe clean data start",data[1][0:3])
-    return data[1][0:3]
-def eq_press_clean(data):
-    print("Eq Press clean data start",data[1][0:3])
-    return data[1][0:3]
+compare_heat_count,compare_heat_status = [[],[],[],[],[],[],[],[],[],[],[],[],[]],[[],[],[],[],[],[],[],[],[],[],[],[],[]]
 
 # Read all row after last output
 def row_after_output(_db_pool,time_stamp,department,machine_name,part_name):
@@ -136,10 +129,10 @@ def row_after_output(_db_pool,time_stamp,department,machine_name,part_name):
     if department == "Press":
         query = """
             SELECT time_stamp,output_,idle_,alarm_,offline_
-            FROM pc_press_2
+            FROM raw_press
             WHERE id_row >=(
                 SELECT id_row
-                FROM pc_press_2
+                FROM raw_press
                 WHERE DATE(time_stamp) = DATE(%s) AND department_ = %s AND machine_name = %s AND part_name = %s AND output_ = %s
                 ORDER BY time_stamp DESC
                 LIMIT 1
@@ -149,10 +142,10 @@ def row_after_output(_db_pool,time_stamp,department,machine_name,part_name):
     elif department == "Heat":
         query = """
             SELECT time_stamp,output_,idle_,setting_,alarm_,offline_
-            FROM pc_heat_2
+            FROM raw_heat
             WHERE id_row >=(
                 SELECT id_row
-                FROM pc_heat_2
+                FROM raw_heat
                 WHERE DATE(time_stamp) = DATE(%s) AND department_ = %s AND machine_name = %s AND part_name = %s AND output_ = %s
                 ORDER BY time_stamp DESC
                 LIMIT 1
@@ -172,13 +165,13 @@ def count_production(_db_pool,time_stamp,department,machine_name):
     if department == "Press":
         query = """
             SELECT COUNT(output_) AS count_output
-            FROM pc_press_2
+            FROM raw_press
             WHERE DATE(time_stamp) = DATE(%s) AND department_ = %s AND  machine_name = %s AND output_ = %s
         """
     elif department == "Heat":
         query = """
             SELECT COUNT(output_) AS count_output
-            FROM pc_heat_2
+            FROM raw_heat
             WHERE DATE(time_stamp) = DATE(%s) AND department_ = %s AND  machine_name = %s AND output_ = %s
         """
     cursor = conn.cursor()
@@ -188,7 +181,7 @@ def count_production(_db_pool,time_stamp,department,machine_name):
     conn.close()
     return result['count_output'] if result and 'count_output' in result else 0
 
-def press_clean(_db_pool,all_department,all_machine,all_data,data):
+def press_clean(_db_pool,all_department,all_machine,all_data,data,clean_db_q,broadcast_q):
     point_int = [7,1,13,6,0]
     point_str = ["idle_","alarm_","offline_"]
     try :                    
@@ -221,19 +214,65 @@ def press_clean(_db_pool,all_department,all_machine,all_data,data):
                         pick_up = bit_received[data["target_"]:data["target_"]+data["range_"]]
                         int_pick = int(pick_up[0])
                         each_machine.append(int_pick)
-            machine_data.append(each_machine)       
-        # return machine_data
+            machine_data.append(each_machine)    
         if machine_data != []:
             for list_data in range(len(machine_data)):
-                status_check,count_check,status_count_check = [],[],[]
                 status_check = machine_data[list_data].copy()  
                 status_check[point_int[0]] = 0
                 if status_check[point_int[1]:point_int[2]] != compare_press_status[list_data]:
                     cycle_time = 0
                     count_today = 0
-                    # queue_save_press.put((status_check,cycle_time,count_today))
                     compare_press_status[list_data] = status_check[point_int[1]:point_int[2]]
-                    return status_check,cycle_time,count_today
+                    clean_db_q.put({
+                        "event": "plc_clean",
+                        "source": "clean_press",
+                        "department": "Press",
+                        "machine": status_check[2],
+                        "machine_type": status_check[3],
+                        "timestamp": status_check[0],
+
+                        "context": {
+                            "part_name": status_check[4],
+                            "plan": status_check[5],
+                            "operator_id": status_check[6],
+                        },
+
+                        "metrics": {
+                            "count_signal": status_check[7],
+                            "run": status_check[8],
+                            "idle": status_check[9],
+                            "alarm": status_check[10],
+                            "offline": status_check[11],
+                            "alarm_code": status_check[12],
+                            "cycle_time": cycle_time,
+                            "count_today": count_today
+                        }
+                    })
+                    broadcast_q.put({
+                        "event": "plc_clean",
+                        "source": "clean_press",
+                        "department": "Press",
+                        "machine": status_check[2],
+                        "machine_type": status_check[3],
+                        "timestamp": status_check[0],
+
+                        "context": {
+                            "part_name": status_check[4],
+                            "plan": status_check[5],
+                            "operator_id": status_check[6],
+                        },
+
+                        "metrics": {
+                            "count_signal": status_check[7],
+                            "run": status_check[8],
+                            "idle": status_check[9],
+                            "alarm": status_check[10],
+                            "offline": status_check[11],
+                            "alarm_code": status_check[12],
+                            # "cycle_time": cycle_time,
+                            # "count_today": count_today
+                        }
+                    })
                 else : 
                     pass
                 
@@ -252,21 +291,68 @@ def press_clean(_db_pool,all_department,all_machine,all_data,data):
                                     break
                             if cycle_time != point_int[3]:
                                 cycle_time = (status_count_check[0] - old_row[0]["time_stamp"]).total_seconds()
-                        count_today = count_production(_db_pool,status_count_check[0],all_department[point_int[4]],status_count_check[2]) + 1  
-                        # queue_save_press.put((status_count_check,cycle_time,count_today))                               
+                        count_today = count_production(_db_pool,status_count_check[0],all_department[point_int[4]],status_count_check[2]) + 1                            
                         compare_press_count[list_data] = count_check
-                        return status_count_check,cycle_time,count_today
+                        clean_db_q.put({
+                            "event": "plc_clean",
+                            "source": "clean_press",
+                            "department": "Press",
+                            "machine": status_check[2],
+                            "machine_type": status_check[3],
+                            "timestamp": status_check[0],
+
+                            "context": {
+                                "part_name": status_check[4],
+                                "plan": status_check[5],
+                                "operator_id": status_check[6],
+                            },
+
+                            "metrics": {
+                                "count_signal": status_check[7],
+                                "run": status_check[8],
+                                "idle": status_check[9],
+                                "alarm": status_check[10],
+                                "offline": status_check[11],
+                                "alarm_code": status_check[12],
+                                "cycle_time": cycle_time,
+                                "count_today": count_today
+                            }
+                        })
+                        broadcast_q.put({
+                            "event": "plc_clean",
+                            "source": "clean_press",
+                            "department": "Press",
+                            "machine": status_check[2],
+                            "machine_type": status_check[3],
+                            "timestamp": status_check[0],
+
+                            "context": {
+                                "part_name": status_check[4],
+                                "plan": status_check[5],
+                                "operator_id": status_check[6],
+                            },
+
+                            "metrics": {
+                                "count_signal": status_check[7],
+                                "run": status_check[8],
+                                "idle": status_check[9],
+                                "alarm": status_check[10],
+                                "offline": status_check[11],
+                                "alarm_code": status_check[12],
+                                "cycle_time": cycle_time,
+                                "count_today": count_today
+                            }
+                        })
                     else : 
                         pass
                 else :
-                    compare_press_count[list_data] = count_check
-        # else:
-        #     pass
+                    compare_press_count[list_data] = count_check        
+        else:
+            print("❌ Press data is empty")
     except Exception as e:
         print("❌ Press clean data error:",e)
-
-
-def heat_clean(_db_pool,all_department,all_machine,all_data,data):
+  
+def heat_clean(_db_pool,all_department,all_machine,all_data,data,clean_db_q,broadcast_q):
     point_int = [9,1,15,95,1]
     point_str = ["alarm_","setting_"]
     try :                    
@@ -300,45 +386,153 @@ def heat_clean(_db_pool,all_department,all_machine,all_data,data):
                         int_pick = int(pick_up[0])
                         each_machine.append(int_pick)
             machine_data.append(each_machine)
-        return machine_data
-        # if machine_data != []:
-        #     for list_data in range(len(machine_data)):
-        #         status_check,count_check,status_count_check = [],[],[]
-        #         status_check = machine_data[list_data].copy()  
-        #         status_check[point_int[0]] = 0
-        #         if status_check[point_int[1]:point_int[2]] != compare_status[list_data]:
-        #             cycle_time = 0
-        #             count_today = 0
-        #             # queue_save_heat.put((status_check,cycle_time,count_today))   
-        #             compare_status[list_data] = status_check[point_int[1]:point_int[2]]
-        #             return status_check,cycle_time,count_today
-        #         else : 
-        #             pass
+
+        if machine_data != []:
+            for list_data in range(len(machine_data)):
+                status_check = machine_data[list_data].copy()  
+                status_check[point_int[0]] = 0
+                if status_check[point_int[1]:point_int[2]] != compare_heat_status[list_data]:
+                    cycle_time = 0
+                    count_today = 0
+                    compare_heat_status[list_data] = status_check[point_int[1]:point_int[2]]
+                    clean_db_q.put({
+                        "event": "plc_clean",
+                        "source": "clean_heat",
+                        "department": "Heat",
+                        "machine": status_check[2],
+                        "machine_type": status_check[3],   # Machine / Robot
+                        "timestamp": status_check[0],
+
+                        "context": {
+                            "part_name": status_check[4],
+                            "plan": status_check[5],
+                            "operator_id": status_check[6],
+                        },
+
+                        "metrics": {
+                            "run": status_check[7],
+                            "heat": status_check[8],
+                            "count_signal": status_check[9],
+                            "idle": status_check[10],
+                            "setting": status_check[11],
+                            "alarm": status_check[12],
+                            "offline": status_check[13],
+                            "alarm_code": status_check[14],
+                            "cycle_time": cycle_time,
+                            "count_today": count_today
+                        }
+                    })
+                    broadcast_q.put({
+                        "event": "plc_clean",
+                        "source": "clean_heat",
+                        "department": "Heat",
+                        "machine": status_check[2],
+                        "machine_type": status_check[3],   # Machine / Robot
+                        "timestamp": status_check[0],
+
+                        "context": {
+                            "part_name": status_check[4],
+                            "plan": status_check[5],
+                            "operator_id": status_check[6],
+                        },
+
+                        "metrics": {
+                            "run": status_check[7],
+                            "heat": status_check[8],
+                            "count_signal": status_check[9],
+                            "idle": status_check[10],
+                            "setting": status_check[11],
+                            "alarm": status_check[12],
+                            "offline": status_check[13],
+                            "alarm_code": status_check[14],
+                            # "cycle_time": cycle_time,
+                            # "count_today": count_today
+                        }
+                    })
+
+                else : 
+                    pass
                 
-        #         status_count_check = machine_data[list_data].copy()
-        #         count_check = status_count_check[point_int[0]]
-        #         if count_check != 0:
-        #             if count_check != compare_count[list_data]:
-        #                 old_row = row_after_output(_db_pool,status_count_check[0],all_department[point_int[4]],status_count_check[2],status_count_check[4])
-        #                 cycle_time = 0
-        #                 if old_row == () or old_row == None:
-        #                     cycle_time = point_int[3]
-        #                 else:
-        #                     for row in old_row:
-        #                         if row[point_str[0]] == 1 or row[point_str[1]] == 1:
-        #                             cycle_time = point_int[3]
-        #                             break
-        #                     if cycle_time != point_int[3]:
-        #                         cycle_time = (status_count_check[0] - old_row[0]["time_stamp"]).total_seconds()
-        #                 count_today = count_production(_db_pool,status_count_check[0],all_department[point_int[4]],status_count_check[2]) + 1  
-        #                 # queue_save_heat.put((status_count_check,cycle_time,count_today))                                  
-        #                 compare_count[list_data] = count_check
-        #                 return status_count_check,cycle_time,count_today
-        #             else : 
-        #                 pass
-        #         else :
-        #             compare_count[list_data] = count_check
-        # else:
-            # pass
+                status_count_check = machine_data[list_data].copy()
+                count_check = status_count_check[point_int[0]]
+                if count_check != 0:
+                    if count_check != compare_heat_count[list_data]:
+                        old_row = row_after_output(_db_pool,status_count_check[0],all_department[point_int[4]],status_count_check[2],status_count_check[4])
+                        cycle_time = 0
+                        if old_row == () or old_row == None:
+                            cycle_time = point_int[3]
+                        else:
+                            for row in old_row:
+                                if row[point_str[0]] == 1 or row[point_str[1]] == 1:
+                                    cycle_time = point_int[3]
+                                    break
+                            if cycle_time != point_int[3]:
+                                cycle_time = (status_count_check[0] - old_row[0]["time_stamp"]).total_seconds()
+                        count_today = count_production(_db_pool,status_count_check[0],all_department[point_int[4]],status_count_check[2]) + 1       
+                        compare_heat_count[list_data] = count_check
+                        clean_db_q.put({
+                            "event": "plc_clean",
+                            "source": "clean_heat",
+                            "department": "Heat",
+                            "machine": status_check[2],
+                            "machine_type": status_check[3],   # Machine / Robot
+                            "timestamp": status_check[0],
+
+                            "context": {
+                                "part_name": status_check[4],
+                                "plan": status_check[5],
+                                "operator_id": status_check[6],
+                            },
+
+                            "metrics": {
+                                "run": status_check[7],
+                                "heat": status_check[8],
+                                "count_signal": status_check[9],
+                                "idle": status_check[10],
+                                "setting": status_check[11],
+                                "alarm": status_check[12],
+                                "offline": status_check[13],
+                                "alarm_code": status_check[14],
+                                "cycle_time": cycle_time,
+                                "count_today": count_today
+                            }
+                        })                             
+                        broadcast_q.put({
+                            "event": "plc_clean",
+                            "source": "clean_heat",
+                            "department": "Heat",
+                            "machine": status_check[2],
+                            "machine_type": status_check[3],   # Machine / Robot
+                            "timestamp": status_check[0],
+
+                            "context": {
+                                "part_name": status_check[4],
+                                "plan": status_check[5],
+                                "operator_id": status_check[6],
+                            },
+
+                            "metrics": {
+                                "run": status_check[7],
+                                "heat": status_check[8],
+                                "count_signal": status_check[9],
+                                "idle": status_check[10],
+                                "setting": status_check[11],
+                                "alarm": status_check[12],
+                                "offline": status_check[13],
+                                "alarm_code": status_check[14],
+                                "cycle_time": cycle_time,
+                                "count_today": count_today
+                            }
+                        })
+                    else : 
+                        pass
+                else :
+                    compare_heat_count[list_data] = count_check
+        else:
+            pass
     except Exception as e:
         print("❌ Heat clean data error:",e)
+
+def lathe_clean(data):
+    print("Lathe clean data start",data[1][0:3])
+    return data[1][0:3]

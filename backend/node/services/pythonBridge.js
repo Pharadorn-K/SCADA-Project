@@ -57,8 +57,19 @@ function handleMessage(msg) {
     }
     plcHealthy = true;
     recoverAttempts = 0; // reset on successful heartbeat
-    console.log('💓 PLC heartbeat received');
+    // console.log('💓 PLC heartbeat received');
     return;
+  }
+  if (msg.type === 'plc_clean') {
+    // 1️⃣ Persist canonical state
+    global.services.stateStore.updatePlc(msg.payload);
+
+    // 2️⃣ Fan-out raw event to UI
+    global.services.plcMonitor.broadcast('plc_clean', msg.payload);
+    // global.services.stateStore.updatePlc(msg.payload);
+
+    // // Forward to plcMonitor (fan-out)
+    // updateData(msg.payload);
   }
 }
 
@@ -100,6 +111,7 @@ setInterval(() => {
     }
   }
 }, 1000);
+
 function attemptAutoRecover() {
   if (recoverAttempts >= MAX_RECOVER_ATTEMPTS) {
     console.error('🚫 Auto-recover failed: max attempts reached');
@@ -232,7 +244,6 @@ function start() {
   recoverAttempts = 0;
   return sendCommand({ cmd: 'start' });
 }
-
 
 function stop() {
   if (!plcRunning) return false;

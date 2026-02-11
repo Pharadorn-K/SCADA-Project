@@ -56,6 +56,7 @@
 // }
 // frontend/public/js/sidebar-behavior.js
 // sidebar-behavior.js
+// frontend/public/js/sidebar-behavior.js
 export function initSidebarBehavior(navigate) {
   const sidebar = document.getElementById('sidebar');
   if (!sidebar) return;

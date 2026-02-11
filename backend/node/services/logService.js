@@ -23,6 +23,7 @@ function writeLog(entry) {
 /* ---------- PUBLIC API ---------- */
 
 function log({
+  
   type,
   severity = 'INFO',
   user = 'system',
