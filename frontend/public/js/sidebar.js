@@ -3,7 +3,7 @@ export function renderSidebar(role) {
   return `
   <div class="sidebar-header">
     <button class="toggle-sidebar" id="toggleSidebar">
-      <i class="fa-solid fa-arrows-left-right"></i>
+      <i class="fa-solid fa-angles-left" id="toggleIcon"></i>
     </button>
   </div>
 

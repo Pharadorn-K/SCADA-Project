@@ -31,7 +31,7 @@ raw_word_data = []
 _stop_event = threading.Event()
 STOP = object()
 WORKER_DONE = object()
-TOTAL_WORKERS = 2  # press, heat, lathe
+TOTAL_WORKERS = 3  # press, heat, lathe
 finished_workers = 0
 
 main_q_intersection = Queue(maxsize=5000)
@@ -59,7 +59,6 @@ all_range = clean_data.get_all_location(_db_pool,"All")
 # all_range_equipment = clean_data.get_all_location(_db_pool,"Equipment")
 all_department,all_machine,all_data,all_category = clean_data.get_range(all_range)
 # all_department_eq,all_machine_eq,all_category_eq,all_data_eq = clean_data.get_range_equipment(all_range_equipment)
-
 # --- Get connection pool ---
 def get_db_pool():
     global _db_pool
@@ -120,21 +119,25 @@ def start_loop(plc_location, read_config, socket_clients_list):
     # Start background thread
     loop_read_PLC_thread = threading.Thread(target=_loop_read_plc_worker, daemon=True)
     loop_read_PLC_thread.start()
+    
     loop_main_queue_thread = threading.Thread(target=_main_queue_intersection, daemon=True)
     loop_main_queue_thread.start()
     loop_press_clean_thread = threading.Thread(target=_loop_clean_press_data_worker, daemon=True)
     loop_press_clean_thread.start()
     loop_heat_clean_thread = threading.Thread(target=_loop_clean_heat_data_worker, daemon=True)
     loop_heat_clean_thread.start()
+    loop_lathe_clean_thread = threading.Thread(target=_loop_clean_lathe_data_worker, daemon=True)
+    loop_lathe_clean_thread.start()
+
     loop_broadcast_thread = threading.Thread(target=_loop_broadcast_worker,daemon=True)
     loop_broadcast_thread.start()
 
-    # loop_lathe_clean_thread = threading.Thread(target=_loop_clean_lathe_data_worker, daemon=True)
-    # loop_lathe_clean_thread.start()
-    # loop_eq_press_clean_thread = threading.Thread(target=_loop_clean_eq_press_data_worker, daemon=True)
-    # loop_eq_press_clean_thread.start()
     loop_write_DB_thread = threading.Thread(target=_loop_writer_db_worker, daemon=True)
     loop_write_DB_thread.start()
+
+    # loop_eq_press_clean_thread = threading.Thread(target=_loop_clean_eq_press_data_worker, daemon=True)
+    # loop_eq_press_clean_thread.start()
+
     return True
 
 def stop_loop():
@@ -276,12 +279,12 @@ def _main_queue_intersection():
         data = main_q_intersection.get()        
         try:
             if data is STOP:
-                for sq in [press_clean_q, heat_clean_q]: # , lathe_clean_q
+                for sq in [press_clean_q, heat_clean_q, lathe_clean_q]: # , lathe_clean_q
                     sq.put_nowait(STOP)
                 print("🛑 Main intersection finished, stopped By STOP")
                 break
 
-            for q in [press_clean_q, heat_clean_q]:#, lathe_clean_q
+            for q in [press_clean_q, heat_clean_q, lathe_clean_q]:#, lathe_clean_q
                 try:
                     q.put(data, timeout=1)
                 except Full:
@@ -298,17 +301,7 @@ def _loop_clean_press_data_worker():
                 print("🛑 Press worker finished, stopped By STOP")                
                 clean_db_q.put_nowait(WORKER_DONE)
                 break
-            # cleaned_press = clean_data.press_clean(_db_pool,all_department,all_machine,all_data,data)
             clean_data.press_clean(_db_pool,all_department,all_machine,all_data,data,clean_db_q,broadcast_q)
-            # Press to DB writer queue
-            # if cleaned_press is not None :
-            #     # print(cleaned_press)
-            #     print("After clean press data is not none")
-            #     try:
-            #         pass
-            #         # clean_db_q.put(cleaned_press, timeout=1)
-            #     except Exception as e:
-            #         print(f"⚠️ clean_db_q full , drop press data: {e}")
         finally:
             press_clean_q.task_done()
         time.sleep(0.2)
@@ -321,19 +314,23 @@ def _loop_clean_heat_data_worker():
                 print("🛑 Heat worker finished, stopped By STOP")                
                 clean_db_q.put_nowait(WORKER_DONE)
                 break
-            # cleaned_heat = clean_data.heat_clean(_db_pool,all_department,all_machine,all_data,data)
             clean_data.heat_clean(_db_pool,all_department,all_machine,all_data,data,clean_db_q,broadcast_q)
-            # Heat to DB writer queue
-            # if cleaned_heat is not None :
-            #     print( cleaned_heat)                
-            #     try :
-            #         pass                    
-            #         # clean_db_q.put(cleaned_heat, timeout=1)
-            #     except Exception as e:
-            #         print(f"⚠️ clean_db_q full , drop heat data: {e}")
         finally:
             heat_clean_q.task_done()
         time.sleep(0.2)
+
+def _loop_clean_lathe_data_worker():
+    while True :
+        data = lathe_clean_q.get() 
+        try:
+            if data is STOP:
+                print("🛑 Lathe worker finished, stopped By STOP")                
+                clean_db_q.put_nowait(WORKER_DONE)
+                break
+            clean_data.lathe_clean(_db_pool,all_department,all_machine,all_data,data,clean_db_q,broadcast_q)
+        finally:
+            lathe_clean_q.task_done()
+        time.sleep(0.2)    
 
 def _loop_broadcast_worker():
     while True:
@@ -390,8 +387,6 @@ def _loop_writer_db_worker():
                     continue  # Don't return—keep worker alive for next items
                 else:
                     print("✅ recreated DB pool complete.")
-
-            # print("to write", data)
             
             # ✅ CORRECTED: Access 'department' key from dict
             department = data.get('department')
@@ -399,6 +394,8 @@ def _loop_writer_db_worker():
                 success = db_writer.save_press_data(_db_pool, data)
             elif department == "Heat":
                 success = db_writer.save_heat_data(_db_pool, data)
+            elif department == "Lathe":
+                success = db_writer.save_lathe_data(_db_pool, data)
             else:
                 print(f"⚠️ Unknown department '{department}'. Skipping save.")
                 success = False
@@ -412,126 +409,6 @@ def _loop_writer_db_worker():
             traceback.print_exc()
         finally:
             clean_db_q.task_done()
-        
-        # Optional: Remove or reduce sleep for better throughput
-        # time.sleep(0.2)  # Consider removing if queue processing is slow
 
-# def _loop_writer_db_worker():
-#     """Worker thread to write PLC data to DB."""
-#     global _db_pool,TOTAL_WORKERS,finished_workers
-#     while True :
-#         data = clean_db_q.get()
-#         try:
-#             if data is WORKER_DONE:
-#                 finished_workers += 1
-#                 print(f"🧩 Worker finished: {finished_workers}/{TOTAL_WORKERS}")
+        time.sleep(0.2)
 
-#                 if finished_workers == TOTAL_WORKERS:
-#                     print("🛑 All workers finished. DB writer stopped.")
-#                     break
-#                 continue
-
-#             if _db_pool is None:
-#                 print("to write but _db_pool is None",_db_pool)
-#                 _db_pool = get_db_pool()
-#                 if _db_pool is None:
-#                     print("⚠️ DB pool not available. Skipping save.")
-#                     return False
-#                 elif _db_pool is not None:
-#                     print("✅ recreated DB pool complete.")
-#             else:
-#                 # print("✅ DB pool available.")
-#                 pass
-
-#             print("to write",data)
-#             if data[0][1] == "Press":
-#                 success = db_writer.save_press_data(_db_pool,data)
-#             elif data[0][1] == "Heat":
-#                 success = db_writer.save_heat_data(_db_pool,data)
-
-#             if not success:
-#                 print("❌ Failed to save PLC data to DB")
-
-#         finally:
-#             clean_db_q.task_done()
-#         time.sleep(0.2)
-
-def _broadcast_plc_data(source, data):
-    message = json.dumps({
-        "type": "plc_data",
-        "source": source,   # 👈 press / heat / lathe / eq
-        "tags": data
-    }) + "\n"
-
-    dead_clients = []
-    for client_sock, addr in _socket_clients[:]:
-        try:
-            client_sock.sendall(message.encode('utf-8'))
-        except Exception as e:
-            print(f"🔌 Client {addr} disconnected: {e}")
-            dead_clients.append((client_sock, addr))
-
-    for dead in dead_clients:
-        _socket_clients.remove(dead)
-
-
-def _loop_clean_lathe_data_worker():
-    while True :
-        data = lathe_clean_q.get() 
-        try:
-            if data is STOP:
-                print("🛑 Lathe worker finished, stopped By STOP")                
-                clean_db_q.put_nowait(WORKER_DONE)
-                break
-            cleaned_lathe = clean_data.lathe_clean(_db_pool,all_department,all_machine,all_data,data)
-            # Lathe to DB writer queue
-            if  cleaned_lathe is not None :
-                print(cleaned_lathe)                
-                try :
-                    pass                    
-                    # clean_db_q.put(cleaned_lathe, timeout=1)
-                except Exception as e:
-                    print(f"⚠️ clean_db_q full , drop lathe data: {e}")
-        finally:
-            lathe_clean_q.task_done()
-        time.sleep(0.2)        
-
-# # Add this near the top with other global variables
-# _state_counter = 0
-# _state_cycle = [
-#     {"running": 1, "idle": 0, "alarm": 0},  # Running state (10 iterations)
-#     {"running": 0, "idle": 1, "alarm": 0},  # Idle state (10 iterations)
-#     {"running": 0, "idle": 0, "alarm": 1}   # Alarm state (10 iterations)
-# ]
-
-# def get_sample_state():
-#     """Generate sample state data cycling through running -> idle -> alarm."""
-#     global _state_counter
-#     state_index = (_state_counter // 10) % 3  # Change state every 10 iterations
-#     sample_data = _state_cycle[state_index]
-#     _state_counter += 1
-#     return sample_data
-
-# def _loop_read_plc_worker():
-#     while _running and not _stop_event.is_set():
-#         try:
-#             # Get sample data instead of undefined variables
-#             state = get_sample_state()
-#             tags_broadcast = {
-#                 "running": state["running"],
-#                 "idle": state["idle"],
-#                 "alarm": state["alarm"]
-#             }
-#             _broadcast_plc_data(tags_broadcast)
-
-#             for client_sock, addr in _socket_clients[:]:
-#                 try:
-#                     send_heartbeat(client_sock)
-#                 except Exception as e:
-#                     print(f"🔌 Heartbeat failed for {addr}: {e}")
-            
-#             time.sleep(1)
-#         except Exception as e:
-#             print(f"⚠️send error:{e}")
-#             time.sleep(0.3)
-#     print("🛑 PLC loop stopped")

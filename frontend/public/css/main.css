@@ -308,6 +308,16 @@ li.sub-menu.open > a > .arrow {
   animation: pulseAlarm 1.5s infinite;
 }
 
+.machine-card.offline {
+  background: #2b2b2b;
+  border: 2px solid #555;
+  opacity: 0.7;
+}
+.machine-card.stop {
+  background: #ffffff;
+  border: 2px solid #8e8e8e;
+  opacity: 0.9;
+}
 @keyframes pulseAlarm {
   0% { box-shadow: 0 0 0 rgba(198,40,40,0.4); }
   50% { box-shadow: 0 0 15px rgba(198,40,40,0.6); }

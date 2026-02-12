@@ -88,10 +88,22 @@ function initSidebarToggle() {
 
   // IMPORTANT: button is inside sidebar
   const btn = document.getElementById('toggleSidebar');
+  const icon = document.getElementById('toggleIcon');
   if (!btn || !layout) return;
+
+  const updateIcon = () => {
+    if (layout.classList.contains('sidebar-collapsed')) {
+      icon.classList.remove('fa-angles-left');
+      icon.classList.add('fa-angles-right');
+    } else {
+      icon.classList.remove('fa-angles-right');
+      icon.classList.add('fa-angles-left');
+    }
+  };
 
   btn.addEventListener('click', () => {
     layout.classList.toggle('sidebar-collapsed');
+    updateIcon();
 
     localStorage.setItem(
       'sidebar-collapsed',
@@ -103,6 +115,9 @@ function initSidebarToggle() {
   if (localStorage.getItem('sidebar-collapsed') === 'true') {
     layout.classList.add('sidebar-collapsed');
   }
+  
+  // Set initial icon
+  updateIcon();
 }
 
 export async function navigate(route) {

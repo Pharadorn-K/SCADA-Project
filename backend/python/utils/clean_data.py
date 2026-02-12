@@ -1,26 +1,29 @@
 # backend/python/utils/clean_data.py
 import struct
 
-def clean_data(raw_data):
-    global status    
-    status.clear()
+# def clean_data(raw_data):
+#     global status    
+#     status.clear()
 
-    time_stamp_cleaned = raw_data["timestamp"]
-    status.append(time_stamp_cleaned)
+#     time_stamp_cleaned = raw_data["timestamp"]
+#     status.append(time_stamp_cleaned)
 
-    part_name_head = raw_data["words"][5376:5387]
-    # Pack all numbers as little-endian unsigned shorts (2 bytes each)
-    byte_data = b''.join(struct.pack('<H', n) for n in part_name_head)
-    # Decode as ASCII (or 'latin-1' to be safe with 0-255)
-    result = byte_data.decode('ascii').rstrip(' \x00\t\r\n')
-    status.append(result)
+#     part_name_head = raw_data["words"][5376:5387]
+#     # Pack all numbers as little-endian unsigned shorts (2 bytes each)
+#     byte_data = b''.join(struct.pack('<H', n) for n in part_name_head)
+#     # Decode as ASCII (or 'latin-1' to be safe with 0-255)
+#     result = byte_data.decode('ascii').rstrip(' \x00\t\r\n')
+#     status.append(result)
 
-    cleaned_status = status.copy()
-    print(cleaned_status)  # Output: 45351-KVB-S020-M2
-    return cleaned_status  # Implementation of word data cleaning logic
+#     cleaned_status = status.copy()
+#     print(cleaned_status)  # Output: 45351-KVB-S020-M2
+#     return cleaned_status  # Implementation of word data cleaning logic
 
 def plc_received_to_string(received):
     try:
+        for i in received:
+            if i == -1:
+                received.remove(i)
         byte_data = b''.join(struct.pack('<H', n) for n in received)
         # Decode as ASCII (or 'latin-1' to be safe with 0-255)
         result = byte_data.decode('ascii').rstrip(' \x00\t\r\n')
@@ -122,60 +125,79 @@ def get_range_equipment(all_range_equipment):
 # Filter process Press
 compare_press_count,compare_press_status = [[],[],[],[],[],[],[],[],[],[],[],[],[]],[[],[],[],[],[],[],[],[],[],[],[],[],[]]
 compare_heat_count,compare_heat_status = [[],[],[],[],[],[],[],[],[],[],[],[],[]],[[],[],[],[],[],[],[],[],[],[],[],[],[]]
-
+compare_lathe_count,compare_lathe_status = [[],[],[],[],[],[],[],[],[],[],[],[],[]],[[],[],[],[],[],[],[],[],[],[],[],[],[]]
 # Read all row after last output
-def row_after_output(_db_pool,time_stamp,department,machine_name,part_name):
+def row_after_output(_db_pool,timestamp,department,machine_name,part_name):
     conn = _db_pool.connection()
     if department == "Press":
         query = """
-            SELECT time_stamp,output_,idle_,alarm_,offline_
+            SELECT timestamp,count_signal,idle,alarm,offline
             FROM raw_press
             WHERE id_row >=(
                 SELECT id_row
                 FROM raw_press
-                WHERE DATE(time_stamp) = DATE(%s) AND department_ = %s AND machine_name = %s AND part_name = %s AND output_ = %s
-                ORDER BY time_stamp DESC
+                WHERE DATE(timestamp) = DATE(%s) AND department = %s AND machine = %s AND part_name = %s AND count_signal = %s
+                ORDER BY timestamp DESC
                 LIMIT 1
-                ) AND DATE(time_stamp) = DATE(%s) AND department_ = %s AND machine_name = %s AND part_name = %s
-            ORDER BY time_stamp ASC
+                ) AND DATE(timestamp) = DATE(%s) AND department = %s AND machine = %s AND part_name = %s
+            ORDER BY timestamp ASC
         """
     elif department == "Heat":
         query = """
-            SELECT time_stamp,output_,idle_,setting_,alarm_,offline_
+            SELECT timestamp,count_signal,idle,setting,alarm,offline
             FROM raw_heat
             WHERE id_row >=(
                 SELECT id_row
                 FROM raw_heat
-                WHERE DATE(time_stamp) = DATE(%s) AND department_ = %s AND machine_name = %s AND part_name = %s AND output_ = %s
-                ORDER BY time_stamp DESC
+                WHERE DATE(timestamp) = DATE(%s) AND department = %s AND machine = %s AND part_name = %s AND count_signal = %s
+                ORDER BY timestamp DESC
                 LIMIT 1
-                ) AND DATE(time_stamp) = DATE(%s) AND department_ = %s AND machine_name = %s AND part_name = %s
-            ORDER BY time_stamp ASC
-        """        
+                ) AND DATE(timestamp) = DATE(%s) AND department = %s AND machine = %s AND part_name = %s
+            ORDER BY timestamp ASC
+        """ 
+    elif department == "Lathe":
+        query = """
+            SELECT timestamp,count_signal,idle,alarm,offline
+            FROM raw_lathe
+            WHERE id_row >=(
+                SELECT id_row
+                FROM raw_lathe
+                WHERE DATE(timestamp) = DATE(%s) AND department = %s AND machine = %s AND part_name = %s AND count_signal = %s
+                ORDER BY timestamp DESC
+                LIMIT 1
+                ) AND DATE(timestamp) = DATE(%s) AND department = %s AND machine = %s AND part_name = %s
+            ORDER BY timestamp ASC
+        """  
     cursor = conn.cursor()
-    cursor.execute(query,(time_stamp,department,machine_name,part_name,1,time_stamp,department,machine_name,part_name))
+    cursor.execute(query,(timestamp,department,machine_name,part_name,1,timestamp,department,machine_name,part_name))
     row = cursor.fetchall()  
     cursor.close()
     conn.close()
     return row
 
 # Count today production 
-def count_production(_db_pool,time_stamp,department,machine_name):
+def count_production(_db_pool,timestamp,department,machine):
     conn = _db_pool.connection()
     if department == "Press":
         query = """
-            SELECT COUNT(output_) AS count_output
+            SELECT COUNT(count_signal) AS count_output
             FROM raw_press
-            WHERE DATE(time_stamp) = DATE(%s) AND department_ = %s AND  machine_name = %s AND output_ = %s
+            WHERE DATE(timestamp) = DATE(%s) AND department = %s AND  machine = %s AND count_signal = %s
         """
     elif department == "Heat":
         query = """
-            SELECT COUNT(output_) AS count_output
+            SELECT COUNT(count_signal) AS count_output
             FROM raw_heat
-            WHERE DATE(time_stamp) = DATE(%s) AND department_ = %s AND  machine_name = %s AND output_ = %s
+            WHERE DATE(timestamp) = DATE(%s) AND department = %s AND  machine = %s AND count_signal = %s
+        """
+    elif department == "Lathe":
+        query = """
+            SELECT COUNT(count_signal) AS count_output
+            FROM raw_lathe
+            WHERE DATE(timestamp) = DATE(%s) AND department = %s AND  machine = %s AND count_signal = %s
         """
     cursor = conn.cursor()
-    cursor.execute(query, (time_stamp,department,machine_name,1))
+    cursor.execute(query, (timestamp,department,machine,1))
     result = cursor.fetchone()
     cursor.close()
     conn.close()
@@ -183,7 +205,7 @@ def count_production(_db_pool,time_stamp,department,machine_name):
 
 def press_clean(_db_pool,all_department,all_machine,all_data,data,clean_db_q,broadcast_q):
     point_int = [7,1,13,6,0]
-    point_str = ["idle_","alarm_","offline_"]
+    point_str = ["idle","alarm","offline"]
     try :                    
         machine_data = [] 
         current_time,bit_received,word_received = data
@@ -192,26 +214,26 @@ def press_clean(_db_pool,all_department,all_machine,all_data,data,clean_db_q,bro
             each_machine.append(current_time)
             each_machine.append(all_department[point_int[4]])
             each_machine.append(machine)
-            for data in (all_data[point_int[4]]):
-                if data["machine_"] == machine:
+            for data_range in (all_data[point_int[4]]):
+                if data_range["machine_"] == machine:
                     if len(each_machine) <=3:
-                        each_machine.append(data["type_"])
-                    if data["note_"] == "Part_Name":
-                        pick_up = word_received[data["target_"]:data["target_"]+data["range_"]]
+                        each_machine.append(data_range["type_"])
+                    if data_range["note_"] == "Part_Name":
+                        pick_up = word_received[data_range["target_"]:data_range["target_"]+data_range["range_"]]
                         string_pick = plc_received_to_string(pick_up)
                         each_machine.append(string_pick)
-                    elif data["note_"] == "Plan" :
-                        pick_up = word_received[data["target_"]:data["target_"]+data["range_"]][0]
+                    elif data_range["note_"] == "Plan" :
+                        pick_up = word_received[data_range["target_"]:data_range["target_"]+data_range["range_"]][0]
                         each_machine.append(pick_up)
-                    elif data["note_"] == "Alarm_Code":
-                        pick_up = word_received[data["target_"]:data["target_"]+data["range_"]][0]
+                    elif data_range["note_"] == "Alarm_Code":
+                        pick_up = word_received[data_range["target_"]:data_range["target_"]+data_range["range_"]][0]
                         each_machine.append(pick_up)
-                    elif data["note_"] == "ID_Operator":
-                        pick_up = word_received[data["target_"]:data["target_"]+data["range_"]]
+                    elif data_range["note_"] == "ID_Operator":
+                        pick_up = word_received[data_range["target_"]:data_range["target_"]+data_range["range_"]]
                         string_pick = plc_received_to_string(pick_up)
                         each_machine.append(string_pick)
-                    elif data["note_"] == "Status":
-                        pick_up = bit_received[data["target_"]:data["target_"]+data["range_"]]
+                    elif data_range["note_"] == "Status":
+                        pick_up = bit_received[data_range["target_"]:data_range["target_"]+data_range["range_"]]
                         int_pick = int(pick_up[0])
                         each_machine.append(int_pick)
             machine_data.append(each_machine)    
@@ -290,7 +312,7 @@ def press_clean(_db_pool,all_department,all_machine,all_data,data,clean_db_q,bro
                                     cycle_time = point_int[3]
                                     break
                             if cycle_time != point_int[3]:
-                                cycle_time = (status_count_check[0] - old_row[0]["time_stamp"]).total_seconds()
+                                cycle_time = (status_count_check[0] - old_row[0]["timestamp"]).total_seconds()
                         count_today = count_production(_db_pool,status_count_check[0],all_department[point_int[4]],status_count_check[2]) + 1                            
                         compare_press_count[list_data] = count_check
                         clean_db_q.put({
@@ -348,13 +370,13 @@ def press_clean(_db_pool,all_department,all_machine,all_data,data,clean_db_q,bro
                 else :
                     compare_press_count[list_data] = count_check        
         else:
-            print("❌ Press data is empty")
+            pass
     except Exception as e:
         print("❌ Press clean data error:",e)
   
 def heat_clean(_db_pool,all_department,all_machine,all_data,data,clean_db_q,broadcast_q):
     point_int = [9,1,15,95,1]
-    point_str = ["alarm_","setting_"]
+    point_str = ["alarm","setting"]
     try :                    
         machine_data = [] 
         current_time,bit_received,word_received = data
@@ -363,26 +385,26 @@ def heat_clean(_db_pool,all_department,all_machine,all_data,data,clean_db_q,broa
             each_machine.append(current_time)
             each_machine.append(all_department[point_int[4]])
             each_machine.append(machine)
-            for data in (all_data[point_int[4]]):
-                if data["machine_"] == machine:
+            for data_range in (all_data[point_int[4]]):
+                if data_range["machine_"] == machine:
                     if len(each_machine) <=3:
-                        each_machine.append(data["type_"])
-                    if data["note_"] == "Part_Name":
-                        pick_up = word_received[data["target_"]:data["target_"]+data["range_"]]
+                        each_machine.append(data_range["type_"])
+                    if data_range["note_"] == "Part_Name":
+                        pick_up = word_received[data_range["target_"]:data_range["target_"]+data_range["range_"]]
                         string_pick = plc_received_to_string(pick_up)
                         each_machine.append(string_pick)
-                    elif data["note_"] == "Plan" :
-                        pick_up = word_received[data["target_"]:data["target_"]+data["range_"]][0]
+                    elif data_range["note_"] == "Plan" :
+                        pick_up = word_received[data_range["target_"]:data_range["target_"]+data_range["range_"]][0]
                         each_machine.append(pick_up)
-                    elif data["note_"] == "Alarm_Code":
-                        pick_up = word_received[data["target_"]:data["target_"]+data["range_"]][0]
+                    elif data_range["note_"] == "Alarm_Code":
+                        pick_up = word_received[data_range["target_"]:data_range["target_"]+data_range["range_"]][0]
                         each_machine.append(pick_up)
-                    elif data["note_"] == "ID_Operator":
-                        pick_up = word_received[data["target_"]:data["target_"]+data["range_"]]
+                    elif data_range["note_"] == "ID_Operator":
+                        pick_up = word_received[data_range["target_"]:data_range["target_"]+data_range["range_"]]
                         string_pick = plc_received_to_string(pick_up)
                         each_machine.append(string_pick)
-                    elif data["note_"] == "Status":
-                        pick_up = bit_received[data["target_"]:data["target_"]+data["range_"]]
+                    elif data_range["note_"] == "Status":
+                        pick_up = bit_received[data_range["target_"]:data_range["target_"]+data_range["range_"]]
                         int_pick = int(pick_up[0])
                         each_machine.append(int_pick)
             machine_data.append(each_machine)
@@ -449,7 +471,6 @@ def heat_clean(_db_pool,all_department,all_machine,all_data,data,clean_db_q,broa
                             # "count_today": count_today
                         }
                     })
-
                 else : 
                     pass
                 
@@ -467,7 +488,7 @@ def heat_clean(_db_pool,all_department,all_machine,all_data,data,clean_db_q,broa
                                     cycle_time = point_int[3]
                                     break
                             if cycle_time != point_int[3]:
-                                cycle_time = (status_count_check[0] - old_row[0]["time_stamp"]).total_seconds()
+                                cycle_time = (status_count_check[0] - old_row[0]["timestamp"]).total_seconds()
                         count_today = count_production(_db_pool,status_count_check[0],all_department[point_int[4]],status_count_check[2]) + 1       
                         compare_heat_count[list_data] = count_check
                         clean_db_q.put({
@@ -533,6 +554,178 @@ def heat_clean(_db_pool,all_department,all_machine,all_data,data,clean_db_q,broa
     except Exception as e:
         print("❌ Heat clean data error:",e)
 
-def lathe_clean(data):
-    print("Lathe clean data start",data[1][0:3])
-    return data[1][0:3]
+def lathe_clean(_db_pool,all_department,all_machine,all_data,data,clean_db_q,broadcast_q):
+    point_int = [8,1,9,90,2]
+    point_str = ["alarm","offline"]
+    try :                    
+        machine_data = [] 
+        current_time,bit_received,word_received = data
+        for machine in all_machine[point_int[4]]:
+            each_machine = []
+            each_machine.append(current_time)
+            each_machine.append(all_department[point_int[4]])
+            each_machine.append(machine)
+            for data_range in (all_data[point_int[4]]):
+                if data_range["machine_"] == machine:
+                    if len(each_machine) <=3:
+                        each_machine.append(data_range["type_"])
+                    if data_range["note_"] == "Part_Name":
+                        pick_up = word_received[data_range["target_"]:data_range["target_"]+data_range["range_"]]
+                        string_pick = plc_received_to_string(pick_up)
+                        each_machine.append(string_pick)
+                    elif data_range["note_"] == "Plan" :
+                        pick_up = word_received[data_range["target_"]:data_range["target_"]+data_range["range_"]][0]
+                        each_machine.append(pick_up)
+                    elif data_range["note_"] == "Alarm_Code":
+                        pick_up = word_received[data_range["target_"]:data_range["target_"]+data_range["range_"]][0]
+                        each_machine.append(pick_up)
+                    elif data_range["note_"] == "ID_Operator":
+                        pick_up = word_received[data_range["target_"]:data_range["target_"]+data_range["range_"]]
+                        string_pick = plc_received_to_string(pick_up)
+                        each_machine.append(string_pick)
+                    elif data_range["note_"] == "Status":
+                        pick_up = bit_received[data_range["target_"]:data_range["target_"]+data_range["range_"]]
+                        int_pick = int(pick_up[0])
+                        each_machine.append(int_pick)
+            machine_data.append(each_machine)
+        if machine_data != []:
+            for list_data in range(len(machine_data)):
+                status_check = machine_data[list_data].copy()
+                status_check[point_int[0]] = 0
+                if status_check[point_int[1]:point_int[2]] != compare_lathe_status[list_data]:
+                    cycle_time = 0
+                    count_today = 0
+                    compare_lathe_status[list_data] = status_check[point_int[1]:point_int[2]]
+                    clean_db_q.put({
+                        "event": "plc_clean",
+                        "source": "clean_lathe",
+                        "department": "Lathe",
+                        "machine": status_check[2],
+                        "machine_type": status_check[3],   # Machine / Robot
+                        "timestamp": status_check[0],
+
+                        "context": {
+                            "part_name": status_check[4],
+                            "plan": 0, #wait from PLC
+                            "operator_id": 0, #wait from PLC
+                        },
+
+                        "metrics": {
+                            "run": status_check[6],
+                            "idle": status_check[5],                            
+                            "alarm": status_check[7],
+                            "count_signal": status_check[8],
+                            "offline": 0, #wait from PLC
+                            "alarm_code": 0, #wait from PLC
+                            "cycle_time": cycle_time,
+                            "count_today": count_today
+                        }
+                    })
+                    broadcast_q.put({
+                        "event": "plc_clean",
+                        "source": "clean_lathe",
+                        "department": "Lathe",
+                        "machine": status_check[2],
+                        "machine_type": status_check[3],   # Machine / Robot
+                        "timestamp": status_check[0],
+
+                        "context": {
+                            "part_name": status_check[4],
+                            "plan": 0, #wait from PLC
+                            "operator_id": 0, #wait from PLC
+                        },
+
+                        "metrics": {
+                            "run": status_check[6],
+                            "idle": status_check[5],                            
+                            "alarm": status_check[7],
+                            "count_signal": status_check[8],
+                            "offline": 0, #wait from PLC
+                            "alarm_code": 0, #wait from PLC
+                            # "cycle_time": cycle_time,
+                            # "count_today": count_today
+                        }
+                    })
+                else : 
+                    pass
+                
+                status_count_check = machine_data[list_data].copy()
+                count_check = status_count_check[point_int[0]]
+                if count_check != 0:
+                    if count_check != compare_lathe_count[list_data]:
+                        old_row = row_after_output(_db_pool,status_count_check[0],all_department[point_int[4]],status_count_check[2],status_count_check[4])
+                        cycle_time = 0
+                        if old_row == () or old_row == None:
+                            cycle_time = point_int[3]
+                        else:
+                            for row in old_row:
+                                if row[point_str[0]] == 1 or row[point_str[1]] == 1 :
+                                    cycle_time = point_int[3]
+                                    break
+                            if cycle_time != point_int[3]:
+                                cycle_time = (status_count_check[0] - old_row[0]["timestamp"]).total_seconds()
+                        count_today = count_production(_db_pool,status_count_check[0],all_department[point_int[4]],status_count_check[2]) + 1                            
+                        compare_lathe_count[list_data] = count_check
+                        clean_db_q.put({
+                            "event": "plc_clean",
+                            "source": "clean_lathe",
+                            "department": "Lathe",
+                            "machine": status_check[2],
+                            "machine_type": status_check[3],   # Machine / Robot
+                            "timestamp": status_check[0],
+
+                            "context": {
+                                "part_name": status_check[4],
+                                "plan": 0, #wait from PLC
+                                "operator_id": 0, #wait from PLC
+                            },
+
+                            "metrics": {
+                                "run": status_check[6],
+                                "idle": status_check[5],                            
+                                "alarm": status_check[7],
+                                "count_signal": status_check[8],
+                                "offline": 0, #wait from PLC
+                                "alarm_code": 0, #wait from PLC
+                                "cycle_time": cycle_time,
+                                "count_today": count_today
+                            }
+                        })
+                        broadcast_q.put({
+                            "event": "plc_clean",
+                            "source": "clean_lathe",
+                            "department": "Lathe",
+                            "machine": status_check[2],
+                            "machine_type": status_check[3],   # Machine / Robot
+                            "timestamp": status_check[0],
+
+                            "context": {
+                                "part_name": status_check[4],
+                                "plan": 0, #wait from PLC
+                                "operator_id": 0, #wait from PLC
+                            },
+
+                            "metrics": {
+                                "run": status_check[6],
+                                "idle": status_check[5],                            
+                                "alarm": status_check[7],
+                                "count_signal": status_check[8],
+                                "offline": 0, #wait from PLC
+                                "alarm_code": 0, #wait from PLC
+                                "cycle_time": cycle_time,
+                                "count_today": count_today
+                            }
+                        })
+                    else : 
+                        pass
+                else :
+                    compare_lathe_count[list_data] = count_check       
+    except Exception as e:
+        print("❌ Lathe clean data error:",e)
+
+
+if __name__ == "__main__":
+    data_a = [12338, 12850, 13364, 8243, 8224, -1]
+    data_b = [14414, 11577, 13105, 8248, 8224, -1]
+    print(plc_received_to_string(data_a))
+    print(plc_received_to_string(data_b))

@@ -1,10 +1,31 @@
 
 // frontend/public/js/store.js
-function deriveStatus(metrics) {
+// function deriveStatus(metrics) {
+//   if (metrics.alarm) return 'ALARM';
+//   if (metrics.run) return 'RUNNING';
+//   if (metrics.idle) return 'IDLE';
+//   return 'STOP';
+// }
+function deriveStatus(metrics = {}) {
+  // 1️⃣ PLC explicit offline
+  if (metrics.offline === 1) return 'OFFLINE';
+
+  // 2️⃣ No signal at all (installation case)
+  const noSignal =
+    !metrics.run &&
+    !metrics.idle &&
+    !metrics.alarm &&
+    !metrics.setting &&
+    !metrics.heat;
+
+  if (noSignal) return 'OFFLINE';
+
+  // 3️⃣ Normal logic
   if (metrics.alarm) return 'ALARM';
   if (metrics.run) return 'RUNNING';
   if (metrics.idle) return 'IDLE';
-  return 'STOP';
+
+  return 'STOP';// 'STOP';
 }
 
 export const scadaStore = {
@@ -15,6 +36,7 @@ export const scadaStore = {
 
   ws: null,
   listeners: new Set(),
+
 
   // 🔐 Only entry point for WS data
   setSnapshot(snapshot) {
@@ -35,25 +57,6 @@ export const scadaStore = {
     this.state.timestamp = Date.now();
     this.notify();
   },
-
-  // applyPlcClean(payload) {
-  //   const key = `${payload.department.toLowerCase()}_${payload.machine}`;
-
-  //   this.state.machines[key] = {
-  //     department: payload.department,
-  //     machineType: payload.machine_type,
-  //     status: deriveStatus(payload.metrics),
-  //     tags: {
-  //       cycle_time: payload.metrics.cycle_time,
-  //       count_today: payload.metrics.count_today,
-  //       plan: payload.context.plan
-  //     },
-  //     alarms: payload.metrics.alarm ? [payload.metrics.alarm_code] : [],
-  //     lastUpdate: Date.now()
-  //   };
-
-  //   this.notify();
-  // },
 
   applyPlcClean(payload) {
     const key = `${payload.department.toLowerCase()}_${payload.machine}`;
@@ -119,3 +122,26 @@ export const scadaStore = {
     return () => this.listeners.delete(fn);
   }
 };
+
+// // ⏱ Watchdog: detect stale machines
+// const OFFLINE_TIMEOUT = 60000; // 10 seconds
+
+// setInterval(() => {
+//   const now = Date.now();
+//   let changed = false;
+
+//   Object.values(scadaStore.state.machines).forEach(machine => {
+//     if (!machine.lastUpdate) return;
+
+//     const diff = now - machine.lastUpdate;
+
+//     if (diff > OFFLINE_TIMEOUT && machine.status !== 'OFFLINE') {
+//       machine.status = 'OFFLINE';
+//       changed = true;
+//     }
+//   });
+
+//   if (changed) {
+//     scadaStore.notify();
+//   }
+// }, 10000);
