@@ -1,16 +1,8 @@
-
 // frontend/public/js/store.js
-// function deriveStatus(metrics) {
-//   if (metrics.alarm) return 'ALARM';
-//   if (metrics.run) return 'RUNNING';
-//   if (metrics.idle) return 'IDLE';
-//   return 'STOP';
-// }
-function deriveStatus(metrics = {}) {
-  // 1️⃣ PLC explicit offline
+
+function deriveStatus(department, metrics = {}) {
   if (metrics.offline === 1) return 'OFFLINE';
 
-  // 2️⃣ No signal at all (installation case)
   const noSignal =
     !metrics.run &&
     !metrics.idle &&
@@ -20,13 +12,30 @@ function deriveStatus(metrics = {}) {
 
   if (noSignal) return 'OFFLINE';
 
-  // 3️⃣ Normal logic
-  if (metrics.alarm) return 'ALARM';
-  if (metrics.run) return 'RUNNING';
-  if (metrics.idle) return 'IDLE';
+  if (metrics.alarm === 1) return 'ALARM';
 
-  return 'STOP';// 'STOP';
+  if (department?.toLowerCase() === 'heat') {
+    if (metrics.run === 1 || metrics.heat === 1) {
+      return 'RUNNING';
+    }
+
+    if (
+      metrics.run === 0 &&
+      metrics.heat === 0 &&
+      metrics.idle === 1
+    ) {
+      return 'IDLE';
+    }
+
+    return 'STOP';
+  }
+
+  if (metrics.run === 1) return 'RUNNING';
+  if (metrics.idle === 1) return 'IDLE';
+
+  return 'STOP';
 }
+
 
 export const scadaStore = {
   state: {
@@ -76,7 +85,8 @@ export const scadaStore = {
       // always update these
       department: payload.department,
       machineType: payload.machine_type,
-      status: deriveStatus(payload.metrics),
+      // status: deriveStatus(payload.metrics),
+      status: deriveStatus(payload.department, payload.metrics),
       lastUpdate: Date.now(),
       // ⏱ machine-level timestamp (PLC time)
       timestamp: payload.timestamp,
@@ -104,6 +114,7 @@ export const scadaStore = {
       alarms: payload.metrics.alarm
         ? [payload.metrics.alarm_code]
         : []
+
     };
 
     this.notify();

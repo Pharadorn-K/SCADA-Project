@@ -120,6 +120,30 @@ function initSidebarToggle() {
   updateIcon();
 }
 
+function startClock() {
+  const clockEl = document.getElementById('digital-clock');
+  if (!clockEl) return;
+
+  function updateClock() {
+    const now = new Date();
+
+    const date = now.toLocaleDateString(undefined, {
+      weekday: 'short',
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+
+    const time = now.toLocaleTimeString();
+
+    clockEl.textContent = `${date} | ${time}`;
+  }
+
+  updateClock();
+  setInterval(updateClock, 1000);
+}
+
+
 export async function navigate(route) {
   const isAuthenticated = await checkAuth();
   if (!isAuthenticated) return;
@@ -176,6 +200,8 @@ async function bootstrap() {
   mountSidebar();        // injects sidebar HTML
   initSidebarToggle();   // now button exists
   navigate('home');
+  startClock();
+
 }
 
 

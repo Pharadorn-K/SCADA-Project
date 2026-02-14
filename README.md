@@ -47,6 +47,54 @@ ping 10.207.1.24
 ping 10.207.1.84
 ```
 
+# If data look like this, how do I save it?
+{
+'event': 'plc_clean', 
+'source': 'clean_press', 
+'department': 'Press', 
+'machine': 'AIDA630T', 
+'machine_type': 'Machine', 
+'timestamp': datetime.datetime(2026, 2, 12, 14, 58, 48, 869770), 
+'context': 
+	{
+	'part_name': '45351-KVB-S020-M2', 
+	'plan': 13110, 
+	'operator_id': '63006'
+	}, 
+'metrics': 
+	{
+	'count_signal': 0, 
+	'run': 0, 
+	'idle': 1, 
+	'alarm': 0, 
+	'offline': 0, 
+	'alarm_code': 0, 
+	'cycle_time': 0, 
+	'count_today': 0
+	}
+}
+
+# And am I have to modify database structure first, if it looks like this?
+Table: raw_press
+Columns:
+id_row int AI PK 
+event text 
+source text 
+department text 
+machine text 
+machine_type text 
+timestamp datetime(2) 
+part_name text 
+plan int 
+operator_id int 
+count_signal int 
+run int 
+idle int 
+alarm int 
+offline int 
+alarm_code int 
+cycle_time decimal(20,2) 
+count_today int
 
 
 from this structure :

@@ -117,54 +117,58 @@ app.get('/', requireAuth, (req, res) => {
   res.redirect('/');
 });
 
-// Create HTTP server
-const server = http.createServer(app);
+// Initialize state store
+async function bootstrap() {
+  console.log('🔄 Hydrating state from database...');
+  await global.services.stateStore.hydrateFromDatabase();
+  console.log('✅ Hydration complete');
 
-// Initialize WebSocket server
-const wss = new WebSocket.Server({ server });
+  // Create HTTP server
+  const server = http.createServer(app);
 
-// Add wss to global services
-global.services.wss = wss;
+  // Initialize WebSocket server
+  const wss = new WebSocket.Server({ server });
 
-// Import and initialize shared services
-const pythonBridge = require('./services/pythonBridge');
-const plcMonitor = require('./services/plcMonitor');
+  global.services.wss = wss;
 
-// Wire plcMonitor to the WSS so it can broadcast
-plcMonitor.setWss(wss);
+  const pythonBridge = require('./services/pythonBridge');
+  const plcMonitor = require('./services/plcMonitor');
 
-// Add pythonBridge and plcMonitor to global services
-global.services.pythonBridge = pythonBridge;
-global.services.plcMonitor = plcMonitor;
+  plcMonitor.setWss(wss);
 
-// Auto-resume last state
-const state = global.services.stateStore.loadState();
+  global.services.pythonBridge = pythonBridge;
+  global.services.plcMonitor = plcMonitor;
 
-if (state.lastIntent === 'RUNNING') {
-  console.log('🔄 Auto-resume: last state was RUNNING');
-  setTimeout(() => {
-    global.services.pythonBridge.start();
-  }, 3000); // wait for Python bridge to stabilize
-} else {
-  console.log('⏸️ Auto-resume: last state was STOPPED');
+  // Auto-resume last state
+  const state = global.services.stateStore.loadState();
+
+  if (state.lastIntent === 'RUNNING') {
+    console.log('🔄 Auto-resume: last state was RUNNING');
+    setTimeout(() => {
+      global.services.pythonBridge.start();
+    }, 3000);
+  } else {
+    console.log('⏸️ Auto-resume: last state was STOPPED');
+  }
+
+  // Graceful shutdown
+  process.on('SIGTERM', () => {
+    console.log('Shutting down gracefully...');
+    global.services.pythonBridge.shutdown();
+    server.close(() => {
+      console.log('Server closed');
+      process.exit(0);
+    });
+  });
+
+  server.listen(PORT, () => {
+    console.log(`✅ SCADA Node server running on http://localhost:${PORT}`);
+    console.log(`📡 WebSocket server ready`);
+  });
 }
 
-// Set up WebSocket message handling & broadcast
-// setupWebsocket(wss, plcMonitor);
-
-// Graceful shutdown
-process.on('SIGTERM', () => {
-  console.log('Shutting down gracefully...');
-  global.services.pythonBridge.shutdown();
-  server.close(() => {
-    console.log('Server closed');
-    process.exit(0);
-  });
+// Start everything
+bootstrap().catch(err => {
+  console.error('💥 Failed to start server:', err);
+  process.exit(1);
 });
-
-// Start server
-server.listen(PORT, () => {
-  console.log(`✅ SCADA Node server running on http://localhost:${PORT}`);
-  console.log(`📡 WebSocket server ready`);
-});
-

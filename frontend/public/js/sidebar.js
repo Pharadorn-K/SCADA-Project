@@ -22,10 +22,10 @@ export function renderSidebar(role) {
           <i class="arrow fa fa-angle-right"></i>
         </a>
         <ul>
-          <li><a data-page="production.history">History</a></li>
-          <li><a data-page="production.press">Press</a></li>
-          <li><a data-page="production.heat">Heat</a></li>
-          <li><a data-page="production.lathe">Lathe</a></li>
+          <li><a data-page="production.overview">Overview</a></li>
+          <li><a data-page="production.machine_efficiency">Machine efficiency</a></li>
+          <li><a data-page="production.production_history">Production History</a></li>
+          <li><a data-page="production.staff_management">Staff management</a></li>
         </ul>
       </li>
 

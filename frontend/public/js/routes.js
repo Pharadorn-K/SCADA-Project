@@ -7,24 +7,24 @@ import * as OEE from './views/oee.js';
 
 export const routes = {
   home: {
+    view: Home.homeView,
     mount: Home.homeMount,
     unmount: Home.homeUnmount
   },
 
   production: {
-    history: {
-      view: Production.productionHistoryView,
-      mount: Production.productionHistoryMount,
-      unmount: Production.productionHistoryUnmount
+    overview: {
+      mount: Production.productionOverviewMount,
+      unmount: Production.productionOverviewUnmount
     },
-    press: {
-      view: Production.productionPressView
+    machine_efficiency: {
+      view: Production.productionMachineEfficiencyView
     },
-    heat: {
-      view: Production.productionHeatView
+    production_history: {
+      view: Production. productionProductionHistoryView
     },
-    lathe: {
-      view: Production.productionLatheView
+    staff_management: {
+      view: Production.productionStaffManagementView
     }
   },
 
@@ -38,7 +38,8 @@ export const routes = {
   },
 
   oee: {
-    view: OEE.oeeView
+    mount: OEE.oeeMount,
+    unmount: OEE.oeeUnmount
   },  
 
   admin: {

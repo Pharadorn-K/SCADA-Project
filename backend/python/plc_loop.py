@@ -291,7 +291,6 @@ def _main_queue_intersection():
                     print(f"⚠️ Queue full {q}, drop data")
         finally:
             main_q_intersection.task_done()
-        time.sleep(0.25)
 
 def _loop_clean_press_data_worker():
     while True :
@@ -304,7 +303,6 @@ def _loop_clean_press_data_worker():
             clean_data.press_clean(_db_pool,all_department,all_machine,all_data,data,clean_db_q,broadcast_q)
         finally:
             press_clean_q.task_done()
-        time.sleep(0.2)
 
 def _loop_clean_heat_data_worker():
     while True :
@@ -317,7 +315,6 @@ def _loop_clean_heat_data_worker():
             clean_data.heat_clean(_db_pool,all_department,all_machine,all_data,data,clean_db_q,broadcast_q)
         finally:
             heat_clean_q.task_done()
-        time.sleep(0.2)
 
 def _loop_clean_lathe_data_worker():
     while True :
@@ -330,7 +327,6 @@ def _loop_clean_lathe_data_worker():
             clean_data.lathe_clean(_db_pool,all_department,all_machine,all_data,data,clean_db_q,broadcast_q)
         finally:
             lathe_clean_q.task_done()
-        time.sleep(0.2)    
 
 def _loop_broadcast_worker():
     while True:
@@ -364,6 +360,8 @@ def _loop_writer_db_worker():
     global _db_pool, TOTAL_WORKERS, finished_workers
     while True:
         data = clean_db_q.get()
+        if clean_db_q.qsize() > 10:
+            print("Queue size:", clean_db_q.qsize())        
         try:
             if data is WORKER_DONE:
                 finished_workers += 1
@@ -383,6 +381,7 @@ def _loop_writer_db_worker():
                 print("to write but _db_pool is None", _db_pool)
                 _db_pool = get_db_pool()
                 if _db_pool is None:
+                    time.sleep(1)
                     print("⚠️ DB pool not available. Skipping save.")
                     continue  # Don't return—keep worker alive for next items
                 else:
@@ -403,12 +402,11 @@ def _loop_writer_db_worker():
             if not success:
                 print("❌ Failed to save PLC data to DB")
 
+
         except Exception as e:
             print(f"💥 Unexpected error in DB writer: {type(e).__name__}: {e}")
             import traceback
             traceback.print_exc()
         finally:
             clean_db_q.task_done()
-
-        time.sleep(0.2)
 

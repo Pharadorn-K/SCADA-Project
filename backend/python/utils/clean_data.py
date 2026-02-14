@@ -1,24 +1,5 @@
 # backend/python/utils/clean_data.py
 import struct
-
-# def clean_data(raw_data):
-#     global status    
-#     status.clear()
-
-#     time_stamp_cleaned = raw_data["timestamp"]
-#     status.append(time_stamp_cleaned)
-
-#     part_name_head = raw_data["words"][5376:5387]
-#     # Pack all numbers as little-endian unsigned shorts (2 bytes each)
-#     byte_data = b''.join(struct.pack('<H', n) for n in part_name_head)
-#     # Decode as ASCII (or 'latin-1' to be safe with 0-255)
-#     result = byte_data.decode('ascii').rstrip(' \x00\t\r\n')
-#     status.append(result)
-
-#     cleaned_status = status.copy()
-#     print(cleaned_status)  # Output: 45351-KVB-S020-M2
-#     return cleaned_status  # Implementation of word data cleaning logic
-
 def plc_received_to_string(received):
     try:
         for i in received:
@@ -312,30 +293,30 @@ def press_clean(_db_pool,all_department,all_machine,all_data,data,clean_db_q,bro
                                     cycle_time = point_int[3]
                                     break
                             if cycle_time != point_int[3]:
-                                cycle_time = (status_count_check[0] - old_row[0]["timestamp"]).total_seconds()
+                                cycle_time = round((status_count_check[0] - old_row[0]["timestamp"]).total_seconds(), 2)
                         count_today = count_production(_db_pool,status_count_check[0],all_department[point_int[4]],status_count_check[2]) + 1                            
                         compare_press_count[list_data] = count_check
                         clean_db_q.put({
                             "event": "plc_clean",
                             "source": "clean_press",
                             "department": "Press",
-                            "machine": status_check[2],
-                            "machine_type": status_check[3],
-                            "timestamp": status_check[0],
+                            "machine": status_count_check[2],
+                            "machine_type": status_count_check[3],
+                            "timestamp": status_count_check[0],
 
                             "context": {
-                                "part_name": status_check[4],
-                                "plan": status_check[5],
-                                "operator_id": status_check[6],
+                                "part_name": status_count_check[4],
+                                "plan": status_count_check[5],
+                                "operator_id": status_count_check[6],
                             },
 
                             "metrics": {
-                                "count_signal": status_check[7],
-                                "run": status_check[8],
-                                "idle": status_check[9],
-                                "alarm": status_check[10],
-                                "offline": status_check[11],
-                                "alarm_code": status_check[12],
+                                "count_signal": status_count_check[7],
+                                "run": status_count_check[8],
+                                "idle": status_count_check[9],
+                                "alarm": status_count_check[10],
+                                "offline": status_count_check[11],
+                                "alarm_code": status_count_check[12],
                                 "cycle_time": cycle_time,
                                 "count_today": count_today
                             }
@@ -344,23 +325,23 @@ def press_clean(_db_pool,all_department,all_machine,all_data,data,clean_db_q,bro
                             "event": "plc_clean",
                             "source": "clean_press",
                             "department": "Press",
-                            "machine": status_check[2],
-                            "machine_type": status_check[3],
-                            "timestamp": status_check[0],
+                            "machine": status_count_check[2],
+                            "machine_type": status_count_check[3],
+                            "timestamp": status_count_check[0],
 
                             "context": {
-                                "part_name": status_check[4],
-                                "plan": status_check[5],
-                                "operator_id": status_check[6],
+                                "part_name": status_count_check[4],
+                                "plan": status_count_check[5],
+                                "operator_id": status_count_check[6],
                             },
 
                             "metrics": {
-                                "count_signal": status_check[7],
-                                "run": status_check[8],
-                                "idle": status_check[9],
-                                "alarm": status_check[10],
-                                "offline": status_check[11],
-                                "alarm_code": status_check[12],
+                                "count_signal": status_count_check[7],
+                                "run": status_count_check[8],
+                                "idle": status_count_check[9],
+                                "alarm": status_count_check[10],
+                                "offline": status_count_check[11],
+                                "alarm_code": status_count_check[12],
                                 "cycle_time": cycle_time,
                                 "count_today": count_today
                             }
@@ -488,32 +469,32 @@ def heat_clean(_db_pool,all_department,all_machine,all_data,data,clean_db_q,broa
                                     cycle_time = point_int[3]
                                     break
                             if cycle_time != point_int[3]:
-                                cycle_time = (status_count_check[0] - old_row[0]["timestamp"]).total_seconds()
+                                cycle_time = round((status_count_check[0] - old_row[0]["timestamp"]).total_seconds(), 2)
                         count_today = count_production(_db_pool,status_count_check[0],all_department[point_int[4]],status_count_check[2]) + 1       
                         compare_heat_count[list_data] = count_check
                         clean_db_q.put({
                             "event": "plc_clean",
                             "source": "clean_heat",
                             "department": "Heat",
-                            "machine": status_check[2],
-                            "machine_type": status_check[3],   # Machine / Robot
-                            "timestamp": status_check[0],
+                            "machine": status_count_check[2],
+                            "machine_type": status_count_check[3],   # Machine / Robot
+                            "timestamp": status_count_check[0],
 
                             "context": {
-                                "part_name": status_check[4],
-                                "plan": status_check[5],
-                                "operator_id": status_check[6],
+                                "part_name": status_count_check[4],
+                                "plan": status_count_check[5],
+                                "operator_id": status_count_check[6],
                             },
 
                             "metrics": {
-                                "run": status_check[7],
-                                "heat": status_check[8],
-                                "count_signal": status_check[9],
-                                "idle": status_check[10],
-                                "setting": status_check[11],
-                                "alarm": status_check[12],
-                                "offline": status_check[13],
-                                "alarm_code": status_check[14],
+                                "run": status_count_check[7],
+                                "heat": status_count_check[8],
+                                "count_signal": status_count_check[9],
+                                "idle": status_count_check[10],
+                                "setting": status_count_check[11],
+                                "alarm": status_count_check[12],
+                                "offline": status_count_check[13],
+                                "alarm_code": status_count_check[14],
                                 "cycle_time": cycle_time,
                                 "count_today": count_today
                             }
@@ -522,25 +503,25 @@ def heat_clean(_db_pool,all_department,all_machine,all_data,data,clean_db_q,broa
                             "event": "plc_clean",
                             "source": "clean_heat",
                             "department": "Heat",
-                            "machine": status_check[2],
-                            "machine_type": status_check[3],   # Machine / Robot
-                            "timestamp": status_check[0],
+                            "machine": status_count_check[2],
+                            "machine_type": status_count_check[3],   # Machine / Robot
+                            "timestamp": status_count_check[0],
 
                             "context": {
-                                "part_name": status_check[4],
-                                "plan": status_check[5],
-                                "operator_id": status_check[6],
+                                "part_name": status_count_check[4],
+                                "plan": status_count_check[5],
+                                "operator_id": status_count_check[6],
                             },
 
                             "metrics": {
-                                "run": status_check[7],
-                                "heat": status_check[8],
-                                "count_signal": status_check[9],
-                                "idle": status_check[10],
-                                "setting": status_check[11],
-                                "alarm": status_check[12],
-                                "offline": status_check[13],
-                                "alarm_code": status_check[14],
+                                "run": status_count_check[7],
+                                "heat": status_count_check[8],
+                                "count_signal": status_count_check[9],
+                                "idle": status_count_check[10],
+                                "setting": status_count_check[11],
+                                "alarm": status_count_check[12],
+                                "offline": status_count_check[13],
+                                "alarm_code": status_count_check[14],
                                 "cycle_time": cycle_time,
                                 "count_today": count_today
                             }
@@ -611,8 +592,8 @@ def lathe_clean(_db_pool,all_department,all_machine,all_data,data,clean_db_q,bro
                         },
 
                         "metrics": {
-                            "run": status_check[6],
-                            "idle": status_check[5],                            
+                            "run": status_check[5],
+                            "idle": status_check[6],                            
                             "alarm": status_check[7],
                             "count_signal": status_check[8],
                             "offline": 0, #wait from PLC
@@ -636,8 +617,8 @@ def lathe_clean(_db_pool,all_department,all_machine,all_data,data,clean_db_q,bro
                         },
 
                         "metrics": {
-                            "run": status_check[6],
-                            "idle": status_check[5],                            
+                            "run": status_check[5],
+                            "idle": status_check[6],                            
                             "alarm": status_check[7],
                             "count_signal": status_check[8],
                             "offline": 0, #wait from PLC
@@ -663,28 +644,28 @@ def lathe_clean(_db_pool,all_department,all_machine,all_data,data,clean_db_q,bro
                                     cycle_time = point_int[3]
                                     break
                             if cycle_time != point_int[3]:
-                                cycle_time = (status_count_check[0] - old_row[0]["timestamp"]).total_seconds()
+                                cycle_time = round((status_count_check[0] - old_row[0]["timestamp"]).total_seconds(), 2)
                         count_today = count_production(_db_pool,status_count_check[0],all_department[point_int[4]],status_count_check[2]) + 1                            
                         compare_lathe_count[list_data] = count_check
                         clean_db_q.put({
                             "event": "plc_clean",
                             "source": "clean_lathe",
                             "department": "Lathe",
-                            "machine": status_check[2],
-                            "machine_type": status_check[3],   # Machine / Robot
-                            "timestamp": status_check[0],
+                            "machine": status_count_check[2],
+                            "machine_type": status_count_check[3],   # Machine / Robot
+                            "timestamp": status_count_check[0],
 
                             "context": {
-                                "part_name": status_check[4],
+                                "part_name": status_count_check[4],
                                 "plan": 0, #wait from PLC
                                 "operator_id": 0, #wait from PLC
                             },
 
                             "metrics": {
-                                "run": status_check[6],
-                                "idle": status_check[5],                            
-                                "alarm": status_check[7],
-                                "count_signal": status_check[8],
+                                "run": status_count_check[5],
+                                "idle": status_count_check[6],                            
+                                "alarm": status_count_check[7],
+                                "count_signal": status_count_check[8],
                                 "offline": 0, #wait from PLC
                                 "alarm_code": 0, #wait from PLC
                                 "cycle_time": cycle_time,
@@ -695,21 +676,21 @@ def lathe_clean(_db_pool,all_department,all_machine,all_data,data,clean_db_q,bro
                             "event": "plc_clean",
                             "source": "clean_lathe",
                             "department": "Lathe",
-                            "machine": status_check[2],
-                            "machine_type": status_check[3],   # Machine / Robot
-                            "timestamp": status_check[0],
+                            "machine": status_count_check[2],
+                            "machine_type": status_count_check[3],   # Machine / Robot
+                            "timestamp": status_count_check[0],
 
                             "context": {
-                                "part_name": status_check[4],
+                                "part_name": status_count_check[4],
                                 "plan": 0, #wait from PLC
                                 "operator_id": 0, #wait from PLC
                             },
 
                             "metrics": {
-                                "run": status_check[6],
-                                "idle": status_check[5],                            
-                                "alarm": status_check[7],
-                                "count_signal": status_check[8],
+                                "run": status_count_check[5],
+                                "idle": status_count_check[6],                            
+                                "alarm": status_count_check[7],
+                                "count_signal": status_count_check[8],
                                 "offline": 0, #wait from PLC
                                 "alarm_code": 0, #wait from PLC
                                 "cycle_time": cycle_time,
@@ -722,7 +703,6 @@ def lathe_clean(_db_pool,all_department,all_machine,all_data,data,clean_db_q,bro
                     compare_lathe_count[list_data] = count_check       
     except Exception as e:
         print("❌ Lathe clean data error:",e)
-
 
 if __name__ == "__main__":
     data_a = [12338, 12850, 13364, 8243, 8224, -1]

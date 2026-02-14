@@ -66,15 +66,12 @@ function handleMessage(msg) {
 
     // 2️⃣ Fan-out raw event to UI
     global.services.plcMonitor.broadcast('plc_clean', msg.payload);
-    // global.services.stateStore.updatePlc(msg.payload);
 
-    // // Forward to plcMonitor (fan-out)
-    // updateData(msg.payload);
   }
 }
 
 // Watchdog: Monitor PLC health
-const HEARTBEAT_TIMEOUT = 5000; // 5 seconds
+const HEARTBEAT_TIMEOUT = 15000; // 15 seconds
 const STARTUP_GRACE = 10000;    // 10 seconds - give PLC time to start
 setInterval(() => {
   if (!plcRunning) {
@@ -185,7 +182,6 @@ function connect() {
     isConnected = false;
     plcConnected = false;
     plcHealthy = false;     // ✅ watchdog failure
-    // plcRunning stays TRUE
     
     // Raise alarm for lost PLC connection
     raiseAlarm(
