@@ -42,7 +42,10 @@ export function adminAlarmView() {
 export function adminDatabaseView() {
   return `
     <div class="card">
-      <h2>Database Management</h2>
+      <h2>Content Management</h2>
+      <image src="/images/Availability.png" style="width: 600px; height: auto;"><br>
+      <image src="/images/Performance.png" style="width: 600px; height: auto;"><br>
+      <image src="/images/OEE.png" style="width: 600px; height: auto;">
     </div>
   `;
 }

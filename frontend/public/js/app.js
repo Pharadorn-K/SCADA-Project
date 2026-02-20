@@ -191,6 +191,19 @@ export async function navigate(route) {
   setActiveSidebar(route);
 }
 
+// translate a hash string like
+//   #production/machine_efficiency?dept=press&machine=P1
+// into a route name and navigate.  Only the path portion is
+// mapped; individual views parse query params themselves.
+function handleHashNavigation() {
+  const hash = window.location.hash.slice(1); // drop '#'
+  if (!hash) return;
+
+  const [path] = hash.split('?');
+  const route = path.replace(/\//g, '.');
+  if (route) navigate(route);
+}
+
 async function bootstrap() {
   const ok = await checkAuth();
   if (!ok) return;
@@ -199,10 +212,18 @@ async function bootstrap() {
   mountTopbar();
   mountSidebar();        // injects sidebar HTML
   initSidebarToggle();   // now button exists
-  navigate('home');
-  startClock();
 
+  // if user landed with a hash, navigate there; otherwise go home
+  if (window.location.hash) {
+    handleHashNavigation();
+  } else {
+    navigate('home');
+  }
+
+  startClock();
 }
 
+// respond when something else (like a card click) updates the hash
+window.addEventListener('hashchange', handleHashNavigation);
 
 bootstrap();

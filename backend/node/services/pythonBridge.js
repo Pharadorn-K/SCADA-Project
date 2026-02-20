@@ -65,7 +65,38 @@ function handleMessage(msg) {
     global.services.stateStore.updatePlc(msg.payload);
 
     // 2️⃣ Fan-out raw event to UI
-    global.services.plcMonitor.broadcast('plc_clean', msg.payload);
+    try {
+      const normalized = msg.payload;
+      const key = `${normalized.department.toLowerCase()}_${normalized.machine}`;
+      const full = global.services.stateStore.getPlc(key);
+
+      // Merge normalized payload with runtime state when available so UI 
+      // receives both the original metrics and additional runtime fields
+
+      const outPayload = full
+        ? {
+            // keep original shape fields expected by frontend
+            ...normalized,
+            // ensure machine_type exists (normalized uses machine_type)
+            machine_type: normalized.machine_type ?? full.machineType,
+            // include runtime tags (cycle_time, count_shift, etc.) under metrics
+            metrics: {
+              ...(normalized.metrics || {}),
+              ...(full.tags || {})
+            },
+            // expose runtime extras
+            cycleHistory: full.cycleHistory ?? [],
+            status: full.status,
+            lastUpdate: full.lastUpdate,
+            context: full.context ?? normalized.context
+          }
+        : normalized;
+
+      global.services.plcMonitor.broadcast('plc_clean', outPayload);
+    } catch (err) {
+      console.error('Error broadcasting plc_clean with full state:', err);
+      global.services.plcMonitor.broadcast('plc_clean', msg.payload);
+    }
 
   }
 }
@@ -278,7 +309,6 @@ function getStatus() {
     lastHeartbeat
   };
 }
-
 
 // Start connection on module load
 connect();

@@ -18,7 +18,9 @@ export const routes = {
       unmount: Production.productionOverviewUnmount
     },
     machine_efficiency: {
-      view: Production.productionMachineEfficiencyView
+      view: Production.productionMachineEfficiencyView,
+      mount: Production.productionMachineEfficiencyMount,
+      unmount: Production.productionMachineEfficiencyUnmount
     },
     production_history: {
       view: Production. productionProductionHistoryView

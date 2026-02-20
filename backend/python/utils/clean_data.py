@@ -1,5 +1,7 @@
 # backend/python/utils/clean_data.py
 import struct
+from datetime import datetime, time, timedelta
+
 def plc_received_to_string(received):
     try:
         for i in received:
@@ -10,6 +12,7 @@ def plc_received_to_string(received):
         result = byte_data.decode('ascii').rstrip(' \x00\t\r\n')
     except Exception as e:
         print("❌ PLC received to string error:",e)
+        print(received)
     return result
 
 
@@ -105,7 +108,8 @@ def get_range_equipment(all_range_equipment):
 
 # Filter process Press
 compare_press_count,compare_press_status = [[],[],[],[],[],[],[],[],[],[],[],[],[]],[[],[],[],[],[],[],[],[],[],[],[],[],[]]
-compare_heat_count,compare_heat_status = [[],[],[],[],[],[],[],[],[],[],[],[],[]],[[],[],[],[],[],[],[],[],[],[],[],[],[]]
+compare_heat_count,compare_heat_status,compare_heat_time = [[],[],[],[],[],[],[],[],[],[],[],[],[]],[[],[],[],[],[],[],[],[],[],[],[],[],[]],[[],[],[],[],[],[],[],[],[],[],[],[],[]]
+skip_idle_check = [[],[],[],[],[],[],[],[],[],[],[],[],[]]
 compare_lathe_count,compare_lathe_status = [[],[],[],[],[],[],[],[],[],[],[],[],[]],[[],[],[],[],[],[],[],[],[],[],[],[],[]]
 # Read all row after last output
 def row_after_output(_db_pool,timestamp,department,machine_name,part_name):
@@ -183,6 +187,67 @@ def count_production(_db_pool,timestamp,department,machine):
     cursor.close()
     conn.close()
     return result['count_output'] if result and 'count_output' in result else 0
+def get_shift_range(current_dt):
+    t = current_dt.time()
+
+    shift_a_start = time(6, 0)
+    shift_b_start = time(14, 0)
+    shift_c_start = time(22, 0)
+
+    if shift_a_start <= t < shift_b_start:
+        shift = "A"
+        start = current_dt.replace(hour=6, minute=0, second=0, microsecond=0)
+        end = current_dt.replace(hour=14, minute=0, second=0, microsecond=0)
+
+    elif shift_b_start <= t < shift_c_start:
+        shift = "B"
+        start = current_dt.replace(hour=14, minute=0, second=0, microsecond=0)
+        end = current_dt.replace(hour=22, minute=0, second=0, microsecond=0)
+
+    else:
+        shift = "C"
+        start = current_dt.replace(hour=22, minute=0, second=0, microsecond=0)
+
+        # ถ้าเป็นหลังเที่ยงคืน ต้องย้อนวัน
+        if t < shift_a_start:
+            start = start - timedelta(days=1)
+
+        end = start + timedelta(hours=8)
+
+    return shift, start, end
+def count_current_shift(_db_pool, timestamp, department, machine):
+    conn = _db_pool.connection()
+    # current_dt = datetime.strptime(timestamp, "%Y-%m-%d %H:%M:%S.%f")
+
+    shift, start_time, end_time = get_shift_range(timestamp)
+
+    table_map = {
+        "Press": "raw_press",
+        "Heat": "raw_heat",
+        "Lathe": "raw_lathe"
+    }
+
+    table_name = table_map.get(department)
+    if not table_name:
+        return 0
+
+    query = f"""
+        SELECT COUNT(count_signal) AS count_output
+        FROM {table_name}
+        WHERE timestamp >= %s
+        AND timestamp < %s
+        AND department = %s
+        AND machine = %s
+        AND count_signal = 1
+    """
+
+    cursor = conn.cursor()
+    cursor.execute(query, (start_time, end_time, department, machine))
+    result = cursor.fetchone()
+    cursor.close()
+    conn.close()
+
+    return result['count_output'] if result else 0
 
 def press_clean(_db_pool,all_department,all_machine,all_data,data,clean_db_q,broadcast_q):
     point_int = [7,1,13,6,0]
@@ -224,7 +289,7 @@ def press_clean(_db_pool,all_department,all_machine,all_data,data,clean_db_q,bro
                 status_check[point_int[0]] = 0
                 if status_check[point_int[1]:point_int[2]] != compare_press_status[list_data]:
                     cycle_time = 0
-                    count_today = 0
+                    count_shift = 0
                     compare_press_status[list_data] = status_check[point_int[1]:point_int[2]]
                     clean_db_q.put({
                         "event": "plc_clean",
@@ -248,7 +313,7 @@ def press_clean(_db_pool,all_department,all_machine,all_data,data,clean_db_q,bro
                             "offline": status_check[11],
                             "alarm_code": status_check[12],
                             "cycle_time": cycle_time,
-                            "count_today": count_today
+                            "count_shift": count_shift
                         }
                     })
                     broadcast_q.put({
@@ -273,7 +338,7 @@ def press_clean(_db_pool,all_department,all_machine,all_data,data,clean_db_q,bro
                             "offline": status_check[11],
                             "alarm_code": status_check[12],
                             # "cycle_time": cycle_time,
-                            # "count_today": count_today
+                            # "count_shift": count_shift
                         }
                     })
                 else : 
@@ -294,7 +359,9 @@ def press_clean(_db_pool,all_department,all_machine,all_data,data,clean_db_q,bro
                                     break
                             if cycle_time != point_int[3]:
                                 cycle_time = round((status_count_check[0] - old_row[0]["timestamp"]).total_seconds(), 2)
-                        count_today = count_production(_db_pool,status_count_check[0],all_department[point_int[4]],status_count_check[2]) + 1                            
+                                if cycle_time > point_int[3]*3:
+                                    cycle_time = point_int[3]
+                        count_shift = count_current_shift(_db_pool,status_count_check[0],all_department[point_int[4]],status_count_check[2]) + 1                            
                         compare_press_count[list_data] = count_check
                         clean_db_q.put({
                             "event": "plc_clean",
@@ -318,7 +385,7 @@ def press_clean(_db_pool,all_department,all_machine,all_data,data,clean_db_q,bro
                                 "offline": status_count_check[11],
                                 "alarm_code": status_count_check[12],
                                 "cycle_time": cycle_time,
-                                "count_today": count_today
+                                "count_shift": count_shift
                             }
                         })
                         broadcast_q.put({
@@ -343,7 +410,7 @@ def press_clean(_db_pool,all_department,all_machine,all_data,data,clean_db_q,bro
                                 "offline": status_count_check[11],
                                 "alarm_code": status_count_check[12],
                                 "cycle_time": cycle_time,
-                                "count_today": count_today
+                                "count_shift": count_shift
                             }
                         })
                     else : 
@@ -396,8 +463,10 @@ def heat_clean(_db_pool,all_department,all_machine,all_data,data,clean_db_q,broa
                 status_check[point_int[0]] = 0
                 if status_check[point_int[1]:point_int[2]] != compare_heat_status[list_data]:
                     cycle_time = 0
-                    count_today = 0
+                    count_shift = 0
+                    skip_idle_check[list_data] = 1
                     compare_heat_status[list_data] = status_check[point_int[1]:point_int[2]]
+                    compare_heat_time[list_data] = status_check[0]         
                     clean_db_q.put({
                         "event": "plc_clean",
                         "source": "clean_heat",
@@ -422,7 +491,7 @@ def heat_clean(_db_pool,all_department,all_machine,all_data,data,clean_db_q,broa
                             "offline": status_check[13],
                             "alarm_code": status_check[14],
                             "cycle_time": cycle_time,
-                            "count_today": count_today
+                            "count_shift": count_shift
                         }
                     })
                     broadcast_q.put({
@@ -449,9 +518,73 @@ def heat_clean(_db_pool,all_department,all_machine,all_data,data,clean_db_q,broa
                             "offline": status_check[13],
                             "alarm_code": status_check[14],
                             # "cycle_time": cycle_time,
-                            # "count_today": count_today
+                            # "count_shift": count_shift
                         }
                     })
+                elif status_check[point_int[1]:point_int[2]] == compare_heat_status[list_data] and status_check[10] == 1:
+                    detect_idle = (status_check[0]-compare_heat_time[list_data]).total_seconds()
+                    if detect_idle > 140 and skip_idle_check[list_data] != 0:
+                        print(status_check[0],status_check[2],detect_idle,skip_idle_check,"idle by time detected")
+                        skip_idle_check[list_data] = 0
+                        cycle_time = 0
+                        count_shift = 0
+                        overright = 0
+                        clean_db_q.put({
+                        "event": "plc_clean",
+                        "source": "clean_heat",
+                        "department": "Heat",
+                        "machine": status_check[2],
+                        "machine_type": status_check[3],   # Machine / Robot
+                        "timestamp": status_check[0],
+
+                        "context": {
+                            "part_name": status_check[4],
+                            "plan": status_check[5],
+                            "operator_id": status_check[6],
+                        },
+
+                        "metrics": {
+                            "run": overright,
+                            "heat": overright,
+                            "count_signal": status_check[9],
+                            "idle": status_check[10],
+                            "setting": status_check[11],
+                            "alarm": status_check[12],
+                            "offline": status_check[13],
+                            "alarm_code": status_check[14],
+                            "cycle_time": cycle_time,
+                            "count_shift": count_shift
+                        }
+                    })
+                        broadcast_q.put({
+                        "event": "plc_clean",
+                        "source": "clean_heat",
+                        "department": "Heat",
+                        "machine": status_check[2],
+                        "machine_type": status_check[3],   # Machine / Robot
+                        "timestamp": status_check[0],
+
+                        "context": {
+                            "part_name": status_check[4],
+                            "plan": status_check[5],
+                            "operator_id": status_check[6],
+                        },
+
+                        "metrics": {
+                            "run": status_check[7],
+                            "heat": status_check[8],
+                            "count_signal": status_check[9],
+                            "idle": status_check[10],
+                            "setting": status_check[11],
+                            "alarm": status_check[12],
+                            "offline": status_check[13],
+                            "alarm_code": status_check[14],
+                            # "cycle_time": cycle_time,
+                            # "count_shift": count_shift
+                        }
+                    })
+                    else : 
+                        pass            
                 else : 
                     pass
                 
@@ -470,7 +603,9 @@ def heat_clean(_db_pool,all_department,all_machine,all_data,data,clean_db_q,broa
                                     break
                             if cycle_time != point_int[3]:
                                 cycle_time = round((status_count_check[0] - old_row[0]["timestamp"]).total_seconds(), 2)
-                        count_today = count_production(_db_pool,status_count_check[0],all_department[point_int[4]],status_count_check[2]) + 1       
+                                if cycle_time > point_int[3]*1.5:
+                                    cycle_time = point_int[3]*1.5
+                        count_shift = count_current_shift(_db_pool,status_count_check[0],all_department[point_int[4]],status_count_check[2]) + 1       
                         compare_heat_count[list_data] = count_check
                         clean_db_q.put({
                             "event": "plc_clean",
@@ -496,7 +631,7 @@ def heat_clean(_db_pool,all_department,all_machine,all_data,data,clean_db_q,broa
                                 "offline": status_count_check[13],
                                 "alarm_code": status_count_check[14],
                                 "cycle_time": cycle_time,
-                                "count_today": count_today
+                                "count_shift": count_shift
                             }
                         })                             
                         broadcast_q.put({
@@ -523,7 +658,7 @@ def heat_clean(_db_pool,all_department,all_machine,all_data,data,clean_db_q,broa
                                 "offline": status_count_check[13],
                                 "alarm_code": status_count_check[14],
                                 "cycle_time": cycle_time,
-                                "count_today": count_today
+                                "count_shift": count_shift
                             }
                         })
                     else : 
@@ -575,7 +710,7 @@ def lathe_clean(_db_pool,all_department,all_machine,all_data,data,clean_db_q,bro
                 status_check[point_int[0]] = 0
                 if status_check[point_int[1]:point_int[2]] != compare_lathe_status[list_data]:
                     cycle_time = 0
-                    count_today = 0
+                    count_shift = 0
                     compare_lathe_status[list_data] = status_check[point_int[1]:point_int[2]]
                     clean_db_q.put({
                         "event": "plc_clean",
@@ -599,7 +734,7 @@ def lathe_clean(_db_pool,all_department,all_machine,all_data,data,clean_db_q,bro
                             "offline": 0, #wait from PLC
                             "alarm_code": 0, #wait from PLC
                             "cycle_time": cycle_time,
-                            "count_today": count_today
+                            "count_shift": count_shift
                         }
                     })
                     broadcast_q.put({
@@ -624,7 +759,7 @@ def lathe_clean(_db_pool,all_department,all_machine,all_data,data,clean_db_q,bro
                             "offline": 0, #wait from PLC
                             "alarm_code": 0, #wait from PLC
                             # "cycle_time": cycle_time,
-                            # "count_today": count_today
+                            # "count_shift": count_shift
                         }
                     })
                 else : 
@@ -645,7 +780,9 @@ def lathe_clean(_db_pool,all_department,all_machine,all_data,data,clean_db_q,bro
                                     break
                             if cycle_time != point_int[3]:
                                 cycle_time = round((status_count_check[0] - old_row[0]["timestamp"]).total_seconds(), 2)
-                        count_today = count_production(_db_pool,status_count_check[0],all_department[point_int[4]],status_count_check[2]) + 1                            
+                                if cycle_time > point_int[3]*2:
+                                    cycle_time = point_int[3]
+                        count_shift = count_current_shift(_db_pool,status_count_check[0],all_department[point_int[4]],status_count_check[2]) + 1                            
                         compare_lathe_count[list_data] = count_check
                         clean_db_q.put({
                             "event": "plc_clean",
@@ -669,7 +806,7 @@ def lathe_clean(_db_pool,all_department,all_machine,all_data,data,clean_db_q,bro
                                 "offline": 0, #wait from PLC
                                 "alarm_code": 0, #wait from PLC
                                 "cycle_time": cycle_time,
-                                "count_today": count_today
+                                "count_shift": count_shift
                             }
                         })
                         broadcast_q.put({
@@ -694,7 +831,7 @@ def lathe_clean(_db_pool,all_department,all_machine,all_data,data,clean_db_q,bro
                                 "offline": 0, #wait from PLC
                                 "alarm_code": 0, #wait from PLC
                                 "cycle_time": cycle_time,
-                                "count_today": count_today
+                                "count_shift": count_shift
                             }
                         })
                     else : 

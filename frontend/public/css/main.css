@@ -274,7 +274,7 @@ li.sub-menu.open > a > .arrow {
 
 .department-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
   gap: 1rem;
 }
 
@@ -552,4 +552,58 @@ li.sub-menu.open > a > .arrow {
 .badge-gray {
   background: #757575;
   color: white;
+}
+
+/* ===== Page Machine efficiency ===== */
+.filter-bar {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.filter-bar select {
+  padding: 8px 12px;
+  font-size: 14px;
+}
+
+.machine-card.large {
+  padding: 0 15px 15px 15px;
+  font-size: 16px;
+}
+.kpi-row-eff {
+  display: flex;
+  gap: 16px;
+  margin-top: 12px;
+}
+
+.kpi-box-eff {
+  flex: 1;
+  background: #ffffff;
+  padding: 12px;
+  border-radius: 8px;
+  text-align: center;
+  box-shadow: #939393 0px 4px 6px -1px, #000000 0px 2px 4px -1px;
+}
+
+.kpi-label-eff {
+  font-size: 12px;
+  opacity: 0.7;
+  margin-bottom: 4px;
+}
+
+.kpi-value-eff {
+  font-size: 20px;
+  font-weight: bold;
+}
+
+.kpi-good {
+  color: #00ff88;
+}
+
+.kpi-warning {
+  color: #ffc107;
+}
+
+.kpi-bad {
+  color: #ff4d4f;
 }

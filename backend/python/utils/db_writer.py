@@ -23,7 +23,7 @@ def flatten_press_event(data):
         "offline": data["metrics"]["offline"],
         "alarm_code": data["metrics"]["alarm_code"],
         "cycle_time": data["metrics"]["cycle_time"],
-        "count_today": data["metrics"]["count_today"],
+        "count_shift": data["metrics"]["count_shift"],
     }
 def flatten_heat_event(data):
     return {
@@ -45,7 +45,7 @@ def flatten_heat_event(data):
         "offline": data["metrics"]["offline"],
         "alarm_code": data["metrics"]["alarm_code"],
         "cycle_time": data["metrics"]["cycle_time"],
-        "count_today": data["metrics"]["count_today"],
+        "count_shift": data["metrics"]["count_shift"],
     }
 def flatten_lathe_event(data):
     return {
@@ -65,7 +65,7 @@ def flatten_lathe_event(data):
         "offline": data["metrics"]["offline"],
         "alarm_code": data["metrics"]["alarm_code"],
         "cycle_time": data["metrics"]["cycle_time"],
-        "count_today": data["metrics"]["count_today"],
+        "count_shift": data["metrics"]["count_shift"],
     }
 
 # --- Save function ---  
@@ -81,7 +81,7 @@ def save_press_data(_db_pool, data):
             event, source, department, machine, machine_type, timestamp,
             part_name, plan, operator_id,
             count_signal, run, idle, alarm, offline,
-            alarm_code, cycle_time, count_today
+            alarm_code, cycle_time, count_shift
         )
         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         """
@@ -103,7 +103,7 @@ def save_press_data(_db_pool, data):
             flatten_data['offline'],
             flatten_data['alarm_code'],
             flatten_data['cycle_time'],
-            flatten_data['count_today']
+            flatten_data['count_shift']
         )
 
         cursor.execute(query, values)
@@ -127,7 +127,7 @@ def save_heat_data(_db_pool,data):
             event, source, department, machine, machine_type, timestamp,
             part_name, plan, operator_id,
             run, heat, count_signal, idle, setting, alarm, offline, 
-            alarm_code, cycle_time, count_today 
+            alarm_code, cycle_time, count_shift 
         ) 
         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         """
@@ -150,7 +150,7 @@ def save_heat_data(_db_pool,data):
             flatten_data['offline'],
             flatten_data['alarm_code'],
             flatten_data['cycle_time'],
-            flatten_data['count_today']
+            flatten_data['count_shift']
         )
         cursor.execute(query, values)            
 
@@ -174,7 +174,7 @@ def save_lathe_data(_db_pool,data):
             event, source, department, machine, machine_type, timestamp,
             part_name, plan, operator_id,
             count_signal, run, idle, alarm, offline,
-            alarm_code, cycle_time, count_today
+            alarm_code, cycle_time, count_shift
         )
         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         """
@@ -196,7 +196,7 @@ def save_lathe_data(_db_pool,data):
             flatten_data['offline'],
             flatten_data['alarm_code'],
             flatten_data['cycle_time'],
-            flatten_data['count_today']
+            flatten_data['count_shift']
         )
 
         cursor.execute(query, values)

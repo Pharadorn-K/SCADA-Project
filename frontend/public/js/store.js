@@ -1,5 +1,4 @@
 // frontend/public/js/store.js
-
 function deriveStatus(department, metrics = {}) {
   if (metrics.offline === 1) return 'OFFLINE';
 
@@ -36,7 +35,6 @@ function deriveStatus(department, metrics = {}) {
   return 'STOP';
 }
 
-
 export const scadaStore = {
   state: {
     timestamp: null,
@@ -45,7 +43,6 @@ export const scadaStore = {
 
   ws: null,
   listeners: new Set(),
-
 
   // 🔐 Only entry point for WS data
   setSnapshot(snapshot) {
@@ -81,41 +78,34 @@ export const scadaStore = {
 
     this.state.machines[key] = {
       ...prev,
-
-      // always update these
       department: payload.department,
       machineType: payload.machine_type,
-      // status: deriveStatus(payload.metrics),
       status: deriveStatus(payload.department, payload.metrics),
       lastUpdate: Date.now(),
-      // ⏱ machine-level timestamp (PLC time)
       timestamp: payload.timestamp,
 
-      // 🧠 operator / part / plan
       context: {
         ...prev.context,
         ...(payload.context || {})
       },
-      // 🔑 merge tags, don’t reset
+
       tags: {
         ...prev.tags,
         ...(payload.metrics.cycle_time !== undefined && {
           cycle_time: payload.metrics.cycle_time
         }),
-        ...(payload.metrics.count_today !== undefined && {
-          count_today: payload.metrics.count_today
-        }),
-        ...(payload.context?.plan !== undefined && {
-          plan: payload.context.plan
+        ...(payload.metrics.count_shift !== undefined && {
+          count_shift: payload.metrics.count_shift
         })
       },
 
-      // alarms are status-driven → safe to replace
+      cycleHistory: payload.cycleHistory ?? prev.cycleHistory ?? [],
+
       alarms: payload.metrics.alarm
         ? [payload.metrics.alarm_code]
         : []
-
     };
+
 
     this.notify();
   },

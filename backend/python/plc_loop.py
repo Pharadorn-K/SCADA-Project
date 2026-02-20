@@ -409,4 +409,3 @@ def _loop_writer_db_worker():
             traceback.print_exc()
         finally:
             clean_db_q.task_done()
-
