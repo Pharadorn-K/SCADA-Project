@@ -58,7 +58,6 @@ app.use((req, res, next) => {
 });
 
 // Add before other app.use(...)
-// app.use('/api/auth', authRoutes);
 app.use('/api/auth', require('./routes/api/auth'));
 
 // API Routes
@@ -119,10 +118,6 @@ app.get('/', requireAuth, (req, res) => {
 
 // Initialize state store
 async function bootstrap() {
-  console.log('🔄 Hydrating state from database...');
-  await global.services.stateStore.hydrateFromDatabase();
-  console.log('✅ Hydration complete');
-
   // Create HTTP server
   const server = http.createServer(app);
 
@@ -130,14 +125,32 @@ async function bootstrap() {
   const wss = new WebSocket.Server({ server });
 
   global.services.wss = wss;
+  console.log('🔄 Hydrating state from database...');
+  // Load engines FIRST
+  const plcEngine = require('./services/plcEngine');
+  const shiftEngine = require('./services/shiftEngine');
+  const persistenceEngine = require('./services/persistenceEngine');
+  const bootstrapEngine = require('./services/bootstrapEngine');
 
-  const pythonBridge = require('./services/pythonBridge');
+  // Register globally (only if you want global access)
+  global.services.plcEngine = plcEngine;
+  global.services.shiftEngine = shiftEngine;
+  global.services.persistenceEngine = persistenceEngine;
+
+  // Hydrate state
+  await bootstrapEngine.hydrate();
+
+  // Start periodic shift save
+  persistenceEngine.startAutoSave();
+  console.log('✅ Hydration complete');
+  // Websocket + bridge AFTER engines exist
   const plcMonitor = require('./services/plcMonitor');
+  const pythonBridge = require('./services/pythonBridge');
 
   plcMonitor.setWss(wss);
 
-  global.services.pythonBridge = pythonBridge;
   global.services.plcMonitor = plcMonitor;
+  global.services.pythonBridge = pythonBridge;
 
   // Auto-resume last state
   const state = global.services.stateStore.loadState();

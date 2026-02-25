@@ -124,25 +124,3 @@ export const scadaStore = {
   }
 };
 
-// // ⏱ Watchdog: detect stale machines
-// const OFFLINE_TIMEOUT = 60000; // 10 seconds
-
-// setInterval(() => {
-//   const now = Date.now();
-//   let changed = false;
-
-//   Object.values(scadaStore.state.machines).forEach(machine => {
-//     if (!machine.lastUpdate) return;
-
-//     const diff = now - machine.lastUpdate;
-
-//     if (diff > OFFLINE_TIMEOUT && machine.status !== 'OFFLINE') {
-//       machine.status = 'OFFLINE';
-//       changed = true;
-//     }
-//   });
-
-//   if (changed) {
-//     scadaStore.notify();
-//   }
-// }, 10000);

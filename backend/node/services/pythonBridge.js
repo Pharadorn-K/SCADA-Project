@@ -62,16 +62,14 @@ function handleMessage(msg) {
   }
   if (msg.type === 'plc_clean') {
     // 1️⃣ Persist canonical state
-    global.services.stateStore.updatePlc(msg.payload);
+    // global.services.stateStore.updatePlc(msg.payload);
+    global.services.plcEngine.processUpdate(msg.payload);
 
     // 2️⃣ Fan-out raw event to UI
     try {
       const normalized = msg.payload;
       const key = `${normalized.department.toLowerCase()}_${normalized.machine}`;
       const full = global.services.stateStore.getPlc(key);
-
-      // Merge normalized payload with runtime state when available so UI 
-      // receives both the original metrics and additional runtime fields
 
       const outPayload = full
         ? {

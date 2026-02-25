@@ -41,7 +41,7 @@ function formatTime(sec) {
 }
 
 
-// ---------------- OVERVIEW Page ---------------- // 
+// ---------------- Overview Page ---------------- // 
 let unsubscribe = null; 
 export function productionOverviewMount(container) {
     const plantId = 'plant1'; 
@@ -188,7 +188,7 @@ export function productionOverviewUnmount() {
 }
 
 
-// --------------- MACHINE EFFICIENCY page --------------- //
+// --------------- Machine Efficiency page --------------- //
 let efficiencyUnsubscribe = null; 
 let stopwatchInterval = null; 
 
@@ -539,7 +539,6 @@ export function productionMachineEfficiencyUnmount() {
     } 
 }
 
-
 // ---------------- HISTORY page --------------- //
 export function productionProductionHistoryView() {
   return `
@@ -558,12 +557,3 @@ export function productionStaffManagementView() {
     </div>
   `;
 }
-
-// I see something weird here. at first, login then opem production/overview and click on a machine card,
-// it goes to production/machine_efficieny page then show chart/card for the selected machine.dropdowns select the selected machine too.
-// but when I change page than go back to production/machine_efficiency page, it doesn't show anything. dropdowns also don't select any value.
-// I don't know what is wrong.
-// link selected machine to production/machine_efficiency is still http://10.207.1.57:3000/#production/machine_efficiency?dept=press&machine=AIDA630T not change even change page.
-// but when change page then come back to production/machine_efficiency, it doesn't show anything.
-// if reload page or manual select in dropdowns, it will show selected machine in production/machine_efficiency page again.
-// what I want is if some card are selected in production/overview page, it will show in production/machine_efficiency page after change page then come back to production/machine_efficiency page it should show again automatically.
