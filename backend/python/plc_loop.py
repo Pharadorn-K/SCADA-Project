@@ -228,26 +228,9 @@ def _loop_read_plc_worker():
             word_data = raw_word_data.copy()
 
             tags = (timestamp, bit_data, word_data)
-            # print(f"📡 Read data: {tags}")
 
-            # print(f"📡 Read data: {tags[0]}")
-            tags_broadcast = {
-                "timestamp": timestamp,
-            }
-            # tags = {
-            #     "timestamp": timestamp,
-            #     "bits": bit_data,
-            #     "words": word_data,
-            #     # Optional: map to named tags like "motor_on", "temp"
-            # }
-
-            # 1. Send data to Queue for Clean
             main_q_intersection.put(tags , timeout=1)
 
-            # 2. Broadcast to all connected Node.js clients
-            # _broadcast_plc_data(tags_broadcast)
-            
-            # 3. Send heartbeat to confirm PLC is alive
             for client_sock, addr in _socket_clients[:]:
                 try:
                     send_heartbeat(client_sock)

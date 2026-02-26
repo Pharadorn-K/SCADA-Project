@@ -1,5 +1,6 @@
 // frontend/public/js/views/production.js 
 import { scadaStore } from '../store.js'; 
+import { formatDuration } from '../utils.js';
 const DEPT_ORDER = ['press', 'heat', 'lathe', 'grinding']; 
 
 
@@ -173,6 +174,37 @@ export function productionOverviewMount(container) {
                 </div> 
             </div> 
             
+            <!-- SHIFT DURATIONS -->
+            <div class="machine-shift-grid">
+                <div class="shift-box">
+                    <div class="shift-label">Run</div>
+                    <div class="shift-value">${formatDuration(
+                        m.shiftDurations?.run_seconds || 0,
+                        m.status === 'RUNNING' ? m.statusStartedAt : null
+                    )}</div>
+                </div>
+                <div class="shift-box">
+                    <div class="shift-label">Idle</div>
+                    <div class="shift-value">${formatDuration(
+                        m.shiftDurations?.idle_seconds || 0,
+                        m.status === 'IDLE' ? m.statusStartedAt : null
+                    )}</div>
+                </div>
+                <div class="shift-box">
+                    <div class="shift-label">Alarm</div>
+                    <div class="shift-value">${formatDuration(
+                        m.shiftDurations?.alarm_seconds || 0,
+                        m.status === 'ALARM' ? m.statusStartedAt : null
+                    )}</div>
+                </div>
+                <div class="shift-box">
+                    <div class="shift-label">Offline</div>
+                    <div class="shift-value">${formatDuration(
+                        m.shiftDurations?.offline_seconds || 0,
+                        m.status === 'OFFLINE' ? m.statusStartedAt : null
+                    )}</div>
+                </div>
+            </div>
             <div class="machine-footer"> 
                 ⏱ ${ 
                 m.timestamp 
@@ -229,28 +261,6 @@ export function productionMachineEfficiencyMount(container) {
             return result; 
     } 
 
-    stopwatchInterval = setInterval(() => {
-        const now = Date.now(); 
-        Object.entries(scadaStore.state.machines) 
-        .forEach(([id, m]) => {
-            if (!m.shiftDurations) return;
-             const diff = Math.floor( 
-                (now - m.statusStartedAt) / 1000 
-            ); 
-            
-            const bucketMap = { 
-                RUNNING: 'run_seconds', 
-                IDLE: 'idle_seconds', 
-                ALARM: 'alarm_seconds', 
-                OFFLINE: 'offline_seconds' 
-            }; 
-            const bucket = bucketMap[m.status];
-            const base = m.shiftDurations[bucket] ?? 0;
-            const total = base + diff; 
-            // update DOM text 
-        }); 
-    }, 1000); 
-    
     function calculateAvailability(m) {
          if (!m?.shiftDurations) return null;
          const {

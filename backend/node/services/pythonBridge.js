@@ -62,7 +62,6 @@ function handleMessage(msg) {
   }
   if (msg.type === 'plc_clean') {
     // 1️⃣ Persist canonical state
-    // global.services.stateStore.updatePlc(msg.payload);
     global.services.plcEngine.processUpdate(msg.payload);
 
     // 2️⃣ Fan-out raw event to UI

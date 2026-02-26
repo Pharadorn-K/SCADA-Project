@@ -302,7 +302,9 @@ async function hydrateFromDatabase() {
         `,
         [machine]
       );
-      
+      if (!rows.length) continue;
+      const normalized = normalizeRow(rows[0]);      
+
       // Load last 30 cycle_time history
       const [cycleRows] = await pool.query(
         `
@@ -317,9 +319,6 @@ async function hydrateFromDatabase() {
         [machine]
       );
 
-      if (!rows.length) continue;
-
-      const normalized = normalizeRow(rows[0]);
       const history = cycleRows
         .reverse() // oldest → newest
         .map(r => ({
@@ -335,7 +334,6 @@ async function hydrateFromDatabase() {
 
       // update shift durations
       const shiftInfo = getShiftInfo();
-
       const [shiftRows] = await pool.query(
         `
         SELECT run_seconds, idle_seconds,

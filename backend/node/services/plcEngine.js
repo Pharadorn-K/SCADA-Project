@@ -14,26 +14,15 @@ function processUpdate(payload) {
 
   const newStatus = stateStore.deriveStatus(department, metrics);
 
-  let durations = machineState.shiftDurations || {
-    run_seconds: 0,
-    idle_seconds: 0,
-    alarm_seconds: 0,
-    offline_seconds: 0
-  };
-
-  // accumulate previous state
-  if (machineState.status) {
-    const diff = Math.floor((now - machineState.statusStartedAt) / 1000);
-    const bucketMap = {
-      RUNNING: 'run_seconds',
-      IDLE: 'idle_seconds',
-      ALARM: 'alarm_seconds',
-      OFFLINE: 'offline_seconds'
+  let durations =
+    payload.shiftDurations ||
+    machineState.shiftDurations || {
+      run_seconds: 0,
+      idle_seconds: 0,
+      alarm_seconds: 0,
+      offline_seconds: 0
     };
 
-    const bucket = bucketMap[machineState.status];
-    if (bucket) durations[bucket] += diff;
-  }
 
   const shiftInfo = shiftEngine.getShiftInfo(now);
 
@@ -42,7 +31,9 @@ function processUpdate(payload) {
     machine,
     machineType: payload.machine_type,
     status: newStatus,
-    statusStartedAt: now,
+    statusStartedAt: machineState.status !== newStatus
+      ? now
+      : machineState.statusStartedAt || now,
     shift: shiftInfo.shift,
     shiftDate: shiftInfo.date,
     shiftDurations: durations,

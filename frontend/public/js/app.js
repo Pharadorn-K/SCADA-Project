@@ -3,6 +3,7 @@ import { renderSidebar } from './sidebar.js';
 import { initSidebarBehavior,setActiveSidebar } from './sidebar-behavior.js';
 import { routes } from './routes.js';
 import { scadaStore } from './store.js';
+
 let currentUnmount = null;
 let currentUserRole = null;
 window.scadaStore = scadaStore; // 👈 debug only
@@ -43,6 +44,36 @@ export async function logout() {
   });
   window.location.href = '/login.html';
 }
+let localTimer = null;
+
+function startLocalTicker() {
+
+  if (localTimer) return; // prevent multiple timers
+
+  localTimer = setInterval(() => {
+
+    Object.values(scadaStore.state.machines).forEach(machine => {
+
+      if (!machine.status) return;
+
+      const bucketMap = {
+        RUNNING: 'run_seconds',
+        IDLE: 'idle_seconds',
+        ALARM: 'alarm_seconds',
+        OFFLINE: 'offline_seconds'
+      };
+
+      const bucket = bucketMap[machine.status];
+      if (!bucket) return;
+
+      machine.shiftDurations[bucket] += 1;
+
+    });
+
+    scadaStore.notify();
+
+  }, 1000);
+}
 
 function initWebSocket() {
   if (scadaStore.ws) return;
@@ -56,9 +87,14 @@ function initWebSocket() {
   ws.onmessage = (event) => {
     const msg = JSON.parse(event.data);
 
+
     if (msg.type === 'plc_snapshot') {
+      clearInterval(localTimer);
+      localTimer = null;      
       scadaStore.setSnapshot(msg.payload);
+      startLocalTicker();
     }
+
 
     if (msg.type === 'plc_update') {
       scadaStore.applyUpdate(msg.payload);
@@ -191,10 +227,7 @@ export async function navigate(route) {
   setActiveSidebar(route);
 }
 
-// translate a hash string like
-//   #production/machine_efficiency?dept=press&machine=P1
-// into a route name and navigate.  Only the path portion is
-// mapped; individual views parse query params themselves.
+
 function handleHashNavigation() {
   const hash = window.location.hash.slice(1); // drop '#'
   if (!hash) return;

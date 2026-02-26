@@ -4,7 +4,6 @@ const express = require('express');
 const http = require('http');
 const WebSocket = require('ws');
 const path = require('path');
-// Add near top, after other requires
 const session = require('express-session');
 
 // Initialize global services BEFORE importing modules that depend on them
@@ -23,11 +22,9 @@ global.services.alarmService = alarmService;
 
 // Import services
 const plcRoutes = require('./routes/api/plc');
-// const setupWebsocket = require('./routes/websocket');
-// Add after other route imports
 const authRoutes = require('./routes/api/auth');
 const auditRoutes = require('./routes/api/audit');
-
+const shiftSummaryRoute = require('./routes/shiftSummary');
 // Initialize Express app
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -35,7 +32,6 @@ const PORT = process.env.PORT || 3000;
 // Middleware
 app.use(express.json());
 
-// After app initialization, before routes
 app.use(session({
   secret: process.env.SESSION_SECRET || 'scada-secret-dev', // Use strong secret in .env for prod
   resave: false,
@@ -57,18 +53,16 @@ app.use((req, res, next) => {
   next();
 });
 
-// Add before other app.use(...)
-app.use('/api/auth', require('./routes/api/auth'));
-
 // API Routes
+app.use('/api/auth', require('./routes/api/auth'));
 app.use('/api/plc', plcRoutes);
 app.use('/api/alarms', require('./routes/api/alarm'));
 app.use('/api/alarm-history', require('./routes/api/alarmHistory'));
 app.use('/api/audit', auditRoutes);
-
+app.use('/api/shift-summary', shiftSummaryRoute);
 // Serve static files
 app.use(express.static(path.join(__dirname, '../../frontend/public')));
-// Add before app.get('/') for index.html
+
 
 function requireAuth(req, res, next) {
   if (req.session.userId) {
@@ -139,9 +133,11 @@ async function bootstrap() {
 
   // Hydrate state
   await bootstrapEngine.hydrate();
-
+  
   // Start periodic shift save
+  persistenceEngine.startDurationTicker();  
   persistenceEngine.startAutoSave();
+  shiftEngine.scheduleShiftBoundary();
   console.log('✅ Hydration complete');
   // Websocket + bridge AFTER engines exist
   const plcMonitor = require('./services/plcMonitor');
@@ -151,6 +147,17 @@ async function bootstrap() {
 
   global.services.plcMonitor = plcMonitor;
   global.services.pythonBridge = pythonBridge;
+
+  setInterval(() => {
+    const snapshot = stateStore.getPlcSnapshot();
+
+    plcMonitor.broadcast({
+      type: 'plc_snapshot',
+      payload: snapshot
+    });
+    // console.log('📡 Broadcasting snapshot');
+    // console.log(snapshot.machines['heat_DKK1'].shiftDurations);
+  }, 10000); // every 10 sec
 
   // Auto-resume last state
   const state = global.services.stateStore.loadState();
@@ -179,6 +186,8 @@ async function bootstrap() {
     console.log(`📡 WebSocket server ready`);
   });
 }
+
+
 
 // Start everything
 bootstrap().catch(err => {

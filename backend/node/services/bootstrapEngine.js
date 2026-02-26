@@ -59,7 +59,45 @@ async function hydrate() {
       if (!rows.length) continue;
 
       const normalized = normalizeRow(rows[0]);
+      // 🔥 1️⃣ Get current shift info
+      const shiftEngine = require('./shiftEngine');
+      const shiftInfo = shiftEngine.getShiftInfo(Date.now());
 
+      // 🔥 2️⃣ Load saved shift durations
+      const [shiftRows] = await pool.query(
+        `
+        SELECT run_seconds, idle_seconds,
+              alarm_seconds, offline_seconds
+        FROM machine_shift_status
+        WHERE date = ?
+          AND shift = ?
+          AND department = ?
+          AND machine = ?
+        LIMIT 1
+        `,
+        [
+          shiftInfo.date,
+          shiftInfo.shift,
+          normalized.department,
+          normalized.machine
+        ]
+      );
+
+      if (shiftRows.length) {
+        normalized.shiftDurations = {
+          run_seconds: shiftRows[0].run_seconds,
+          idle_seconds: shiftRows[0].idle_seconds,
+          alarm_seconds: shiftRows[0].alarm_seconds,
+          offline_seconds: shiftRows[0].offline_seconds
+        };
+      } else {
+        normalized.shiftDurations = {
+          run_seconds: 0,
+          idle_seconds: 0,
+          alarm_seconds: 0,
+          offline_seconds: 0
+        };
+      }
       // 🔥 IMPORTANT: use plcEngine only
       plcEngine.processUpdate(normalized);
     }

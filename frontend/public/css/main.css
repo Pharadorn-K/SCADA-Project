@@ -1,3 +1,4 @@
+/* frontend/public/css/main.css */
 /* ===== CSS Variables ===== */
 :root {
   --primary: #00577D;
@@ -446,6 +447,28 @@ li.sub-menu.open > a > .arrow {
   grid-template-columns: 1fr 1fr;
   gap: 10px;
   margin-top: 12px;
+}
+
+/* ==== Shift Durations ==== */
+.machine-shift-grid {
+  display: grid;
+  grid-template-columns: repeat(2,1fr);
+  gap: 6px;
+  margin-top: 8px;
+}
+.shift-box {
+  background: rgba(0,0,0,0.04);
+  padding: 6px 8px;
+  border-radius: 6px;
+  text-align: center;
+  font-size: 12px;
+}
+.shift-label {
+  opacity: 0.7;
+  margin-bottom: 2px;
+}
+.shift-value {
+  font-weight: 600;
 }
 
 /* KPI Box */
