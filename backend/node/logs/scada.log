@@ -1279,3 +1279,277 @@
 {"ts":"2026-02-26T09:31:43.651Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"LOGIN","code":null,"message":"User logged in","meta":{}}
 {"ts":"2026-02-26T09:41:29.996Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_RECOVERED","message":"PLC heartbeat restored","meta":{}}
 {"ts":"2026-02-26T09:41:37.335Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"LOGIN","code":null,"message":"User logged in","meta":{}}
+{"ts":"2026-03-02T01:14:05.401Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"LOGIN","code":null,"message":"User logged in","meta":{}}
+{"ts":"2026-03-02T01:33:37.313Z","type":"ALARM","severity":"ERROR","user":"system","role":"system","action":null,"code":"PLC_FAULT","message":"PLC heartbeat timeout","meta":{}}
+{"ts":"2026-03-02T01:33:37.315Z","type":"ALARM","severity":"WARN","user":"system","role":"system","action":null,"code":"PLC_RECOVERING","message":"Auto-recover attempt 1","meta":{}}
+{"ts":"2026-03-02T01:33:37.427Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_RECOVERED","message":"PLC heartbeat restored","meta":{}}
+{"ts":"2026-03-02T01:33:37.428Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_FAULT","message":"Alarm cleared (condition recovered)","meta":{}}
+{"ts":"2026-03-02T01:33:39.327Z","type":"ALARM","severity":"ERROR","user":"system","role":"system","action":null,"code":"PLC_DISCONNECTED","message":"Lost connection to Python PLC service","meta":{}}
+{"ts":"2026-03-02T01:33:39.454Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_DISCONNECTED","message":"Alarm cleared (condition recovered)","meta":{}}
+{"ts":"2026-03-02T01:33:39.454Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_RECOVERED","message":"PLC heartbeat restored","meta":{}}
+{"ts":"2026-03-02T03:15:42.131Z","type":"ALARM","severity":"ERROR","user":"system","role":"system","action":null,"code":"PLC_DISCONNECTED","message":"Lost connection to Python PLC service","meta":{}}
+{"ts":"2026-03-02T03:15:57.678Z","type":"ALARM","severity":"WARN","user":"system","role":"system","action":null,"code":"PLC_RECOVERING","message":"Auto-recover attempt 1","meta":{}}
+{"ts":"2026-03-02T03:15:59.695Z","type":"ALARM","severity":"ERROR","user":"system","role":"system","action":null,"code":"PLC_DISCONNECTED","message":"Lost connection to Python PLC service","meta":{}}
+{"ts":"2026-03-02T03:16:00.610Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"LOGIN","code":null,"message":"User logged in","meta":{}}
+{"ts":"2026-03-02T03:16:01.811Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_RECOVERED","message":"PLC heartbeat restored","meta":{}}
+{"ts":"2026-03-02T03:16:01.812Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_DISCONNECTED","message":"Alarm cleared (condition recovered)","meta":{}}
+{"ts":"2026-03-02T03:22:48.334Z","type":"ALARM","severity":"ERROR","user":"system","role":"system","action":null,"code":"PLC_DISCONNECTED","message":"Lost connection to Python PLC service","meta":{}}
+{"ts":"2026-03-02T03:23:03.821Z","type":"ALARM","severity":"WARN","user":"system","role":"system","action":null,"code":"PLC_RECOVERING","message":"Auto-recover attempt 1","meta":{}}
+{"ts":"2026-03-02T03:23:05.838Z","type":"ALARM","severity":"ERROR","user":"system","role":"system","action":null,"code":"PLC_DISCONNECTED","message":"Lost connection to Python PLC service","meta":{}}
+{"ts":"2026-03-02T03:23:07.946Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_RECOVERED","message":"PLC heartbeat restored","meta":{}}
+{"ts":"2026-03-02T03:23:07.946Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_DISCONNECTED","message":"Alarm cleared (condition recovered)","meta":{}}
+{"ts":"2026-03-02T03:34:37.119Z","type":"ALARM","severity":"ERROR","user":"system","role":"system","action":null,"code":"PLC_DISCONNECTED","message":"Lost connection to Python PLC service","meta":{}}
+{"ts":"2026-03-02T03:34:52.107Z","type":"ALARM","severity":"WARN","user":"system","role":"system","action":null,"code":"PLC_RECOVERING","message":"Auto-recover attempt 1","meta":{}}
+{"ts":"2026-03-02T03:34:54.110Z","type":"ALARM","severity":"ERROR","user":"system","role":"system","action":null,"code":"PLC_DISCONNECTED","message":"Lost connection to Python PLC service","meta":{}}
+{"ts":"2026-03-02T03:34:56.244Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_RECOVERED","message":"PLC heartbeat restored","meta":{}}
+{"ts":"2026-03-02T03:34:56.244Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_DISCONNECTED","message":"Alarm cleared (condition recovered)","meta":{}}
+{"ts":"2026-03-02T03:37:12.653Z","type":"ALARM","severity":"ERROR","user":"system","role":"system","action":null,"code":"PLC_DISCONNECTED","message":"Lost connection to Python PLC service","meta":{}}
+{"ts":"2026-03-02T03:37:27.962Z","type":"ALARM","severity":"WARN","user":"system","role":"system","action":null,"code":"PLC_RECOVERING","message":"Auto-recover attempt 1","meta":{}}
+{"ts":"2026-03-02T03:37:29.967Z","type":"ALARM","severity":"ERROR","user":"system","role":"system","action":null,"code":"PLC_DISCONNECTED","message":"Lost connection to Python PLC service","meta":{}}
+{"ts":"2026-03-02T03:37:32.132Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_DISCONNECTED","message":"Alarm cleared (condition recovered)","meta":{}}
+{"ts":"2026-03-02T03:37:32.132Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_RECOVERED","message":"PLC heartbeat restored","meta":{}}
+{"ts":"2026-03-02T03:39:14.235Z","type":"ALARM","severity":"ERROR","user":"system","role":"system","action":null,"code":"PLC_DISCONNECTED","message":"Lost connection to Python PLC service","meta":{}}
+{"ts":"2026-03-02T03:39:29.839Z","type":"ALARM","severity":"WARN","user":"system","role":"system","action":null,"code":"PLC_RECOVERING","message":"Auto-recover attempt 1","meta":{}}
+{"ts":"2026-03-02T03:39:31.845Z","type":"ALARM","severity":"ERROR","user":"system","role":"system","action":null,"code":"PLC_DISCONNECTED","message":"Lost connection to Python PLC service","meta":{}}
+{"ts":"2026-03-02T03:39:34.030Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_DISCONNECTED","message":"Alarm cleared (condition recovered)","meta":{}}
+{"ts":"2026-03-02T03:39:34.030Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_RECOVERED","message":"PLC heartbeat restored","meta":{}}
+{"ts":"2026-03-02T03:52:21.689Z","type":"ALARM","severity":"ERROR","user":"system","role":"system","action":null,"code":"PLC_DISCONNECTED","message":"Lost connection to Python PLC service","meta":{}}
+{"ts":"2026-03-02T03:52:36.555Z","type":"ALARM","severity":"WARN","user":"system","role":"system","action":null,"code":"PLC_RECOVERING","message":"Auto-recover attempt 1","meta":{}}
+{"ts":"2026-03-02T03:52:38.563Z","type":"ALARM","severity":"ERROR","user":"system","role":"system","action":null,"code":"PLC_DISCONNECTED","message":"Lost connection to Python PLC service","meta":{}}
+{"ts":"2026-03-02T03:52:40.684Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_RECOVERED","message":"PLC heartbeat restored","meta":{}}
+{"ts":"2026-03-02T03:52:40.684Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_DISCONNECTED","message":"Alarm cleared (condition recovered)","meta":{}}
+{"ts":"2026-03-02T03:53:08.538Z","type":"ALARM","severity":"ERROR","user":"system","role":"system","action":null,"code":"PLC_DISCONNECTED","message":"Lost connection to Python PLC service","meta":{}}
+{"ts":"2026-03-02T03:53:23.807Z","type":"ALARM","severity":"WARN","user":"system","role":"system","action":null,"code":"PLC_RECOVERING","message":"Auto-recover attempt 1","meta":{}}
+{"ts":"2026-03-02T03:53:25.813Z","type":"ALARM","severity":"ERROR","user":"system","role":"system","action":null,"code":"PLC_DISCONNECTED","message":"Lost connection to Python PLC service","meta":{}}
+{"ts":"2026-03-02T03:53:27.917Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_RECOVERED","message":"PLC heartbeat restored","meta":{}}
+{"ts":"2026-03-02T03:53:27.918Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_DISCONNECTED","message":"Alarm cleared (condition recovered)","meta":{}}
+{"ts":"2026-03-02T03:54:50.869Z","type":"ALARM","severity":"ERROR","user":"system","role":"system","action":null,"code":"PLC_DISCONNECTED","message":"Lost connection to Python PLC service","meta":{}}
+{"ts":"2026-03-02T03:55:06.341Z","type":"ALARM","severity":"WARN","user":"system","role":"system","action":null,"code":"PLC_RECOVERING","message":"Auto-recover attempt 1","meta":{}}
+{"ts":"2026-03-02T03:55:08.347Z","type":"ALARM","severity":"ERROR","user":"system","role":"system","action":null,"code":"PLC_DISCONNECTED","message":"Lost connection to Python PLC service","meta":{}}
+{"ts":"2026-03-02T03:55:10.485Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_RECOVERED","message":"PLC heartbeat restored","meta":{}}
+{"ts":"2026-03-02T03:55:10.486Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_DISCONNECTED","message":"Alarm cleared (condition recovered)","meta":{}}
+{"ts":"2026-03-02T03:56:55.867Z","type":"ALARM","severity":"ERROR","user":"system","role":"system","action":null,"code":"PLC_DISCONNECTED","message":"Lost connection to Python PLC service","meta":{}}
+{"ts":"2026-03-02T03:57:11.169Z","type":"ALARM","severity":"WARN","user":"system","role":"system","action":null,"code":"PLC_RECOVERING","message":"Auto-recover attempt 1","meta":{}}
+{"ts":"2026-03-02T03:57:13.172Z","type":"ALARM","severity":"ERROR","user":"system","role":"system","action":null,"code":"PLC_DISCONNECTED","message":"Lost connection to Python PLC service","meta":{}}
+{"ts":"2026-03-02T03:57:15.302Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_RECOVERED","message":"PLC heartbeat restored","meta":{}}
+{"ts":"2026-03-02T03:57:15.302Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_DISCONNECTED","message":"Alarm cleared (condition recovered)","meta":{}}
+{"ts":"2026-03-02T04:14:22.066Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_RECOVERED","message":"PLC heartbeat restored","meta":{}}
+{"ts":"2026-03-02T04:26:58.843Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_RECOVERED","message":"PLC heartbeat restored","meta":{}}
+{"ts":"2026-03-02T04:27:57.747Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_RECOVERED","message":"PLC heartbeat restored","meta":{}}
+{"ts":"2026-03-02T04:35:28.894Z","type":"ALARM","severity":"ERROR","user":"system","role":"system","action":null,"code":"PLC_DISCONNECTED","message":"Lost connection to Python PLC service","meta":{}}
+{"ts":"2026-03-02T04:35:44.294Z","type":"ALARM","severity":"WARN","user":"system","role":"system","action":null,"code":"PLC_RECOVERING","message":"Auto-recover attempt 1","meta":{}}
+{"ts":"2026-03-02T04:35:46.299Z","type":"ALARM","severity":"ERROR","user":"system","role":"system","action":null,"code":"PLC_DISCONNECTED","message":"Lost connection to Python PLC service","meta":{}}
+{"ts":"2026-03-02T04:35:48.394Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_RECOVERED","message":"PLC heartbeat restored","meta":{}}
+{"ts":"2026-03-02T04:35:48.395Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_DISCONNECTED","message":"Alarm cleared (condition recovered)","meta":{}}
+{"ts":"2026-03-02T04:43:30.302Z","type":"ALARM","severity":"ERROR","user":"system","role":"system","action":null,"code":"PLC_DISCONNECTED","message":"Lost connection to Python PLC service","meta":{}}
+{"ts":"2026-03-02T04:43:46.163Z","type":"ALARM","severity":"WARN","user":"system","role":"system","action":null,"code":"PLC_RECOVERING","message":"Auto-recover attempt 1","meta":{}}
+{"ts":"2026-03-02T04:43:48.167Z","type":"ALARM","severity":"ERROR","user":"system","role":"system","action":null,"code":"PLC_DISCONNECTED","message":"Lost connection to Python PLC service","meta":{}}
+{"ts":"2026-03-02T04:43:50.292Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_RECOVERED","message":"PLC heartbeat restored","meta":{}}
+{"ts":"2026-03-02T04:43:50.293Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_DISCONNECTED","message":"Alarm cleared (condition recovered)","meta":{}}
+{"ts":"2026-03-02T04:46:28.272Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"LOGIN","code":null,"message":"User logged in","meta":{}}
+{"ts":"2026-03-02T06:22:56.853Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_RECOVERED","message":"PLC heartbeat restored","meta":{}}
+{"ts":"2026-03-02T06:24:05.494Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"LOGIN","code":null,"message":"User logged in","meta":{}}
+{"ts":"2026-03-02T07:13:22.732Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_RECOVERED","message":"PLC heartbeat restored","meta":{}}
+{"ts":"2026-03-02T07:14:23.731Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_RECOVERED","message":"PLC heartbeat restored","meta":{}}
+{"ts":"2026-03-02T07:14:25.280Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"LOGIN","code":null,"message":"User logged in","meta":{}}
+{"ts":"2026-03-02T07:23:13.552Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_RECOVERED","message":"PLC heartbeat restored","meta":{}}
+{"ts":"2026-03-02T07:23:19.787Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"LOGIN","code":null,"message":"User logged in","meta":{}}
+{"ts":"2026-03-02T07:24:26.992Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"LOGOUT","code":null,"message":"User logged out","meta":{}}
+{"ts":"2026-03-02T07:24:28.066Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"LOGIN","code":null,"message":"User logged in","meta":{}}
+{"ts":"2026-03-02T07:30:52.453Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_RECOVERED","message":"PLC heartbeat restored","meta":{}}
+{"ts":"2026-03-02T07:32:00.971Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_RECOVERED","message":"PLC heartbeat restored","meta":{}}
+{"ts":"2026-03-02T07:32:04.630Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"LOGIN","code":null,"message":"User logged in","meta":{}}
+{"ts":"2026-03-02T07:32:48.176Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_RECOVERED","message":"PLC heartbeat restored","meta":{}}
+{"ts":"2026-03-02T07:33:24.831Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_RECOVERED","message":"PLC heartbeat restored","meta":{}}
+{"ts":"2026-03-02T07:34:09.619Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_RECOVERED","message":"PLC heartbeat restored","meta":{}}
+{"ts":"2026-03-02T07:34:13.179Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"LOGIN","code":null,"message":"User logged in","meta":{}}
+{"ts":"2026-03-02T07:35:11.717Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_RECOVERED","message":"PLC heartbeat restored","meta":{}}
+{"ts":"2026-03-02T07:35:19.032Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_RECOVERED","message":"PLC heartbeat restored","meta":{}}
+{"ts":"2026-03-02T07:35:53.151Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_RECOVERED","message":"PLC heartbeat restored","meta":{}}
+{"ts":"2026-03-02T07:35:56.607Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"LOGIN","code":null,"message":"User logged in","meta":{}}
+{"ts":"2026-03-02T07:40:05.707Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_RECOVERED","message":"PLC heartbeat restored","meta":{}}
+{"ts":"2026-03-02T07:40:10.624Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_RECOVERED","message":"PLC heartbeat restored","meta":{}}
+{"ts":"2026-03-02T07:40:55.839Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"LOGIN","code":null,"message":"User logged in","meta":{}}
+{"ts":"2026-03-02T08:09:45.679Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_RECOVERED","message":"PLC heartbeat restored","meta":{}}
+{"ts":"2026-03-02T08:11:51.316Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_RECOVERED","message":"PLC heartbeat restored","meta":{}}
+{"ts":"2026-03-02T08:14:36.159Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_RECOVERED","message":"PLC heartbeat restored","meta":{}}
+{"ts":"2026-03-02T08:14:51.822Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"LOGIN","code":null,"message":"User logged in","meta":{}}
+{"ts":"2026-03-02T08:31:41.081Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_RECOVERED","message":"PLC heartbeat restored","meta":{}}
+{"ts":"2026-03-02T08:32:20.000Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_RECOVERED","message":"PLC heartbeat restored","meta":{}}
+{"ts":"2026-03-02T08:32:21.615Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_RECOVERED","message":"PLC heartbeat restored","meta":{}}
+{"ts":"2026-03-02T08:33:41.933Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_RECOVERED","message":"PLC heartbeat restored","meta":{}}
+{"ts":"2026-03-02T08:34:21.644Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_RECOVERED","message":"PLC heartbeat restored","meta":{}}
+{"ts":"2026-03-02T08:41:01.403Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"LOGIN","code":null,"message":"User logged in","meta":{}}
+{"ts":"2026-03-02T09:41:54.531Z","type":"ALARM","severity":"ERROR","user":"system","role":"system","action":null,"code":"PLC_DISCONNECTED","message":"Lost connection to Python PLC service","meta":{}}
+{"ts":"2026-03-04T00:19:41.982Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"LOGIN","code":null,"message":"User logged in","meta":{}}
+{"ts":"2026-03-04T00:51:22.105Z","type":"ALARM","severity":"ERROR","user":"system","role":"system","action":null,"code":"PLC_FAULT","message":"PLC heartbeat timeout","meta":{}}
+{"ts":"2026-03-04T00:51:22.106Z","type":"ALARM","severity":"WARN","user":"system","role":"system","action":null,"code":"PLC_RECOVERING","message":"Auto-recover attempt 1","meta":{}}
+{"ts":"2026-03-04T00:51:22.181Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_RECOVERED","message":"PLC heartbeat restored","meta":{}}
+{"ts":"2026-03-04T00:51:22.181Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_FAULT","message":"Alarm cleared (condition recovered)","meta":{}}
+{"ts":"2026-03-04T00:51:24.115Z","type":"ALARM","severity":"ERROR","user":"system","role":"system","action":null,"code":"PLC_DISCONNECTED","message":"Lost connection to Python PLC service","meta":{}}
+{"ts":"2026-03-04T00:51:24.148Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_DISCONNECTED","message":"Alarm cleared (condition recovered)","meta":{}}
+{"ts":"2026-03-04T00:51:24.147Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_RECOVERED","message":"PLC heartbeat restored","meta":{}}
+{"ts":"2026-03-04T01:52:41.441Z","type":"ALARM","severity":"ERROR","user":"system","role":"system","action":null,"code":"PLC_FAULT","message":"PLC heartbeat timeout","meta":{}}
+{"ts":"2026-03-04T01:52:41.442Z","type":"ALARM","severity":"WARN","user":"system","role":"system","action":null,"code":"PLC_RECOVERING","message":"Auto-recover attempt 1","meta":{}}
+{"ts":"2026-03-04T01:52:41.559Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_RECOVERED","message":"PLC heartbeat restored","meta":{}}
+{"ts":"2026-03-04T01:52:41.559Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_FAULT","message":"Alarm cleared (condition recovered)","meta":{}}
+{"ts":"2026-03-04T01:52:43.453Z","type":"ALARM","severity":"ERROR","user":"system","role":"system","action":null,"code":"PLC_DISCONNECTED","message":"Lost connection to Python PLC service","meta":{}}
+{"ts":"2026-03-04T01:52:43.515Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_RECOVERED","message":"PLC heartbeat restored","meta":{}}
+{"ts":"2026-03-04T01:52:43.517Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_DISCONNECTED","message":"Alarm cleared (condition recovered)","meta":{}}
+{"ts":"2026-03-04T02:25:16.782Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"LOGOUT","code":null,"message":"User logged out","meta":{}}
+{"ts":"2026-03-04T02:25:18.005Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"LOGIN","code":null,"message":"User logged in","meta":{}}
+{"ts":"2026-03-04T05:51:39.468Z","type":"ALARM","severity":"ERROR","user":"system","role":"system","action":null,"code":"PLC_FAULT","message":"PLC heartbeat timeout","meta":{}}
+{"ts":"2026-03-04T05:51:39.474Z","type":"ALARM","severity":"WARN","user":"system","role":"system","action":null,"code":"PLC_RECOVERING","message":"Auto-recover attempt 1","meta":{}}
+{"ts":"2026-03-04T05:51:39.591Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_RECOVERED","message":"PLC heartbeat restored","meta":{}}
+{"ts":"2026-03-04T05:51:39.592Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_FAULT","message":"Alarm cleared (condition recovered)","meta":{}}
+{"ts":"2026-03-04T05:51:41.480Z","type":"ALARM","severity":"ERROR","user":"system","role":"system","action":null,"code":"PLC_DISCONNECTED","message":"Lost connection to Python PLC service","meta":{}}
+{"ts":"2026-03-04T05:51:41.731Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_RECOVERED","message":"PLC heartbeat restored","meta":{}}
+{"ts":"2026-03-04T05:51:41.731Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_DISCONNECTED","message":"Alarm cleared (condition recovered)","meta":{}}
+{"ts":"2026-03-04T07:01:29.377Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_RECOVERED","message":"PLC heartbeat restored","meta":{}}
+{"ts":"2026-03-04T07:01:38.796Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"LOGIN","code":null,"message":"User logged in","meta":{}}
+{"ts":"2026-03-04T09:13:03.752Z","type":"ALARM","severity":"ERROR","user":"system","role":"system","action":null,"code":"PLC_FAULT","message":"PLC heartbeat timeout","meta":{}}
+{"ts":"2026-03-04T09:13:03.755Z","type":"ALARM","severity":"WARN","user":"system","role":"system","action":null,"code":"PLC_RECOVERING","message":"Auto-recover attempt 1","meta":{}}
+{"ts":"2026-03-04T09:13:03.843Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_RECOVERED","message":"PLC heartbeat restored","meta":{}}
+{"ts":"2026-03-04T09:13:03.843Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_FAULT","message":"Alarm cleared (condition recovered)","meta":{}}
+{"ts":"2026-03-04T09:13:05.758Z","type":"ALARM","severity":"ERROR","user":"system","role":"system","action":null,"code":"PLC_DISCONNECTED","message":"Lost connection to Python PLC service","meta":{}}
+{"ts":"2026-03-04T09:13:05.832Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_RECOVERED","message":"PLC heartbeat restored","meta":{}}
+{"ts":"2026-03-04T09:13:05.832Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_DISCONNECTED","message":"Alarm cleared (condition recovered)","meta":{}}
+{"ts":"2026-03-04T09:15:37.606Z","type":"ALARM","severity":"ERROR","user":"system","role":"system","action":null,"code":"PLC_FAULT","message":"PLC heartbeat timeout","meta":{}}
+{"ts":"2026-03-04T09:15:37.606Z","type":"ALARM","severity":"WARN","user":"system","role":"system","action":null,"code":"PLC_RECOVERING","message":"Auto-recover attempt 1","meta":{}}
+{"ts":"2026-03-04T09:15:39.623Z","type":"ALARM","severity":"ERROR","user":"system","role":"system","action":null,"code":"PLC_DISCONNECTED","message":"Lost connection to Python PLC service","meta":{}}
+{"ts":"2026-03-04T09:15:42.601Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_RECOVERED","message":"PLC heartbeat restored","meta":{}}
+{"ts":"2026-03-04T09:15:42.602Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_FAULT","message":"Alarm cleared (condition recovered)","meta":{}}
+{"ts":"2026-03-04T09:15:42.602Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_DISCONNECTED","message":"Alarm cleared (condition recovered)","meta":{}}
+{"ts":"2026-03-05T00:12:46.313Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_RECOVERED","message":"PLC heartbeat restored","meta":{}}
+{"ts":"2026-03-05T00:12:51.527Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"LOGIN","code":null,"message":"User logged in","meta":{}}
+{"ts":"2026-03-05T06:22:28.739Z","type":"ALARM","severity":"ERROR","user":"system","role":"system","action":null,"code":"PLC_FAULT","message":"PLC heartbeat timeout","meta":{}}
+{"ts":"2026-03-05T06:22:28.741Z","type":"ALARM","severity":"WARN","user":"system","role":"system","action":null,"code":"PLC_RECOVERING","message":"Auto-recover attempt 1","meta":{}}
+{"ts":"2026-03-05T06:22:28.821Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_FAULT","message":"Alarm cleared (condition recovered)","meta":{}}
+{"ts":"2026-03-05T06:22:28.821Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_RECOVERED","message":"PLC heartbeat restored","meta":{}}
+{"ts":"2026-03-05T06:22:30.754Z","type":"ALARM","severity":"ERROR","user":"system","role":"system","action":null,"code":"PLC_DISCONNECTED","message":"Lost connection to Python PLC service","meta":{}}
+{"ts":"2026-03-05T06:22:30.828Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_RECOVERED","message":"PLC heartbeat restored","meta":{}}
+{"ts":"2026-03-05T06:22:30.828Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_DISCONNECTED","message":"Alarm cleared (condition recovered)","meta":{}}
+{"ts":"2026-03-05T07:01:09.355Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_RECOVERED","message":"PLC heartbeat restored","meta":{}}
+{"ts":"2026-03-05T07:01:45.532Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"LOGIN","code":null,"message":"User logged in","meta":{}}
+{"ts":"2026-03-05T08:27:23.189Z","type":"ALARM","severity":"ERROR","user":"system","role":"system","action":null,"code":"PLC_FAULT","message":"PLC heartbeat timeout","meta":{}}
+{"ts":"2026-03-05T08:27:23.190Z","type":"ALARM","severity":"WARN","user":"system","role":"system","action":null,"code":"PLC_RECOVERING","message":"Auto-recover attempt 1","meta":{}}
+{"ts":"2026-03-05T08:27:23.296Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_FAULT","message":"Alarm cleared (condition recovered)","meta":{}}
+{"ts":"2026-03-05T08:27:23.296Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_RECOVERED","message":"PLC heartbeat restored","meta":{}}
+{"ts":"2026-03-05T08:27:25.207Z","type":"ALARM","severity":"ERROR","user":"system","role":"system","action":null,"code":"PLC_DISCONNECTED","message":"Lost connection to Python PLC service","meta":{}}
+{"ts":"2026-03-05T08:27:25.331Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_RECOVERED","message":"PLC heartbeat restored","meta":{}}
+{"ts":"2026-03-05T08:27:25.331Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_DISCONNECTED","message":"Alarm cleared (condition recovered)","meta":{}}
+{"ts":"2026-03-05T09:40:57.964Z","type":"ALARM","severity":"ERROR","user":"system","role":"system","action":null,"code":"PLC_FAULT","message":"PLC heartbeat timeout","meta":{}}
+{"ts":"2026-03-05T09:40:57.968Z","type":"ALARM","severity":"WARN","user":"system","role":"system","action":null,"code":"PLC_RECOVERING","message":"Auto-recover attempt 1","meta":{}}
+{"ts":"2026-03-05T09:40:58.174Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_RECOVERED","message":"PLC heartbeat restored","meta":{}}
+{"ts":"2026-03-05T09:40:58.174Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_FAULT","message":"Alarm cleared (condition recovered)","meta":{}}
+{"ts":"2026-03-05T09:40:59.984Z","type":"ALARM","severity":"ERROR","user":"system","role":"system","action":null,"code":"PLC_DISCONNECTED","message":"Lost connection to Python PLC service","meta":{}}
+{"ts":"2026-03-05T09:41:00.204Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_RECOVERED","message":"PLC heartbeat restored","meta":{}}
+{"ts":"2026-03-05T09:41:00.204Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_DISCONNECTED","message":"Alarm cleared (condition recovered)","meta":{}}
+{"ts":"2026-03-05T14:26:10.756Z","type":"ALARM","severity":"ERROR","user":"system","role":"system","action":null,"code":"PLC_FAULT","message":"PLC heartbeat timeout","meta":{}}
+{"ts":"2026-03-05T14:26:10.765Z","type":"ALARM","severity":"WARN","user":"system","role":"system","action":null,"code":"PLC_RECOVERING","message":"Auto-recover attempt 1","meta":{}}
+{"ts":"2026-03-05T14:26:12.794Z","type":"ALARM","severity":"ERROR","user":"system","role":"system","action":null,"code":"PLC_DISCONNECTED","message":"Lost connection to Python PLC service","meta":{}}
+{"ts":"2026-03-05T14:26:13.204Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_RECOVERED","message":"PLC heartbeat restored","meta":{}}
+{"ts":"2026-03-05T14:26:13.204Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_FAULT","message":"Alarm cleared (condition recovered)","meta":{}}
+{"ts":"2026-03-05T14:26:13.204Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_DISCONNECTED","message":"Alarm cleared (condition recovered)","meta":{}}
+{"ts":"2026-03-05T14:31:39.826Z","type":"ALARM","severity":"WARN","user":"system","role":"system","action":null,"code":"PLC_RECOVERING","message":"Auto-recover attempt 1","meta":{}}
+{"ts":"2026-03-05T14:31:39.821Z","type":"ALARM","severity":"ERROR","user":"system","role":"system","action":null,"code":"PLC_FAULT","message":"PLC heartbeat timeout","meta":{}}
+{"ts":"2026-03-05T14:31:39.942Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_RECOVERED","message":"PLC heartbeat restored","meta":{}}
+{"ts":"2026-03-05T14:31:39.942Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_FAULT","message":"Alarm cleared (condition recovered)","meta":{}}
+{"ts":"2026-03-05T23:51:46.774Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_RECOVERED","message":"PLC heartbeat restored","meta":{}}
+{"ts":"2026-03-06T00:02:53.848Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"LOGIN","code":null,"message":"User logged in","meta":{}}
+{"ts":"2026-03-06T00:49:02.815Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_RECOVERED","message":"PLC heartbeat restored","meta":{}}
+{"ts":"2026-03-06T05:28:40.779Z","type":"ALARM","severity":"ERROR","user":"system","role":"system","action":null,"code":"PLC_FAULT","message":"PLC heartbeat timeout","meta":{}}
+{"ts":"2026-03-06T05:28:40.780Z","type":"ALARM","severity":"WARN","user":"system","role":"system","action":null,"code":"PLC_RECOVERING","message":"Auto-recover attempt 1","meta":{}}
+{"ts":"2026-03-06T05:28:40.865Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_RECOVERED","message":"PLC heartbeat restored","meta":{}}
+{"ts":"2026-03-06T05:28:40.865Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_FAULT","message":"Alarm cleared (condition recovered)","meta":{}}
+{"ts":"2026-03-06T05:28:42.786Z","type":"ALARM","severity":"ERROR","user":"system","role":"system","action":null,"code":"PLC_DISCONNECTED","message":"Lost connection to Python PLC service","meta":{}}
+{"ts":"2026-03-06T05:28:42.829Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_RECOVERED","message":"PLC heartbeat restored","meta":{}}
+{"ts":"2026-03-06T05:28:42.829Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_DISCONNECTED","message":"Alarm cleared (condition recovered)","meta":{}}
+{"ts":"2026-03-06T06:15:34.286Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"LOGIN","code":null,"message":"User logged in","meta":{}}
+{"ts":"2026-03-06T07:00:05.098Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_RECOVERED","message":"PLC heartbeat restored","meta":{}}
+{"ts":"2026-03-06T07:02:19.096Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_RECOVERED","message":"PLC heartbeat restored","meta":{}}
+{"ts":"2026-03-06T07:02:30.423Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"LOGIN","code":null,"message":"User logged in","meta":{}}
+{"ts":"2026-03-06T07:09:53.873Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_RECOVERED","message":"PLC heartbeat restored","meta":{}}
+{"ts":"2026-03-06T07:10:05.189Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"LOGIN","code":null,"message":"User logged in","meta":{}}
+{"ts":"2026-03-06T07:17:24.246Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_RECOVERED","message":"PLC heartbeat restored","meta":{}}
+{"ts":"2026-03-06T07:17:27.971Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"LOGIN","code":null,"message":"User logged in","meta":{}}
+{"ts":"2026-03-06T07:19:46.897Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_RECOVERED","message":"PLC heartbeat restored","meta":{}}
+{"ts":"2026-03-06T07:20:08.541Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"LOGIN","code":null,"message":"User logged in","meta":{}}
+{"ts":"2026-03-06T07:20:47.644Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_RECOVERED","message":"PLC heartbeat restored","meta":{}}
+{"ts":"2026-03-06T07:22:51.999Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_RECOVERED","message":"PLC heartbeat restored","meta":{}}
+{"ts":"2026-03-06T07:27:41.739Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"LOGIN","code":null,"message":"User logged in","meta":{}}
+{"ts":"2026-03-06T07:37:43.163Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_RECOVERED","message":"PLC heartbeat restored","meta":{}}
+{"ts":"2026-03-06T07:40:07.079Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_RECOVERED","message":"PLC heartbeat restored","meta":{}}
+{"ts":"2026-03-06T07:40:29.111Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"LOGIN","code":null,"message":"User logged in","meta":{}}
+{"ts":"2026-03-06T08:24:24.428Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_RECOVERED","message":"PLC heartbeat restored","meta":{}}
+{"ts":"2026-03-06T08:24:29.585Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"LOGIN","code":null,"message":"User logged in","meta":{}}
+{"ts":"2026-03-06T08:25:56.216Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_RECOVERED","message":"PLC heartbeat restored","meta":{}}
+{"ts":"2026-03-06T08:26:01.204Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"LOGIN","code":null,"message":"User logged in","meta":{}}
+{"ts":"2026-03-06T20:22:21.836Z","type":"ALARM","severity":"ERROR","user":"system","role":"system","action":null,"code":"PLC_FAULT","message":"PLC heartbeat timeout","meta":{}}
+{"ts":"2026-03-06T20:22:21.842Z","type":"ALARM","severity":"WARN","user":"system","role":"system","action":null,"code":"PLC_RECOVERING","message":"Auto-recover attempt 1","meta":{}}
+{"ts":"2026-03-06T20:22:23.851Z","type":"ALARM","severity":"ERROR","user":"system","role":"system","action":null,"code":"PLC_DISCONNECTED","message":"Lost connection to Python PLC service","meta":{}}
+{"ts":"2026-03-06T23:57:35.128Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_RECOVERED","message":"PLC heartbeat restored","meta":{}}
+{"ts":"2026-03-06T23:57:35.129Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_DISCONNECTED","message":"Alarm cleared (condition recovered)","meta":{}}
+{"ts":"2026-03-06T23:57:35.129Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_FAULT","message":"Alarm cleared (condition recovered)","meta":{}}
+{"ts":"2026-03-07T02:15:46.572Z","type":"ALARM","severity":"ERROR","user":"system","role":"system","action":null,"code":"PLC_FAULT","message":"PLC heartbeat timeout","meta":{}}
+{"ts":"2026-03-07T02:15:46.576Z","type":"ALARM","severity":"WARN","user":"system","role":"system","action":null,"code":"PLC_RECOVERING","message":"Auto-recover attempt 1","meta":{}}
+{"ts":"2026-03-07T02:15:46.667Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_RECOVERED","message":"PLC heartbeat restored","meta":{}}
+{"ts":"2026-03-07T02:15:46.667Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_FAULT","message":"Alarm cleared (condition recovered)","meta":{}}
+{"ts":"2026-03-07T02:15:48.585Z","type":"ALARM","severity":"ERROR","user":"system","role":"system","action":null,"code":"PLC_DISCONNECTED","message":"Lost connection to Python PLC service","meta":{}}
+{"ts":"2026-03-07T02:15:48.610Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_RECOVERED","message":"PLC heartbeat restored","meta":{}}
+{"ts":"2026-03-07T02:15:48.610Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_DISCONNECTED","message":"Alarm cleared (condition recovered)","meta":{}}
+{"ts":"2026-03-07T02:50:37.787Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_RECOVERED","message":"PLC heartbeat restored","meta":{}}
+{"ts":"2026-03-07T02:50:42.286Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"LOGIN","code":null,"message":"User logged in","meta":{}}
+{"ts":"2026-03-07T03:18:21.586Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_RECOVERED","message":"PLC heartbeat restored","meta":{}}
+{"ts":"2026-03-07T03:18:25.369Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"LOGIN","code":null,"message":"User logged in","meta":{}}
+{"ts":"2026-03-07T03:19:27.577Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_RECOVERED","message":"PLC heartbeat restored","meta":{}}
+{"ts":"2026-03-07T03:19:47.854Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"LOGIN","code":null,"message":"User logged in","meta":{}}
+{"ts":"2026-03-07T03:29:13.544Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_RECOVERED","message":"PLC heartbeat restored","meta":{}}
+{"ts":"2026-03-07T03:29:21.710Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"LOGIN","code":null,"message":"User logged in","meta":{}}
+{"ts":"2026-03-07T03:29:35.683Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_RECOVERED","message":"PLC heartbeat restored","meta":{}}
+{"ts":"2026-03-07T03:29:37.487Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"LOGIN","code":null,"message":"User logged in","meta":{}}
+{"ts":"2026-03-07T03:30:34.781Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_RECOVERED","message":"PLC heartbeat restored","meta":{}}
+{"ts":"2026-03-07T03:32:05.322Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"LOGIN","code":null,"message":"User logged in","meta":{}}
+{"ts":"2026-03-07T03:34:31.098Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_RECOVERED","message":"PLC heartbeat restored","meta":{}}
+{"ts":"2026-03-07T03:34:51.702Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_RECOVERED","message":"PLC heartbeat restored","meta":{}}
+{"ts":"2026-03-07T03:34:56.413Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"LOGIN","code":null,"message":"User logged in","meta":{}}
+{"ts":"2026-03-07T03:35:19.995Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_RECOVERED","message":"PLC heartbeat restored","meta":{}}
+{"ts":"2026-03-07T03:35:23.451Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"LOGIN","code":null,"message":"User logged in","meta":{}}
+{"ts":"2026-03-07T03:37:10.932Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_RECOVERED","message":"PLC heartbeat restored","meta":{}}
+{"ts":"2026-03-07T03:37:16.132Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"LOGIN","code":null,"message":"User logged in","meta":{}}
+{"ts":"2026-03-07T03:39:36.361Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_RECOVERED","message":"PLC heartbeat restored","meta":{}}
+{"ts":"2026-03-07T03:47:30.014Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_RECOVERED","message":"PLC heartbeat restored","meta":{}}
+{"ts":"2026-03-07T03:47:47.270Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"LOGIN","code":null,"message":"User logged in","meta":{}}
+{"ts":"2026-03-07T03:54:03.266Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_RECOVERED","message":"PLC heartbeat restored","meta":{}}
+{"ts":"2026-03-07T03:54:08.173Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"LOGIN","code":null,"message":"User logged in","meta":{}}
+{"ts":"2026-03-07T04:25:19.789Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_RECOVERED","message":"PLC heartbeat restored","meta":{}}
+{"ts":"2026-03-07T04:26:19.362Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"LOGIN","code":null,"message":"User logged in","meta":{}}
+{"ts":"2026-03-07T04:59:11.995Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_RECOVERED","message":"PLC heartbeat restored","meta":{}}
+{"ts":"2026-03-07T05:08:51.342Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"LOGIN","code":null,"message":"User logged in","meta":{}}
+{"ts":"2026-03-07T05:11:36.029Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_RECOVERED","message":"PLC heartbeat restored","meta":{}}
+{"ts":"2026-03-07T05:11:39.263Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"LOGIN","code":null,"message":"User logged in","meta":{}}
+{"ts":"2026-03-07T05:27:10.517Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_RECOVERED","message":"PLC heartbeat restored","meta":{}}
+{"ts":"2026-03-07T05:27:16.142Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"LOGIN","code":null,"message":"User logged in","meta":{}}
+{"ts":"2026-03-07T05:28:25.062Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_RECOVERED","message":"PLC heartbeat restored","meta":{}}
+{"ts":"2026-03-07T05:28:27.859Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"LOGIN","code":null,"message":"User logged in","meta":{}}
+{"ts":"2026-03-07T05:30:58.925Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_RECOVERED","message":"PLC heartbeat restored","meta":{}}
+{"ts":"2026-03-07T05:31:01.762Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"LOGIN","code":null,"message":"User logged in","meta":{}}
+{"ts":"2026-03-07T05:54:44.563Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_RECOVERED","message":"PLC heartbeat restored","meta":{}}
+{"ts":"2026-03-07T05:54:48.013Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"LOGIN","code":null,"message":"User logged in","meta":{}}
+{"ts":"2026-03-07T05:56:07.593Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_RECOVERED","message":"PLC heartbeat restored","meta":{}}
+{"ts":"2026-03-07T05:56:09.362Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"LOGIN","code":null,"message":"User logged in","meta":{}}
+{"ts":"2026-03-07T05:56:46.843Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_RECOVERED","message":"PLC heartbeat restored","meta":{}}
+{"ts":"2026-03-07T05:56:49.437Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"LOGIN","code":null,"message":"User logged in","meta":{}}
+{"ts":"2026-03-07T07:00:43.200Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"LOGOUT","code":null,"message":"User logged out","meta":{}}
+{"ts":"2026-03-07T07:00:44.349Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"LOGIN","code":null,"message":"User logged in","meta":{}}
+{"ts":"2026-03-07T07:19:51.949Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_RECOVERED","message":"PLC heartbeat restored","meta":{}}
+{"ts":"2026-03-07T07:19:55.090Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"LOGIN","code":null,"message":"User logged in","meta":{}}
+{"ts":"2026-03-07T07:20:07.040Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_RECOVERED","message":"PLC heartbeat restored","meta":{}}
+{"ts":"2026-03-07T07:20:26.404Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"LOGIN","code":null,"message":"User logged in","meta":{}}
+{"ts":"2026-03-07T07:29:10.396Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"LOGIN","code":null,"message":"User logged in","meta":{}}
+{"ts":"2026-03-07T07:56:50.590Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_RECOVERED","message":"PLC heartbeat restored","meta":{}}
+{"ts":"2026-03-07T07:56:55.382Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"LOGIN","code":null,"message":"User logged in","meta":{}}
+{"ts":"2026-03-07T08:43:55.129Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_RECOVERED","message":"PLC heartbeat restored","meta":{}}
+{"ts":"2026-03-07T08:44:00.013Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"LOGIN","code":null,"message":"User logged in","meta":{}}
+{"ts":"2026-03-07T09:07:29.586Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"LOGOUT","code":null,"message":"User logged out","meta":{}}
+{"ts":"2026-03-07T09:07:30.981Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"LOGIN","code":null,"message":"User logged in","meta":{}}

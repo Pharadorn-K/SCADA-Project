@@ -111,14 +111,7 @@ scada-project/
 ├── README.md 
 └── docker-compose.yml                  
 ```
-## Edit 06/03/2026
-```bash
-production.js
-main.css
-shiftSummary.js (frontend)
-shiftHistory.js
-persistenceEngine.js
-```
+
 ## Backend
 ### server.js
 ```javaScript

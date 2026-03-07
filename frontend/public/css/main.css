@@ -19,7 +19,7 @@ body {
   background: var(--content-bg);
 }
 
-/* ===== Header ===== */
+/* ===== Header(index.html) ===== */
 #topbar {
   height: 60px;
   background: var(--primary);
@@ -29,13 +29,11 @@ body {
   justify-content: space-between;
   padding: 0 20px;
 }
-
 .topbar-right {
   display: flex;
   align-items: center;
   gap: 12px;
 }
-
 #logout-btn {
   background: #d32f2f;
   border: none;
@@ -44,23 +42,19 @@ body {
   border-radius: 6px;
   cursor: pointer;
 }
-
 #logout-btn:hover {
   background: #b71c1c;
 }
-
 #topbar {
   position: sticky;
   top: 0;
   z-index: 1000;
 }
-
 .topbar-center {
   font-weight: 600;
   font-size: 14px;
   letter-spacing: 0.5px;
 }
-
 #footer {
   background: #003F5C;
   color: #fff;
@@ -69,39 +63,27 @@ body {
   font-size: 13px;
 }
 
-/* ===== Layout ===== */
+/* ============================================= Layout ============================================= */
 .layout {
   display: flex;
   height: calc(100vh - 60px);
 }
+
+
+
+/* ============================================= Sidebar  ============================================= */
+/* Standalone: Main sidebar container - works independently */
 #sidebar {
   position: sticky;
   top: 60px;
   height: calc(100vh - 60px);
-  overflow-y: auto;
-}
-#app {
-  flex: 1;
-  padding: 16px;
-  overflow-y: auto;
-}
-
-
-/* ===== Sidebar ===== */
-#sidebar {
   width: 240px;
   background: var(--sidebar-bg);
   color: #fff;
   transition: width 0.25s ease;
   overflow: hidden;
 }
-
-/* Collapsed width */
-.layout.sidebar-collapsed #sidebar {
-  width: 64px;
-}
-
-/* Sidebar header */
+/* Standalone: Sidebar header - works independently */
 .sidebar-header {
   height: 56px;
   display: flex;
@@ -109,7 +91,7 @@ body {
   justify-content: center;
   border-bottom: 1px solid rgba(255,255,255,0.08);
 }
-
+/* Standalone: Toggle button - works independently */
 .toggle-sidebar {
   width: 95%;
   height: 90%;
@@ -120,17 +102,16 @@ body {
   cursor: pointer;
 }
 
-/* ===== Navigation ===== */
+/* ===== Sidebar : Navigation (Hierarchy Levels) ===== */
+/* Group: These work together to establish navigation structure */
 #leftside-navigation ul {
   list-style: none;
   padding: 0;
   margin: 0;
 }
-
 #leftside-navigation li {
   position: relative;
 }
-
 #leftside-navigation a {
   display: flex;
   align-items: center;
@@ -139,46 +120,39 @@ body {
   text-decoration: none;
   cursor: pointer;
 }
-/* Level 1 */
+#leftside-navigation i {
+  min-width: 20px;
+  text-align: center;
+}
+/* Level 1 - Top navigation items */
 #leftside-navigation > ul > li > a {
   padding: 14px 18px;
   font-weight: 600;
 }
-/* Level 2 */
+/* Level 2 - First submenu tier */
 #leftside-navigation ul ul li > a {
   padding: 10px 42px;
   font-size: 14px;
   font-weight: 500;
 }
-/* Level 3 */
+/* Level 3 - Second submenu tier */
 #leftside-navigation ul ul ul li > a {
   padding: 10px 62px;
   font-size: 13px;
 }
-
+/* Navigation interactions - hover state */
 #leftside-navigation a:hover {
   background: var(--sidebar-hover);
   color: #fff;
 }
-
-#leftside-navigation i {
-  min-width: 20px;
-  text-align: center;
-}
-
-/* Active state (operator critical) */
+/* Navigation state - active selection (operator critical) */
 #leftside-navigation li.active > a {
   background: var(--sidebar-active);
   color: #fff;
 }
 
- /* ===== Submenu animation ===== */
-.sub-menu > ul {
-  display: none;
-  overflow: hidden;
-  animation: dropdown 0.25s ease;
-}
-
+/* ===== Sidebar : Submenu Animations ===== */
+/* Group: These work together to animate submenu expansion and arrow rotation */
 @keyframes dropdown {
   from {
     opacity: 0;
@@ -189,51 +163,44 @@ body {
     transform: translateY(0);
   }
 }
-
-/* Arrow default */
-.sub-menu > a .arrow {
-  margin-left: auto;
-  transition: transform 0.25s ease;
+.sub-menu > ul {
+  display: none;
+  overflow: hidden;
+  animation: dropdown 0.25s ease;
 }
-
-/* Rotate arrow when submenu is active */
-.sub-menu.active > a .arrow {
-  transform: rotate(90deg);
-}
-
-/* Default arrow */
 .arrow {
   margin-left: auto;
   transition: transform 0.25s ease;
 }
-
-/* Rotate when open */
+.sub-menu > a .arrow {
+  margin-left: auto;
+  transition: transform 0.25s ease;
+}
+.sub-menu.active > a .arrow {
+  transform: rotate(90deg);
+}
 li.sub-menu.open > a > .arrow {
   transform: rotate(90deg);
 }
 
-
-/* ===== Collapsed Sidebar ===== */
+/* ===== Sidebar : Collapsed State ===== */
+/* Group: These work together to handle collapsed sidebar mode and tooltip display */
 .layout.sidebar-collapsed #leftside-navigation span,
 .layout.sidebar-collapsed .arrow {
   display: none;
 }
-
 .layout.sidebar-collapsed #leftside-navigation a {
   justify-content: center;
   padding: 12px 0;
 }
-
-/* .layout.sidebar-collapsed .sub-menu ul {
-  display: none !important;
-} */
 .layout.sidebar-collapsed .sub-menu ul {
   max-height: 0 !important;
   opacity: 0 !important;
 }
-
-
-/* Tooltip */
+.layout.sidebar-collapsed #sidebar {
+  width: 64px;
+}
+/* Tooltip - shows on collapsed sidebar hover */
 .layout.sidebar-collapsed #leftside-navigation a::after {
   content: attr(data-title);
   position: absolute;
@@ -249,38 +216,201 @@ li.sub-menu.open > a > .arrow {
   border-radius: 4px;
   font-size: 12px;
 }
-
 .layout.sidebar-collapsed #leftside-navigation a:hover::after {
   opacity: 1;
 }
 
-/* ===== Content ===== */
+
+
+/* ============================================= Content ============================================= */
 #app {
   flex: 1;
   padding: 16px;
+  overflow-y: auto;
   background: var(--content-bg);
 }
+.card {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(6px);
+  border-radius: 14px;
+  padding: 18px;
+  margin: 14px 0;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+}
 
-/* ===== Departments ===== */
+/* ===== Content : Production Overview Page ===== */
+/* ===== Production Overview Page : Summary Cards ===== */
+.summary-wrapper {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(6px);
+  border-radius: 14px;
+  padding: 10px 10px;
+  margin: 0px 0px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+}
+.summary-card {
+  padding: 5px 5px;
+  margin: 0px 10px;
+}
+.summary-card h3 {
+  margin-block-end: 0.5rem;
+  margin-block-start: 0.5rem;
+}
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 1rem;
+  text-align: center;
+}
+.summary-card canvas {
+  height: 200px !important;
+}
+
+/* ===== Production Overview Page : Shift Availability ===== */
+.shift-summary-panel {
+  background: rgb(255, 255, 255);
+  padding: 16px;
+  border-radius: 12px;
+  margin-bottom: 16px;
+}
+.shift-summary-panel h2 {
+  margin-block-end: 2px;
+  margin-block-start: 2px;
+}
+.shift-column {
+  border: 2px solid rgba(104, 101, 101, 0.5);
+  border-radius: 8px;
+  padding: 8px;
+  background: #ffffff;
+}
+.current-shift {
+  border: 2px solid #4cafef;
+  border-radius: 8px;
+  padding: 8px;
+  background: #f0f8ff;
+}
+.shift-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+  margin-top: 10px;
+}
+
+.dept-row {
+  display: grid;
+  grid-template-columns: 45px 1fr 110px;
+  gap : 5px;
+  align-items: center;
+  margin-bottom: 6px;
+}
+.dept-name {
+  font-weight: 500;
+}
+/* Dept Bar */
+.dept-bar {
+  height: 10px;
+  background: #eee;
+  border-radius: 6px;
+  overflow: hidden;
+}
+.dept-bar-fill {
+  height: 100%;
+  background: #4cafef;
+  transition: width 0.6s ease;
+}
+.dept-percent {
+  text-align: right;
+  font-weight: 600;
+}
+/* Arrow Trend */
+.trend-up {
+  color: #4caf50;
+  font-size: 12px;
+  margin-left: 1px;
+}
+.trend-down {
+  color: #ff5252;
+  font-size: 12px;
+  margin-left: 1px;
+}
+.trend-flat {
+  color: #bbb;
+  font-size: 12px;
+  margin-left: 6px;
+}
+/* Shift Details */
+.shift-header {
+  display: grid;
+  grid-template-columns: auto 1fr 1fr 1fr;
+  margin-bottom: 8px;
+
+}
+.shift-title {
+  font-weight: 700;
+  font-size: 16px;
+  margin-left: 5px;
+}
+.shift-date {
+  font-size: 12px;
+  color: #666;
+}
+.shift-time {
+  font-size: 11px;
+  color: #999;
+}
+.shift-badge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-bottom: 2px;
+}
+/* Shift Badges */
+.badge-current {
+  background: #4cafef;
+  color: white;
+}
+.badge-previous {
+  background: #7e8bb6;
+  color: white;
+}
+.badge-old {
+  background: #bbb;
+  color: white;
+}
+.badge-older {
+  background: #ddd;
+  color: #444;
+}
+/* Line Chart */
+.shift-trend-container{
+    height:140px;
+    margin-bottom:10px;
+}
+
+/* ===== Production Overview Page : Departments header ===== */
 .department-section {
   margin-bottom: 2rem;
 }
-
 .department-title {
   margin: 1rem 0 0.5rem;
   padding-bottom: 0.3rem;
   border-bottom: 2px solid #444;
   color: #000000;
+  background-image: url(header_press.png);
+  background-size: auto 100%;
+  background-repeat: no-repeat;
+  background-position: right;
 }
-
 .department-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 1rem;
 }
 
-
-/* ==== Machine Card ==== */
+/* ===== Production Overview Page : Machine Card ===== */
+/* Machine Card : Main Body */
 .machine-card {
   position: relative;
   border-radius: 14px;
@@ -290,48 +420,12 @@ li.sub-menu.open > a > .arrow {
   transition: all 0.25s ease;
   overflow: hidden;
 }
-/* ===== Machine Header (name + status same row) ===== */
-.machine-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 8px;
-}
-
-.machine-name {
-  font-weight: 600;
-  font-size: 1rem;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-/* Hover lift */
+/* Hover Lift */
 .machine-card:hover {
   transform: translateY(-6px);
   box-shadow: 0 12px 26px rgba(0,0,0,0.18);
 }
-
-/* ===== Footer ===== */
-.machine-footer {
-  margin-top: 12px;
-  padding-top: 0px;
-  /* border-top: 1px solid rgba(0,0,0,0.08); */
-  font-size: 12px;
-  color: #666;
-  display: flex;
-  justify-content: flex-end;
-}
-
-.machine-card.offline .machine-footer {
-  border-top: 1px solid rgba(255,255,255,0.1);
-  color: #bbb;
-}
-
-.latest-time {
-  opacity: 0.7;
-  font-style: italic;
-}
-/* ==== STATUS BAR (bottom line) ==== */
+/* Status Bar Bottom */
 .machine-card::before {
   content: '';
   position: absolute;
@@ -340,73 +434,90 @@ li.sub-menu.open > a > .arrow {
   height: 6px;
   width: 100%;
 }
-
-/* ================= STATUS STYLES ================= */
-
+/* Status Styles */
 /* RUNNING */
 .machine-card.running {
   background: linear-gradient(135deg, #e8f5e9, #ffffff);
+  box-shadow: 0 0 18px rgba(46,125,50,0.25);
 }
-
 .machine-card.running::before {
   background: #2e7d32;
 }
-
-.machine-card.running {
-  box-shadow: 0 0 18px rgba(46,125,50,0.25);
+.machine-card.running .kpi-value {
+  color: #1b5e20;
 }
-
 /* IDLE */
 .machine-card.idle {
   background: linear-gradient(135deg, #fff8e1, #ffffff);
+  box-shadow: 0 0 18px rgba(249,168,37,0.25);
 }
-
 .machine-card.idle::before {
   background: #f9a825;
 }
-
 /* ALARM */
 .machine-card.alarm {
   background: linear-gradient(135deg, #ffebee, #ffffff);
+  animation: pulseAlarm 1.4s infinite;  
 }
-
 .machine-card.alarm::before {
   background: #c62828;
 }
-
-.machine-card.alarm {
-  animation: pulseAlarm 1.4s infinite;
-}
-
 @keyframes pulseAlarm {
   0% { box-shadow: 0 0 0 rgba(198,40,40,0.3); }
   50% { box-shadow: 0 0 25px rgba(198,40,40,0.5); }
   100% { box-shadow: 0 0 0 rgba(198,40,40,0.3); }
 }
-
 /* OFFLINE */
 .machine-card.offline {
   background: linear-gradient(135deg, #424242, #2b2b2b);
   color: #ddd;
 }
-
 .machine-card.offline::before {
   background: #757575;
 }
-
 .machine-card.offline img {
   filter: grayscale(100%) brightness(0.7);
 }
-
+.machine-card.offline .kpi-box {
+  background: rgba(255,255,255,0.08);
+}
 /* STOP */
 .machine-card.stop {
   background: #eceff1;
 }
-
 .machine-card.stop::before {
   background: #607d8b;
 }
-/* ==== STATUS BADGES ==== */
+
+/* Machine Card : Header (Status dots, Machine name, Status badge) */
+.machine-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+/* Status Dots */
+.dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-right: 6px;
+}
+.dot.running { background: #2e7d32; }
+.dot.idle { background: #f9a825; }
+.dot.alarm { background: #c62828; }
+.dot.offline { background: #757575; }
+.dot.stop { background: #607d8b; }
+/* Machine Name */
+.machine-name {
+  font-weight: 600;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+/* Status Badges */
 .status-badge {
   display: inline-block;
   padding: 4px 10px;
@@ -415,70 +526,64 @@ li.sub-menu.open > a > .arrow {
   border-radius: 20px;
   letter-spacing: 0.5px;
 }
-
 .status-badge.running {
   background: #2e7d32;
   color: white;
 }
-
 .status-badge.idle {
   background: #f9a825;
   color: white;
 }
-
 .status-badge.alarm {
   background: #c62828;
   color: white;
 }
-
 .status-badge.offline {
   background: #616161;
   color: white;
 }
-
 .status-badge.stop {
   background: #78909c;
   color: white;
 }
 
-/* ==== Cycletime/ Count Today ==== */
+/* Machine Card : Content */
+.machine-meta-grid {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 10px;
+  margin-top: 2px;
+
+}
+/* Machine Image */
+.machine-image {
+  width: 100%;
+  height: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 8px;
+  object-fit: contain;
+}
+.machine-image img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+/* Cycletime - Count */
 .machine-kpi-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px;
-  margin-top: 12px;
+  margin-top: 5px;
 }
-
-/* ==== Shift Durations ==== */
-.machine-shift-grid {
-  display: grid;
-  grid-template-columns: repeat(2,1fr);
-  gap: 6px;
-  margin-top: 8px;
-}
-.shift-box {
-  background: rgba(0,0,0,0.04);
-  padding: 6px 8px;
-  border-radius: 6px;
-  text-align: center;
-  font-size: 12px;
-}
-.shift-label {
-  opacity: 0.7;
-  margin-bottom: 2px;
-}
-.shift-value {
-  font-weight: 600;
-}
-
 /* KPI Box */
 .kpi-box {
   background: rgba(0,0,0,0.04);
-  padding: 10px;
+  padding: 5px;
   border-radius: 8px;
   text-align: center;
 }
-
 /* Label */
 .kpi-label {
   font-size: 11px;
@@ -486,95 +591,73 @@ li.sub-menu.open > a > .arrow {
   opacity: 0.7;
   margin-bottom: 4px;
 }
-
 /* Value */
 .kpi-value {
   font-size: 16px;
   font-weight: 700;
 }
+/* Shifts Duration */
+.machine-shift-availability-container{
+  display: grid;
+  grid-template-columns: repeat(2,1fr);
+  gap: 6px;
+  margin-top: 5px;
 
-/* Running highlight */
-.machine-card.running .kpi-value.cycle-value {
-  color: #1b5e20;
 }
-
-/* Offline styling */
-.machine-card.offline .kpi-box {
-  background: rgba(255,255,255,0.08);
+.machine-shift-grid {
+  /* display: grid;
+  grid-template-columns: repeat(2,1fr); */
+  gap: 6px;
+  margin-top: 0px;
 }
-
-/* ==== Machine Card Content ==== */
-.machine-image {
+.shift-box {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  background: rgba(0,0,0,0.04);
+  padding: 4px 8px;
+  border-radius: 8px;
+  font-size: 10px;
+  margin: 5px;
+}
+.shift-label {
+  text-align: left;
+  opacity: 0.7;
+  margin-bottom: 2px;
+}
+.shift-value {
+  text-align: right;
+  font-weight: 600;
+}
+.machine-availability-chart {
   width: 100%;
-  height: 100px;
+  height: auto;
+  margin: 0;
+  justify-items: center;
+}
+.machine-availability-chart canvas {
+  width: auto !important;
+  height: 100px !important;
+  text-align: center;
+}
+.availability-label{
+  text-align: right;
+  font-size: 10px;
+  font-weight: 600;
+  opacity: 0.7;
+  margin-bottom: 2px;
+  margin-top: 0px;
+}
+
+/*last update */
+.machine-footer {
+  margin-top: 8px;
+  padding-top: 0px;
+  /* border-top: 1px solid rgba(0,0,0,0.08); */
+  font-size: 12px;
+  font-style: italic;
+  color: #666;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 10px;
-}
-
-.machine-image img {
-  max-width: 100%;
-  max-height: 100%;
-  object-fit: contain;
-}
-
-.machine-title {
-  font-weight: 600;
-  font-size: 1rem;
-  margin-bottom: 6px;
-}
-
-.machine-status {
-  font-weight: 600;
-  /* margin-bottom: 6px; */
-}
-
-.dot {
-  display: inline-block;
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  margin-right: 6px;
-}
-
-.dot.running { background: #2e7d32; }
-.dot.idle { background: #f9a825; }
-.dot.alarm { background: #c62828; }
-.dot.offline { background: #757575; }
-.dot.stop { background: #607d8b; }
-
-
-/* ===== Cards ===== */
-.card {
-  background: rgba(255,255,255,0.85);
-  backdrop-filter: blur(6px);
-  border-radius: 14px;
-  padding: 18px;
-  margin: 14px 0;
-  box-shadow: 0 8px 20px rgba(0,0,0,0.08);
-}
-
-.badge {
-  padding: 6px 12px;
-  border-radius: 20px;
-  font-weight: 600;
-  font-size: 13px;
-}
-
-.badge-green {
-  background: #2e7d32;
-  color: white;
-}
-
-.badge-red {
-  background: #c62828;
-  color: white;
-}
-
-.badge-gray {
-  background: #757575;
-  color: white;
+  justify-content: flex-end;
 }
 
 /* ===== Page Machine efficiency ===== */

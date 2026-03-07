@@ -1,0 +1,7 @@
+{
+    "python-envs.pythonProjects": [
+
+    ],
+    // explicitly set interpreter to env_01 to avoid auto-activating non-existent env_00
+    "python.defaultInterpreterPath": "d:/GitHub/SCADA-Project/env_01/Scripts/python.exe"
+}

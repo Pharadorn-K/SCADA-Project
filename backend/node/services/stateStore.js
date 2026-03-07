@@ -71,7 +71,6 @@ function getPlc(key) {
   return runtimeState.plc[key] || null;
 }
 
-
 /* ------------------ SYSTEM STATE ------------------ */
 function loadState() {
   try {

@@ -25,6 +25,7 @@ const plcRoutes = require('./routes/api/plc');
 const authRoutes = require('./routes/api/auth');
 const auditRoutes = require('./routes/api/audit');
 const shiftSummaryRoute = require('./routes/shiftSummary');
+const shiftHistoryRoute = require('./routes/shiftHistory');
 // Initialize Express app
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -60,6 +61,7 @@ app.use('/api/alarms', require('./routes/api/alarm'));
 app.use('/api/alarm-history', require('./routes/api/alarmHistory'));
 app.use('/api/audit', auditRoutes);
 app.use('/api/shift-summary', shiftSummaryRoute);
+app.use('/api/shift-history', shiftHistoryRoute);
 // Serve static files
 app.use(express.static(path.join(__dirname, '../../frontend/public')));
 

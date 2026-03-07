@@ -8,13 +8,11 @@ router.get('/', async (req, res) => {
     const { date, shift } = req.query;
 
     if (!date) {
-      return res.status(400).json({ error: 'date is required (YYYY-MM-DD)' });
+      return res.status(400).json({ error: 'date is required' });
     }
 
     let sql = `
       SELECT
-        date,
-        shift,
         department,
         machine,
         run_seconds,
@@ -32,21 +30,70 @@ router.get('/', async (req, res) => {
       sql += ' AND shift = ?';
       params.push(shift);
     }
-
-    sql += ' ORDER BY department, machine';
-
     const pool = await getDbPool();
     const [rows] = await pool.query(sql, params);
 
+    // 🔥 Build department summary
+    const departments = {};
+
+    rows.forEach(r => {
+
+      if (!departments[r.department]) {
+        departments[r.department] = {
+          run: 0,
+          idle: 0,
+          alarm: 0,
+          machines: []
+        };
+      }
+
+      departments[r.department].run += r.run_seconds;
+      departments[r.department].idle += r.idle_seconds;
+      departments[r.department].alarm += r.alarm_seconds;
+
+      departments[r.department].machines.push({
+        ...r,
+        availability: Number(r.availability)
+      });
+    });
+
+    // 🔥 Compute department availability
+    const departmentSummary = Object.entries(departments).map(([dept, d]) => {
+
+      const planned = d.run + d.idle + d.alarm;
+      const availability = planned > 0 ? d.run / planned : 0;
+
+      return {
+        department: dept,
+        availability,
+        machines: d.machines
+      };
+    });
+
+    // 🔥 Compute total factory availability
+    let totalRun = 0;
+    let totalIdle = 0;
+    let totalAlarm = 0;
+
+    rows.forEach(r => {
+      totalRun += r.run_seconds;
+      totalIdle += r.idle_seconds;
+      totalAlarm += r.alarm_seconds;
+    });
+
+    const totalPlanned = totalRun + totalIdle + totalAlarm;
+    const totalAvailability =
+      totalPlanned > 0 ? totalRun / totalPlanned : 0;
+
     res.json({
       success: true,
-      data: rows
+      departments: departmentSummary,
+      totalAvailability
     });
 
   } catch (err) {
-    console.error('Shift summary error:', err);
+    console.error(err);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
-
 module.exports = router;

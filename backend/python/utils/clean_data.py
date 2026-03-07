@@ -671,7 +671,7 @@ def heat_clean(_db_pool,all_department,all_machine,all_data,data,clean_db_q,broa
         print("❌ Heat clean data error:",e)
 
 def lathe_clean(_db_pool,all_department,all_machine,all_data,data,clean_db_q,broadcast_q):
-    point_int = [8,1,9,90,2]
+    point_int = [11,1,18,90,2]
     point_str = ["alarm","offline"]
     try :                    
         machine_data = [] 
@@ -703,6 +703,9 @@ def lathe_clean(_db_pool,all_department,all_machine,all_data,data,clean_db_q,bro
                         pick_up = bit_received[data_range["target_"]:data_range["target_"]+data_range["range_"]]
                         int_pick = int(pick_up[0])
                         each_machine.append(int_pick)
+                    elif data_range["note_"] == "Max" or data_range["note_"] == "Min" or data_range["note_"] == "Max-Min" or data_range["note_"] == "Limit" or data_range["note_"] == "Mc_Time":
+                        pick_up = word_received[data_range["target_"]:data_range["target_"]+data_range["range_"]][0]
+                        each_machine.append(pick_up)
             machine_data.append(each_machine)
         if machine_data != []:
             for list_data in range(len(machine_data)):
@@ -712,6 +715,7 @@ def lathe_clean(_db_pool,all_department,all_machine,all_data,data,clean_db_q,bro
                     cycle_time = 0
                     count_shift = 0
                     compare_lathe_status[list_data] = status_check[point_int[1]:point_int[2]]
+                    # print("from status check",status_check)
                     clean_db_q.put({
                         "event": "plc_clean",
                         "source": "clean_lathe",
@@ -722,19 +726,24 @@ def lathe_clean(_db_pool,all_department,all_machine,all_data,data,clean_db_q,bro
 
                         "context": {
                             "part_name": status_check[4],
-                            "plan": 0, #wait from PLC
-                            "operator_id": 0, #wait from PLC
+                            "plan": status_check[5],
+                            "operator_id": status_check[6],
                         },
 
                         "metrics": {
-                            "run": status_check[5],
-                            "idle": status_check[6],                            
-                            "alarm": status_check[7],
-                            "count_signal": status_check[8],
-                            "offline": 0, #wait from PLC
-                            "alarm_code": 0, #wait from PLC
+                            "run": status_check[7],
+                            "idle": status_check[8],                            
+                            "alarm": status_check[9],
+                            "offline": status_check[10],                           
+                            "count_signal": status_check[11],
+                            "alarm_code": status_check[12], 
                             "cycle_time": cycle_time,
-                            "count_shift": count_shift
+                            "count_shift": count_shift,
+                            "max": status_check[13],
+                            "min": status_check[14],
+                            "max_min": status_check[15],
+                            "limit": status_check[16],
+                            "mc_time": status_check[17]
                         }
                     })
                     broadcast_q.put({
@@ -747,19 +756,24 @@ def lathe_clean(_db_pool,all_department,all_machine,all_data,data,clean_db_q,bro
 
                         "context": {
                             "part_name": status_check[4],
-                            "plan": 0, #wait from PLC
-                            "operator_id": 0, #wait from PLC
+                            "plan": status_check[5],
+                            "operator_id": status_check[6],
                         },
 
                         "metrics": {
-                            "run": status_check[5],
-                            "idle": status_check[6],                            
-                            "alarm": status_check[7],
-                            "count_signal": status_check[8],
-                            "offline": 0, #wait from PLC
-                            "alarm_code": 0, #wait from PLC
+                            "run": status_check[7],
+                            "idle": status_check[8],                            
+                            "alarm": status_check[9],
+                            "offline": status_check[10],                           
+                            "count_signal": status_check[11],
+                            "alarm_code": status_check[12],
                             # "cycle_time": cycle_time,
-                            # "count_shift": count_shift
+                            # "count_shift": count_shift,
+                            "max": status_check[13],
+                            "min": status_check[14],
+                            "max_min": status_check[15],
+                            "limit": status_check[16],
+                            "mc_time": status_check[17]
                         }
                     })
                 else : 
@@ -784,6 +798,7 @@ def lathe_clean(_db_pool,all_department,all_machine,all_data,data,clean_db_q,bro
                                     cycle_time = point_int[3]
                         count_shift = count_current_shift(_db_pool,status_count_check[0],all_department[point_int[4]],status_count_check[2]) + 1                            
                         compare_lathe_count[list_data] = count_check
+                        # print("from count check",status_count_check)
                         clean_db_q.put({
                             "event": "plc_clean",
                             "source": "clean_lathe",
@@ -794,19 +809,24 @@ def lathe_clean(_db_pool,all_department,all_machine,all_data,data,clean_db_q,bro
 
                             "context": {
                                 "part_name": status_count_check[4],
-                                "plan": 0, #wait from PLC
-                                "operator_id": 0, #wait from PLC
+                                "plan": status_count_check[5],
+                                "operator_id": status_count_check[6],
                             },
 
                             "metrics": {
-                                "run": status_count_check[5],
-                                "idle": status_count_check[6],                            
-                                "alarm": status_count_check[7],
-                                "count_signal": status_count_check[8],
-                                "offline": 0, #wait from PLC
-                                "alarm_code": 0, #wait from PLC
+                                "run": status_count_check[7],
+                                "idle": status_count_check[8],                            
+                                "alarm": status_count_check[9],
+                                "offline": status_count_check[10],                           
+                                "count_signal": status_count_check[11],
+                                "alarm_code": status_count_check[12], 
                                 "cycle_time": cycle_time,
-                                "count_shift": count_shift
+                                "count_shift": count_shift,
+                                "max": status_count_check[13],
+                                "min": status_count_check[14],
+                                "max_min": status_count_check[15],
+                                "limit": status_count_check[16],
+                                "mc_time": status_count_check[17]
                             }
                         })
                         broadcast_q.put({
@@ -819,19 +839,24 @@ def lathe_clean(_db_pool,all_department,all_machine,all_data,data,clean_db_q,bro
 
                             "context": {
                                 "part_name": status_count_check[4],
-                                "plan": 0, #wait from PLC
-                                "operator_id": 0, #wait from PLC
+                                "plan": status_count_check[5],
+                                "operator_id": status_count_check[6],
                             },
 
                             "metrics": {
-                                "run": status_count_check[5],
-                                "idle": status_count_check[6],                            
-                                "alarm": status_count_check[7],
-                                "count_signal": status_count_check[8],
-                                "offline": 0, #wait from PLC
-                                "alarm_code": 0, #wait from PLC
+                                "run": status_count_check[7],
+                                "idle": status_count_check[8],                            
+                                "alarm": status_count_check[9],
+                                "offline": status_count_check[10],                           
+                                "count_signal": status_count_check[11],
+                                "alarm_code": status_count_check[12], 
                                 "cycle_time": cycle_time,
-                                "count_shift": count_shift
+                                "count_shift": count_shift,
+                                "max": status_count_check[13],
+                                "min": status_count_check[14],
+                                "max_min": status_count_check[15],
+                                "limit": status_count_check[16],
+                                "mc_time": status_count_check[17]
                             }
                         })
                     else : 

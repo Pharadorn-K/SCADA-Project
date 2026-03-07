@@ -3,7 +3,6 @@ import * as Home from './views/home.js';
 import * as Production from './views/production.js';
 import * as Maintenance from './views/maintenance.js';
 import * as Admin from './views/admin.js';
-import * as OEE from './views/oee.js';
 
 export const routes = {
   home: {
@@ -38,11 +37,6 @@ export const routes = {
     request: { view: Maintenance.requestView },
     report: { view: Maintenance.reportView }
   },
-
-  oee: {
-    mount: OEE.oeeMount,
-    unmount: OEE.oeeUnmount
-  },  
 
   admin: {
     alarm: {

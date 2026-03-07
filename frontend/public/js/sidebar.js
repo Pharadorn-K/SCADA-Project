@@ -53,12 +53,6 @@ export function renderSidebar(role) {
         </ul>
       </li>
 
-      <li>
-        <a data-page="oee" data-title="OEE">
-          <i class="fa fa-line-chart"></i><span>OEE</span>
-        </a>
-      </li>
-
       ${role === 'admin' ? `
       <li class="sub-menu">
         <a href="javascript:void(0);" data-title="Admin">

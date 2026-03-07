@@ -57,11 +57,14 @@ async function closeShiftForMachine(machine) {
   const durations = machine.shiftDurations;
 
   const availability = calculateAvailability(durations);
-
-  await persistenceEngine.saveMachineShift({
-    ...machine,
-    availability
-  });
+  try {
+    await persistenceEngine.saveMachineShift({
+      ...machine,
+      availability
+    });
+  } catch (e) {
+    console.error("Error saving machine shift", e);
+  }
 }
 
 async function openNewShiftForMachine(machine, now) {
@@ -79,12 +82,20 @@ async function openNewShiftForMachine(machine, now) {
   };
 
   machine.statusStartedAt = now;
+  try {
+    await persistenceEngine.saveMachineShift({
+      ...machine,
+      availability: 0 
+    });
+  } catch (e) {
+    console.error("Error saving machine shift", e);
+  }
 
   // create new zero row immediately
-  await persistenceEngine.saveMachineShift({
-    ...machine,
-    availability: 0
-  });
+  // await persistenceEngine.saveMachineShift({
+  //   ...machine,
+  //   availability: 0
+  // });
 }
 
 async function processShiftBoundary() {

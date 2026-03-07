@@ -81,6 +81,8 @@ CREATE TABLE machine_shift_status (
 # Project structure :
 scada-project/ 
 │ 
+├── .vscode/ 
+│   └── settings.json
 ├── backend/ 
 │   ├── python/ 
 │   │   ├── __pycache__/
@@ -94,24 +96,25 @@ scada-project/
 │   │       ├── db_writer.py            
 │   │       └── plc_driver.py           
 │   └── node/ 
-│       ├── server.js                 
+│       ├── .env
 │       ├── package.json 
-│       ├── package-lock.json 
-│       ├── .env                        
-│       ├── node_modules/ ...
-│       ├── routes/ 
-│       │   └── api/                    
-│       │       ├── alam.js
-│       │       ├── alamHistory.js   
-│       │       ├── audit.js   
-│       │       ├── auth.js              
-│       │       └── plc.js                     
+│       ├── package-lock.json    
+│       ├── server.js
 │       ├── data/ 
 │       │   └── systemState.json
 │       ├── logs/ 
 │       │   └── scada.log
 │       ├── middleware/ 
-│       │   └── requireRole.js
+│       │   └── requireRole.js                                      
+│       ├── node_modules/ ...
+│       ├── routes/ 
+│       │   ├── api/                    
+│       │   │   ├── alam.js
+│       │   │   ├── alamHistory.js   
+│       │   │   ├── audit.js   
+│       │   │   ├── auth.js              
+│       │   │   └── plc.js  
+│       │   └── shiftSummary.js  
 │       └── services/ 
 │           ├── alarmService.js
 │           ├── bootstrapEngine.js
@@ -123,8 +126,7 @@ scada-project/
 │           ├── plcMonitor.js 
 │           ├── pythonBridge.js
 │           ├── shiftEngine.js     
-│           ├── stateStore.js
-│           └── plcMonitor.js           
+│           └── stateStore.js         
 │ 
 ├── frontend/ 
 │   ├── public/                        
@@ -146,18 +148,21 @@ scada-project/
 │   │   │   ├── heat_K5.png
 │   │   │   ├── heat_K6.png
 │   │   │   ├── heat_K7.png
+│   │   │   ├── heat_K8.png
 │   │   │   ├── lathe_Rotor TK1.png
-│   │   │   ├── heat_Rotor TK4.png
+│   │   │   ├── lathe_Rotor TK4.png
 │   │   │   ├── press_AIDA630T.png
 │   │   │   └── press_M-20id-25.png
 │   │   └── js/
 │   │       ├── api.js
 │   │       ├── app.js
 │   │       ├── routes.js
+│   │       ├── shiftSummary.js
 │   │       ├── sidebar-behavior.js
 │   │       ├── sidebar.js
 │   │       ├── store.js
 │   │       ├── storeSelectors.js
+│   │       ├── utils.js
 │   │       └── views/
 │   │           ├── admin.js            
 │   │           ├── home.js

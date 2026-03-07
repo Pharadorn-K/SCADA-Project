@@ -1,4 +1,5 @@
 // frontend/public/js/shiftSummary.js
+
 async function loadShiftSummary(date, shift = null) {
 
   let url = `/api/shift-summary?date=${date}`;
@@ -23,22 +24,41 @@ function renderShiftSummary(data) {
   const container = document.getElementById('shiftSummaryTable');
   container.innerHTML = '';
 
-  data.forEach(row => {
+  data.departments.forEach(dept => {
 
-    const percent = (row.availability * 100).toFixed(2);
+    const deptPercent = (dept.availability * 100).toFixed(2);
 
-    const div = document.createElement('div');
-    div.className = 'shift-row';
+    const deptDiv = document.createElement('div');
+    deptDiv.className = 'department-block';
 
-    div.innerHTML = `
-      <strong>${row.department.toUpperCase()}</strong> -
-      ${row.machine}
-      | Run: ${row.run_seconds}s
-      | Idle: ${row.idle_seconds}s
-      | Alarm: ${row.alarm_seconds}s
-      | Availability: <span class="availability">${percent}%</span>
+    deptDiv.innerHTML = `
+      <h3>${dept.department} - ${deptPercent}%</h3>
     `;
 
-    container.appendChild(div);
+    dept.machines.forEach(machine => {
+
+      const percent = (machine.availability * 100).toFixed(2);
+
+      const row = document.createElement('div');
+      row.innerHTML = `
+        ${machine.machine}
+        | Run: ${machine.run_seconds}s
+        | Idle: ${machine.idle_seconds}s
+        | Alarm: ${machine.alarm_seconds}s
+        | ${percent}%
+      `;
+
+      deptDiv.appendChild(row);
+    });
+
+    container.appendChild(deptDiv);
   });
+
+  // 🔥 Total factory
+  const totalPercent = (data.totalAvailability * 100).toFixed(2);
+
+  const totalDiv = document.createElement('h2');
+  totalDiv.innerHTML = `Factory Availability: ${totalPercent}%`;
+
+  container.prepend(totalDiv);
 }

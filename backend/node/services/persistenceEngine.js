@@ -42,35 +42,8 @@ function startAutoSave() {
   setInterval(saveAllShifts, 60 * 1000);
 }
 
-// async function saveMachineShift(machine) {
-//   const pool = await getDbPool();
-
-//   await pool.query(
-//     `
-//     INSERT INTO machine_shift_status
-//     (date, shift, department, machine,
-//      run_seconds, idle_seconds,
-//      alarm_seconds, offline_seconds)
-//     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-//     ON DUPLICATE KEY UPDATE
-//       run_seconds = VALUES(run_seconds),
-//       idle_seconds = VALUES(idle_seconds),
-//       alarm_seconds = VALUES(alarm_seconds),
-//       offline_seconds = VALUES(offline_seconds)
-//     `,
-//     [
-//       machine.shiftDate,
-//       machine.shift,
-//       machine.department,
-//       machine.machine,
-//       machine.shiftDurations.run_seconds,
-//       machine.shiftDurations.idle_seconds,
-//       machine.shiftDurations.alarm_seconds,
-//       machine.shiftDurations.offline_seconds
-//     ]
-//   );
-// }
 async function saveMachineShift(machine) {
+  const pool = await getDbPool();
   const {
     shiftDate,
     shift,
@@ -80,7 +53,7 @@ async function saveMachineShift(machine) {
     availability
   } = machine;
 
-  await db.query(`
+  await pool.query(`
     INSERT INTO machine_shift_status
     (date, shift, department, machine,
      run_seconds, idle_seconds, alarm_seconds, offline_seconds,
@@ -134,7 +107,6 @@ function scheduleNextShiftCheck() {
     scheduleNextShiftCheck();
   }, delay);
 }
-
 
 function startDurationTicker() {
   setInterval(() => {

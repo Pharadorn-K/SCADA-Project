@@ -1,8 +1,4 @@
 # backend/python/utils/db_writer.py
-import os
-import json
-from datetime import datetime
-from pathlib import Path
 
 # --- fatten data ---
 def flatten_press_event(data):
@@ -66,6 +62,11 @@ def flatten_lathe_event(data):
         "alarm_code": data["metrics"]["alarm_code"],
         "cycle_time": data["metrics"]["cycle_time"],
         "count_shift": data["metrics"]["count_shift"],
+        "max_value": data["metrics"]["max"],
+        "min_value": data["metrics"]["min"],
+        "max_min": data["metrics"]["max_min"],
+        "limit_value": data["metrics"]["limit"],
+        "mc_time": data["metrics"]["mc_time"],
     }
 
 # --- Save function ---  
@@ -174,9 +175,10 @@ def save_lathe_data(_db_pool,data):
             event, source, department, machine, machine_type, timestamp,
             part_name, plan, operator_id,
             count_signal, run, idle, alarm, offline,
-            alarm_code, cycle_time, count_shift
+            alarm_code, cycle_time, count_shift,
+            max_value, min_value, max_min, limit_value, mc_time
         )
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         """
 
         values = (
@@ -196,7 +198,12 @@ def save_lathe_data(_db_pool,data):
             flatten_data['offline'],
             flatten_data['alarm_code'],
             flatten_data['cycle_time'],
-            flatten_data['count_shift']
+            flatten_data['count_shift'],
+            flatten_data['max_value'],
+            flatten_data['min_value'],
+            flatten_data['max_min'],
+            flatten_data['limit_value'],
+            flatten_data['mc_time']
         )
 
         cursor.execute(query, values)
