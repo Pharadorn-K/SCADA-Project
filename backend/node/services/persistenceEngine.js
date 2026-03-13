@@ -39,7 +39,7 @@ async function saveAllShifts() {
 }
 
 function startAutoSave() {
-  setInterval(saveAllShifts, 60 * 1000);
+  setInterval(saveAllShifts, 30 * 1000);
 }
 
 async function saveMachineShift(machine) {

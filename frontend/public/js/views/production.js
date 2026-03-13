@@ -471,13 +471,12 @@ export function productionOverviewMount(container) {
                 </div>
             </div>
 
-            <div class="shift-trend-container">
-                <canvas id="shiftTrendChart"></canvas>
-            </div>
+
             <div class="shift-summary-panel">
                 <h2>Shift Availability</h2>
-
-
+                <div class="shift-trend-container">
+                    <canvas id="shiftTrendChart"></canvas>
+                </div>
                 <div id="shiftSummaryGrid" class="shift-summary-grid"></div>
             </div>
 
@@ -595,7 +594,7 @@ export function productionOverviewMount(container) {
                 </div>
                 
                 <div class="machine-availability-chart">
-                    <div class="availability-label">Availability <i class="fa-solid fa-caret-up" style="color: rgb(116, 192, 252);"></i> Run <i class="fa-solid fa-caret-down" style="color: rgb(236, 39, 39);"></i> Loss</div>
+                    <div class="availability-label">Run • Idle • Alarm • Offline</div>
                     <canvas></canvas>
                 </div>
             </div>
@@ -608,19 +607,61 @@ export function productionOverviewMount(container) {
         const chart = new Chart(ctx, {
             type: 'doughnut',
             data: {
-                labels: ['Run', 'Loss'],
+                labels: ['Run', 'Idle', 'Alarm', 'Offline'],
                 datasets: [{
-                    data: [0, 0]
+                    data: [0, 0, 0, 0],
+                    backgroundColor: [
+                        '#2ecc71', // Run (green)
+                        '#f1c40f', // Idle (yellow)
+                        '#e74c3c', // Alarm (red)
+                        '#7f8c8d'  // Offline (gray)
+                    ],
+                    borderWidth: 0
                 }]
             },
+            plugins: [centerTextPlugin],
             options: {
                 animation: false,
                 cutout: '70%',
-                plugins: { legend: { display: false } }
-            },
-            plugins: [centerTextPlugin] 
-        });
+                interaction: {
+                    mode: 'nearest',
+                    intersect: true
+                },
+                plugins: {
+                    legend: { display: false },
 
+                    tooltip: {
+                        enabled: true,
+                        external: null,
+                        z: 9999,
+                        callbacks: {
+
+                            label(context) {
+
+                                const value = context.raw;
+                                const data = context.dataset.data;
+
+                                const total = data.reduce((a, b) => a + b, 0);
+
+                                const percent = total
+                                    ? ((value / total) * 100).toFixed(1)
+                                    : 0;
+
+                                const label = context.label;
+
+                                const time = formatDuration(value);
+
+                                return `${label}:${time}(${percent}%)`;
+                            }
+
+                        }
+                    }
+
+                }
+
+            }
+            
+        });
         availabilityCharts.set(id, chart);
 
         card.addEventListener('click', () => {
@@ -638,10 +679,6 @@ export function productionOverviewMount(container) {
         const idle = m.shiftDurations?.idle_seconds || 0;
         const alarm = m.shiftDurations?.alarm_seconds || 0;
         const offline = m.shiftDurations?.offline_seconds || 0;
-
-        const planned = run + idle + alarm;
-        const available = run;
-        const notAvailable = planned - run;
 
         // 🔹 Update classes
         card.className = `machine-card ${statusClass(m)}`;
@@ -691,7 +728,13 @@ export function productionOverviewMount(container) {
         // 🔹 Update chart only
         const chart = availabilityCharts.get(id);
         if (chart) {
-            chart.data.datasets[0].data = [available, notAvailable];
+            // chart.data.datasets[0].data = [available, notAvailable];
+            chart.data.datasets[0].data = [
+                run,
+                idle,
+                alarm,
+                offline
+            ];            
             chart.update('none');
         }
     }

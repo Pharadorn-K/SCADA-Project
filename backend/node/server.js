@@ -135,7 +135,13 @@ async function bootstrap() {
 
   // Hydrate state
   await bootstrapEngine.hydrate();
-  
+  const { detectAndHandleShift } = require('./services/shiftEngine');
+
+  const machines = stateStore.getPlcSnapshot().machines;
+
+  for (const key of Object.keys(machines)) {
+    await detectAndHandleShift(key);
+  }
   // Start periodic shift save
   persistenceEngine.startDurationTicker();  
   persistenceEngine.startAutoSave();
