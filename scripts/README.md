@@ -111,14 +111,7 @@ scada-project/
 ├── README.md 
 └── docker-compose.yml                  
 ```
-## Edit 06/03/2026
-```bash
-production.js
-main.css
-shiftSummary.js (frontend)
-shiftHistory.js
-persistenceEngine.js
-```
+# Script the entire project
 ## Backend
 ### server.js
 ```javaScript
@@ -259,7 +252,13 @@ async function bootstrap() {
 
   // Hydrate state
   await bootstrapEngine.hydrate();
-  
+  const { detectAndHandleShift } = require('./services/shiftEngine');
+
+  const machines = stateStore.getPlcSnapshot().machines;
+
+  for (const key of Object.keys(machines)) {
+    await detectAndHandleShift(key);
+  }
   // Start periodic shift save
   persistenceEngine.startDurationTicker();  
   persistenceEngine.startAutoSave();
@@ -774,10 +773,11 @@ async function saveAllShifts() {
 }
 
 function startAutoSave() {
-  setInterval(saveAllShifts, 60 * 1000);
+  setInterval(saveAllShifts, 30 * 1000);
 }
 
 async function saveMachineShift(machine) {
+  const pool = await getDbPool();
   const {
     shiftDate,
     shift,
@@ -1536,6 +1536,7 @@ module.exports = {
   saveState,
 };
 
+
 ```
 
 ### shiftHistory.js
@@ -1545,55 +1546,88 @@ const express = require('express');
 const router = express.Router();
 const { getDbPool } = require('../services/db');
 
-router.get('/', async (req, res) => {
+function getShiftInfo() {
 
+  const now = new Date();
+  const hour = now.getHours();
+
+  let shift;
+
+  if (hour >= 6 && hour < 14) shift = 'A';
+  else if (hour >= 14 && hour < 22) shift = 'B';
+  else shift = 'C';
+
+  const shiftDate = new Date(now);
+
+  // 🔥 If time is 00:00-05:59 → still yesterday's Shift C
+  if (shift === 'C' && hour < 6) {
+    shiftDate.setDate(shiftDate.getDate() - 1);
+  }
+
+  const dateStr = shiftDate.toISOString().split('T')[0];
+
+  return {
+    shift,
+    date: dateStr
+  };
+}
+
+router.get('/', async (req, res) => {
   try {
     const { date } = req.query;
 
     if (!date) {
       return res.status(400).json({ error: 'date required' });
     }
-
     const sql = `
-      SELECT
-        shift,
-        department,
-        run_seconds,
-        idle_seconds,
-        alarm_seconds
-      FROM machine_shift_status
-      WHERE date = ?
-      ORDER BY shift, department
+    SELECT
+      date,
+      shift,
+      department,
+      run_seconds,
+      idle_seconds,
+      alarm_seconds
+    FROM machine_shift_status
+    ORDER BY
+      date DESC,
+      FIELD(shift,'C','B','A')
+    LIMIT 500
     `;
     const pool = await getDbPool();
-    const [rows] = await pool.query(sql, [date]);
+    const [rows] = await pool.query(sql, [date, date]);
 
     // 🔥 group by shift + department
     const shifts = {};
 
     rows.forEach(r => {
 
-      if (!shifts[r.shift]) {
-        shifts[r.shift] = {};
+      const key = `${r.date}_${r.shift}`;
+
+      if (!shifts[key]) {
+        shifts[key] = {
+          date: r.date,
+          shift: r.shift,
+          departments: {}
+        };
       }
 
-      if (!shifts[r.shift][r.department]) {
-        shifts[r.shift][r.department] = {
+      if (!shifts[key].departments[r.department]) {
+        shifts[key].departments[r.department] = {
           run: 0,
           idle: 0,
           alarm: 0
         };
       }
 
-      shifts[r.shift][r.department].run += r.run_seconds;
-      shifts[r.shift][r.department].idle += r.idle_seconds;
-      shifts[r.shift][r.department].alarm += r.alarm_seconds;
+      shifts[key].departments[r.department].run += r.run_seconds;
+      shifts[key].departments[r.department].idle += r.idle_seconds;
+      shifts[key].departments[r.department].alarm += r.alarm_seconds;
+
     });
-
     // 🔥 calculate availability per shift + department
-    const result = Object.entries(shifts).map(([shift, departments]) => {
+    const shiftArray = Object.values(shifts).map(s => {
 
-      const deptSummary = Object.entries(departments).map(([dept, d]) => {
+      const departments = Object.entries(s.departments).map(([dept, d]) => {
 
         const planned = d.run + d.idle + d.alarm;
         const availability = planned > 0 ? d.run / planned : 0;
@@ -1602,15 +1636,25 @@ router.get('/', async (req, res) => {
           department: dept,
           availability
         };
+
       });
 
       return {
-        shift,
-        departments: deptSummary
+        date: s.date,
+        shift: s.shift,
+        departments
       };
+
     });
 
-    res.json({ success: true, data: result });
+    const lastShifts = shiftArray.slice(0, 10);
+    const shiftInfo = getShiftInfo();
+    res.json({
+      success: true,
+      currentShift: shiftInfo.shift,
+      shiftDate: shiftInfo.date,
+      data: lastShifts
+    });    
 
   } catch (err) {
     console.error(err);
@@ -4423,6 +4467,7 @@ export const routes = {
 ### shiftSummary.js
 ```javaScript
 // frontend/public/js/shiftSummary.js
+
 async function loadShiftSummary(date, shift = null) {
 
   let url = `/api/shift-summary?date=${date}`;
@@ -5097,7 +5142,9 @@ export function homeUnmount() {
 // frontend/public/js/views/production.js 
 import { scadaStore } from '../store.js'; 
 import { formatDuration } from '../utils.js';
-const DEPT_ORDER = ['press', 'heat', 'lathe', 'grinding']; 
+// const DEPT_ORDER = ['press', 'heat', 'lathe', 'grinding']; 
+const DEPT_ORDER = ['press', 'heat', 'lathe']; 
+
 const availabilityCharts = new Map();
 // --------------- Chart plugins --------------- //
 const centerTextPlugin = {
@@ -5106,7 +5153,6 @@ const centerTextPlugin = {
         const { ctx, chartArea: { width, height } } = chart;
 
         const data = chart.data.datasets[0].data;
-        // const total = data[0] + data[1];
         const total = data.reduce((a, b) => a + b, 0);
 
         const percent = total > 0
@@ -5126,27 +5172,62 @@ const centerTextPlugin = {
     }
 };
 
-// Chart.register(centerTextPlugin);
 // --------------- GLOBALS functions --------------- //
-function calculateShiftSummary() { 
-    const machines = Object.values(scadaStore.state.machines); 
+const SHIFT_ORDER = ['A', 'B', 'C'];
+let shiftTrendChart = null;
 
-    let totalRun = 0; 
-    let totalIdle = 0; 
-    let totalAlarm = 0; 
+const SHIFT_SCHEDULE = {
+    A: { start: "06:00", end: "14:00" },
+    B: { start: "14:00", end: "22:00" },
+    C: { start: "22:00", end: "06:00" }
+};
+let shiftWindow = null;
+function formatShiftDate(dateStr) {
+    const d = new Date(dateStr);
+
+    return d.toLocaleDateString("en-GB", {
+        day: "2-digit",
+        month: "short"
+    });
+}
+function calculateShiftSummary() {
+
+    const machines = Object.values(scadaStore.state.machines);
+
+    let totalRun = 0;
+    let totalIdle = 0;
+    let totalAlarm = 0;
 
     machines.forEach(m => {
-        if (!m.shiftDurations) return; 
-            totalRun += m.shiftDurations.run_seconds || 0; 
-            totalIdle += m.shiftDurations.idle_seconds || 0; 
-            totalAlarm += m.shiftDurations.alarm_seconds || 0; 
-        }); 
+
+        if (!m.shiftDurations) return;
+
+        let run = m.shiftDurations.run_seconds || 0;
+        let idle = m.shiftDurations.idle_seconds || 0;
+        let alarm = m.shiftDurations.alarm_seconds || 0;
+
+        const now = Date.now();
+
+        if (m.statusStartedAt) {
+
+            const delta = Math.floor((now - m.statusStartedAt) / 1000);
+
+            if (m.status === 'RUNNING') run += delta;
+            if (m.status === 'IDLE') idle += delta;
+            if (m.status === 'ALARM') alarm += delta;
+        }
+
+        totalRun += run;
+        totalIdle += idle;
+        totalAlarm += alarm;
+
+    });
 
     const planned = totalRun + totalIdle + totalAlarm;
     const availability = planned ? (totalRun / planned) * 100 : 0;
 
-    return { 
-        availability: availability,
+    return {
+        availability,
         totalRun,
         totalIdle,
         totalAlarm
@@ -5209,75 +5290,359 @@ function renderShiftChart(data) {
     }
   });
 }
-async function loadTodayShiftHistory() {
+function renderShiftTrendChart(data) {
 
-  const today = new Date().toISOString().split('T')[0];
+    // const ctx = document.getElementById("shiftTrendChart");
+    const ctx = document.getElementById("shiftTrendChart")?.getContext("2d");
+    if (!ctx) return;
 
-  const res = await fetch(`/api/shift-history?date=${today}`);
-  const json = await res.json();
+    // compute plant availability per shift
+    const labels = [];
+    const values = [];
 
-  if (!json.success) return;
+    data.slice(0,10).reverse().forEach(shift => {
 
-  renderShiftChart(json.data);
+        let run = 0;
+        let total = 0;
+
+        shift.departments.forEach(d => {
+
+            const v = d.availability * 100;
+
+            total += 100;
+            run += v;
+
+        });
+
+        const availability = total ? (run / total) * 100 : 0;
+
+        labels.push(`Shift ${shift.shift}`);
+        values.push(availability.toFixed(1));
+
+    });
+
+    if (!shiftTrendChart) {
+
+        shiftTrendChart = new Chart(ctx, {
+            type: "line",
+            data: {
+                labels,
+                datasets: [{
+                    label: "Plant Availability",
+                    data: values,
+                    tension: 0.4,
+                    fill: false,
+                    borderWidth: 3,
+                    pointRadius: 5,
+                    
+                }]
+            },
+            options: {
+                animation: false,
+                responsive: true,
+                scales: {
+                    y: {
+                        min: 0,
+                        max: 100,
+                        grid: {
+                            display: false
+                        }
+                    }
+                },
+                plugins: {
+                    legend: { display: false }
+                }
+                
+            }
+        });
+
+    } else {
+
+        shiftTrendChart.data.labels = labels;
+        shiftTrendChart.data.datasets[0].data = values;
+        shiftTrendChart.update("none");
+
+    }
+
+}
+function buildShiftWindow(currentShift) {
+
+    const index = SHIFT_ORDER.indexOf(currentShift);
+    const size = SHIFT_ORDER.length;
+
+    return [
+        SHIFT_ORDER[(index - 2 + size) % size],
+        SHIFT_ORDER[(index - 1 + size) % size],
+        SHIFT_ORDER[index],
+        SHIFT_ORDER[(index + 1) % size]
+    ];
+
+}
+function createShiftSummaryGrid(container,shifts) {
+
+    container.innerHTML = "";
+
+    // SHIFT_ORDER.forEach(shift => {
+    shifts.forEach(shift => {
+        const col = document.createElement("div");
+        col.className = "shift-column";
+
+        const key = `${shift.date}_${shift.shift}`;
+        col.dataset.shiftKey = key;
+        const header = document.createElement("div");
+        header.className = "shift-header";
+        header.innerHTML = `
+            <div class="shift-badge" id="badge_${key}"></div>
+            <div class="shift-title">Shift ${shift.shift}</div>
+            <div class="shift-date" id="date_${key}">--</div>
+            <div class="shift-time">
+                ${SHIFT_SCHEDULE[shift.shift].start} - ${SHIFT_SCHEDULE[shift.shift].end}
+            </div>
+        `;
+
+        col.appendChild(header);
+        DEPT_ORDER.forEach(dept => {
+
+            const row = document.createElement("div");
+            row.className = "dept-row";
+            row.innerHTML = `
+                <span class="dept-name">${dept}</span>
+                <div class="dept-bar">
+                    <div class="dept-bar-fill" id="bar_${key}_${dept}"></div>
+                </div>
+                <span class="dept-value">
+                    <span id="shift_${key}_${dept}">0%</span>
+                    <span id="trend_${key}_${dept}" class="trend"></span>
+                </span>
+            `;
+
+            col.appendChild(row);
+        });
+
+        container.appendChild(col);
+    });
+
 }
 
+function updateShiftSummaryBars(data, currentShift, shifts) {
+    const normalized = data;
+    normalized.forEach(shift => {
+        const shiftIndex = normalized.findIndex(
+            s => s.shift === shift.shift && s.date === shift.date
+        );
+
+        const prevShift = normalized[shiftIndex + 1];
+        // highlight current shift
+        const key = `${shift.date}_${shift.shift}`;
+        const col = document.querySelector(`[data-shift-key="${key}"]`);
+        const badgeEl = document.getElementById(`badge_${key}`);
+
+        if (badgeEl) {
+
+            badgeEl.className = "shift-badge";
+
+            if (shiftIndex === 0) {
+                badgeEl.textContent = "CURRENT";
+                badgeEl.classList.add("badge-current");
+            }
+            else if (shiftIndex === 1) {
+                badgeEl.textContent = "PREVIOUS";
+                badgeEl.classList.add("badge-previous");
+            }
+            else if (shiftIndex === 2) {
+                badgeEl.textContent = "OLD";
+                badgeEl.classList.add("badge-old");
+            }
+            else {
+                badgeEl.textContent = "OLDER";
+                badgeEl.classList.add("badge-older");
+            }
+
+        }
+        const dateEl = document.getElementById(`date_${key}`);  
+        if (dateEl && shift.date) {
+            dateEl.textContent = formatShiftDate(shift.date);
+        }
+        if (col) {
+            col.classList.remove("current-shift");
+
+            if (shiftIndex === 0) {
+                col.classList.add("current-shift");
+            }
+
+            if (shiftIndex === 0) {
+                col.classList.remove("future");
+            } else {
+                col.classList.remove("future");
+            }        
+        }
+
+        shift.departments.forEach(dept => {
+
+            const percent = dept.availability * 100;
+            const deptKey = dept.department.toLowerCase();
+
+            const valueEl = document.getElementById(`shift_${key}_${deptKey}`);
+            const barEl = document.getElementById(`bar_${key}_${deptKey}`);
+            const trendEl = document.getElementById(`trend_${key}_${deptKey}`);
+
+            if (!valueEl) return;
+
+            valueEl.textContent = `${percent.toFixed(0)}%`;
+
+            if (barEl) {
+                barEl.style.width = `${percent}%`;
+            }
+
+            // calculate trend
+            const prevDept =
+                prevShift?.departments?.find(d => d.department.toLowerCase() === deptKey);
+
+            const prevAvail = prevDept ? prevDept.availability * 100 : null;
+
+            const trend = getTrend(percent, prevAvail);
+
+            if (trendEl) {
+                trendEl.className = `trend ${trend.class}`;
+                trendEl.textContent = `${trend.arrow} ${trend.diff}`;
+            }
+
+        });
+
+    });
+
+}
+
+function updateFactorySummary(container) {
+
+    const summary = calculateShiftSummary();
+
+    const availabilityEl = container.querySelector('#summaryAvailability');
+    const runEl = container.querySelector('#summaryRun');
+    const idleEl = container.querySelector('#summaryIdle');
+    const alarmEl = container.querySelector('#summaryAlarm');
+
+    if (!availabilityEl) return;
+
+    availabilityEl.textContent = `${summary.availability.toFixed(1)}%`;
+    availabilityEl.className = kpiClass(summary.availability);
+
+    runEl.textContent = formatTime(summary.totalRun);
+    idleEl.textContent = formatTime(summary.totalIdle);
+    alarmEl.textContent = formatTime(summary.totalAlarm);
+}
+async function loadTodayShiftHistory() {
+
+    const today = new Date().toISOString().split('T')[0];
+
+    const res = await fetch(`/api/shift-history?date=${today}`);
+    const json = await res.json();
+
+    const shifts = json.data;
+
+    // if (!shiftWindow) {
+    const grid = document.getElementById("shiftSummaryGrid");
+
+    if (!shiftWindow || !grid.children.length) {
+        shiftWindow = shifts.slice(0, 4);
+        createShiftSummaryGrid(
+            document.getElementById("shiftSummaryGrid"),
+            shiftWindow
+        );
+    }
+    updateShiftSummaryBars(json.data, json.currentShift, shifts);
+    renderShiftTrendChart(json.data);
+}
+function getNextShift(currentShift){
+
+    const order = ['A','B','C'];
+
+    const index = order.indexOf(currentShift);
+
+    return order[(index + 1) % order.length];
+
+}
+function getTrend(current, previous) {
+    if (previous === null || previous === undefined) {
+        return { arrow: '', diff: '', class: '' };
+    }
+
+    const diff = (current - previous).toFixed(1);
+
+    if (diff > 0) {
+        return { arrow: '▲', diff: `+${diff}%`, class: 'trend-up' };
+    }
+
+    if (diff < 0) {
+        return { arrow: '▼', diff: `${diff}%`, class: 'trend-down' };
+    }
+
+    return { arrow: '→', diff: '0%', class: 'trend-flat' };
+}
 // ---------------- Overview Page ---------------- // 
 let unsubscribe = null; 
+let summaryTimer = null;
+let shiftTimer = null;
+let initialized = false;
 export function productionOverviewMount(container) {
     const plantId = 'plant1'; 
     const cardMap = new Map(); // machineId → DOM element 
-        let initialized = false;
-     
-    container.innerHTML = `
-        <h1>🏭 Production Overview</h1> 
-        <div class="summary-wrapper">
-            <div class="summary-card">
-                <h3>Shift Summary</h3>
 
-                <div id="summaryKPI" class="summary-grid"></div>
+        container.innerHTML = `
+            <h1>🏭 Production Overview</h1>
 
-                <canvas id="shiftChart"></canvas>
+            <div class="summary-panel">
+                <div class="factory-summary">
+                    <div class="summary-box">
+                        Availability
+                        <span id="summaryAvailability"></span>
+                    </div>
+                    <div class="summary-box">
+                        Run
+                        <span id="summaryRun"></span>
+                    </div>
+                    <div class="summary-box">
+                        Idle
+                        <span id="summaryIdle"></span>
+                    </div>
+                    <div class="summary-box">
+                        Alarm
+                        <span id="summaryAlarm"></span>
+                    </div>
+                </div>
             </div>
-        </div>
-        <section id="machine-grid" class="machine-grid"></section> 
-    `;
-    const grid = container.querySelector('#machine-grid');
-    loadTodayShiftHistory();
+
+
+            <div class="shift-summary-panel">
+                <h2>Shift Availability</h2>
+                <div class="shift-trend-container">
+                    <canvas id="shiftTrendChart"></canvas>
+                </div>
+                <div id="shiftSummaryGrid" class="shift-summary-grid"></div>
+            </div>
+
+            <section id="machine-grid" class="machine-grid"></section>
+            `;
     
+    const shiftGrid = container.querySelector('#shiftSummaryGrid');
+    loadTodayShiftHistory();
+    summaryTimer = setInterval(() => {
+        updateFactorySummary(container);
+    }, 1000);
+
+    shiftTimer = setInterval(() => {
+        loadTodayShiftHistory();
+    }, 10000);
+    const grid = container.querySelector('#machine-grid');
     unsubscribe = scadaStore.subscribe(state => {
         const machines = Object.entries(state.machines); 
         const groups = {}; 
-        const summary = calculateShiftSummary(state); 
-
-        const summaryKPI = container.querySelector('#summaryKPI');
-
-        summaryKPI.innerHTML = `
-        <div class="summary-box">
-            Availability
-            <span class="${kpiClass(summary.availability)}">
-            ${summary.availability.toFixed(1)}%
-            </span>
-        </div>
-        <div class="summary-box">
-            Run
-            <span>${formatTime(summary.totalRun)}</span>
-        </div>
-        <div class="summary-box">
-            Idle
-            <span>${formatTime(summary.totalIdle)}</span>
-        </div>
-        <div class="summary-box">
-            Alarm
-            <span>${formatTime(summary.totalAlarm)}</span>
-        </div>
-        `;
-        
         machines.forEach(([id, m]) => {
             const [dept] = id.split('_'); 
             if (!groups[dept]) groups[dept] = []; 
             groups[dept].push([id, m]); 
         }); 
-
+        
         // 🔥 FIRST LOAD → build structure once 
         if (!initialized) {
             DEPT_ORDER.forEach(dept => {
@@ -5313,7 +5678,9 @@ export function productionOverviewMount(container) {
                 updateMachineCard(card, id, m); 
             } 
         }); 
-    }); 
+    });
+
+
     function statusClass(machine) {
         if (machine.status === 'OFFLINE') return 'offline'; 
         if (machine.alarms?.length) return 'alarm'; 
@@ -5368,7 +5735,7 @@ export function productionOverviewMount(container) {
                 </div>
                 
                 <div class="machine-availability-chart">
-                    <div class="availability-label">Availability <i class="fa-solid fa-caret-up" style="color: rgb(116, 192, 252);"></i> Run <i class="fa-solid fa-caret-down" style="color: rgb(236, 39, 39);"></i> Loss</div>
+                    <div class="availability-label">Run • Idle • Alarm • Offline</div>
                     <canvas></canvas>
                 </div>
             </div>
@@ -5381,19 +5748,62 @@ export function productionOverviewMount(container) {
         const chart = new Chart(ctx, {
             type: 'doughnut',
             data: {
-                labels: ['Run', 'Loss'],
+                labels: ['Run', 'Idle', 'Alarm', 'Offline'],
                 datasets: [{
-                    data: [0, 0]
+                    data: [0, 0, 0, 0],
+                    backgroundColor: [
+                        '#2ecc71', // Run (green)
+                        '#f1c40f', // Idle (yellow)
+                        '#e74c3c', // Alarm (red)
+                        '#7f8c8d'  // Offline (gray)
+                    ],
+                    borderWidth: 0
                 }]
             },
+            plugins: [centerTextPlugin],
             options: {
                 animation: false,
                 cutout: '70%',
-                plugins: { legend: { display: false } }
-            },
-            plugins: [centerTextPlugin] 
-        });
+                interaction: {
+                    mode: 'nearest',
+                    intersect: true
+                },
+                plugins: {
+                    legend: { display: false },
 
+                    tooltip: {
+                        enabled: true,
+                        external: null,
+                        z: 9999,
+                        callbacks: {
+
+                            label(context) {
+
+                                const value = context.raw;
+                                const data = context.dataset.data;
+
+                                const total = data.reduce((a, b) => a + b, 0);
+
+                                const percent = total
+                                    ? ((value / total) * 100).toFixed(1)
+                                    : 0;
+
+                                const label = context.label;
+
+                                const time = formatDuration(value);
+
+                                // return `${label}:${time}(${percent}%)`;
+                                return `${label}:${percent}%`;
+                            }
+
+                        }
+                    }
+
+                }
+
+            }
+            
+        });
         availabilityCharts.set(id, chart);
 
         card.addEventListener('click', () => {
@@ -5401,7 +5811,7 @@ export function productionOverviewMount(container) {
             window.location.hash =
                 `#production/machine_efficiency?dept=${dept}&machine=${machine}`;
         });
-
+        
         updateMachineCard(card, id, m);
         return card;
     }
@@ -5411,10 +5821,6 @@ export function productionOverviewMount(container) {
         const idle = m.shiftDurations?.idle_seconds || 0;
         const alarm = m.shiftDurations?.alarm_seconds || 0;
         const offline = m.shiftDurations?.offline_seconds || 0;
-
-        const planned = run + idle + alarm;
-        const available = run;
-        const notAvailable = planned - run;
 
         // 🔹 Update classes
         card.className = `machine-card ${statusClass(m)}`;
@@ -5464,15 +5870,35 @@ export function productionOverviewMount(container) {
         // 🔹 Update chart only
         const chart = availabilityCharts.get(id);
         if (chart) {
-            chart.data.datasets[0].data = [available, notAvailable];
+            // chart.data.datasets[0].data = [available, notAvailable];
+            chart.data.datasets[0].data = [
+                run,
+                idle,
+                alarm,
+                offline
+            ];            
             chart.update('none');
         }
     }
 } 
 export function productionOverviewUnmount() {
- if (unsubscribe) unsubscribe(); 
-}
 
+    if (unsubscribe) unsubscribe();
+
+    if (summaryTimer) clearInterval(summaryTimer);
+    if (shiftTimer) clearInterval(shiftTimer);
+
+    if (shiftTrendChart) {
+        shiftTrendChart.destroy();
+        shiftTrendChart = null;
+    }
+
+    availabilityCharts.forEach(chart => chart.destroy());
+    availabilityCharts.clear();
+
+    initialized = false;
+    shiftWindow = null;
+}
 
 // --------------- Machine Efficiency page --------------- //
 let efficiencyUnsubscribe = null; 
@@ -5821,6 +6247,7 @@ export function productionStaffManagementView() {
     </div>
   `;
 }
+
 ```
 
 ### main.css
@@ -6093,6 +6520,129 @@ li.sub-menu.open > a > .arrow {
   height: 200px !important;
 }
 
+/* ===== Production Overview Page : Shift Availability ===== */
+.shift-summary-panel {
+  background: rgb(255, 255, 255);
+  padding: 16px;
+  border-radius: 12px;
+  margin-bottom: 16px;
+}
+.shift-summary-panel h2 {
+  margin-block-end: 2px;
+  margin-block-start: 2px;
+}
+.shift-column {
+  border: 2px solid rgba(104, 101, 101, 0.5);
+  border-radius: 8px;
+  padding: 8px;
+  background: #ffffff;
+}
+.current-shift {
+  border: 2px solid #4cafef;
+  border-radius: 8px;
+  padding: 8px;
+  background: #f0f8ff;
+}
+.shift-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+  margin-top: 10px;
+}
+
+.dept-row {
+  display: grid;
+  grid-template-columns: 45px 1fr 110px;
+  gap : 5px;
+  align-items: center;
+  margin-bottom: 6px;
+}
+.dept-name {
+  font-weight: 500;
+}
+/* Dept Bar */
+.dept-bar {
+  height: 10px;
+  background: #eee;
+  border-radius: 6px;
+  overflow: hidden;
+}
+.dept-bar-fill {
+  height: 100%;
+  background: #4cafef;
+  transition: width 0.6s ease;
+}
+.dept-percent {
+  text-align: right;
+  font-weight: 600;
+}
+/* Arrow Trend */
+.trend-up {
+  color: #4caf50;
+  font-size: 12px;
+  margin-left: 1px;
+}
+.trend-down {
+  color: #ff5252;
+  font-size: 12px;
+  margin-left: 1px;
+}
+.trend-flat {
+  color: #bbb;
+  font-size: 12px;
+  margin-left: 6px;
+}
+/* Shift Details */
+.shift-header {
+  display: grid;
+  grid-template-columns: auto 1fr 1fr 1fr;
+  margin-bottom: 8px;
+
+}
+.shift-title {
+  font-weight: 700;
+  font-size: 16px;
+  margin-left: 5px;
+}
+.shift-date {
+  font-size: 12px;
+  color: #666;
+}
+.shift-time {
+  font-size: 11px;
+  color: #999;
+}
+.shift-badge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-bottom: 2px;
+}
+/* Shift Badges */
+.badge-current {
+  background: #4cafef;
+  color: white;
+}
+.badge-previous {
+  background: #7e8bb6;
+  color: white;
+}
+.badge-old {
+  background: #bbb;
+  color: white;
+}
+.badge-older {
+  background: #ddd;
+  color: #444;
+}
+/* Line Chart */
+.shift-trend-container{
+    height:140px;
+    margin-bottom:10px;
+}
+
 /* ===== Production Overview Page : Departments header ===== */
 .department-section {
   margin-bottom: 2rem;
@@ -6122,7 +6672,9 @@ li.sub-menu.open > a > .arrow {
   background: #ffffff;
   box-shadow: 0 6px 18px rgba(0,0,0,0.08);
   transition: all 0.25s ease;
-  overflow: hidden;
+  /* overflow: hidden; */
+  z-index: 1;
+  overflow: visible;
 }
 /* Hover Lift */
 .machine-card:hover {
@@ -6333,15 +6885,19 @@ li.sub-menu.open > a > .arrow {
   font-weight: 600;
 }
 .machine-availability-chart {
+  position: relative;
+  z-index: 10;
   width: 100%;
   height: auto;
   margin: 0;
   justify-items: center;
+  overflow: visible;
 }
 .machine-availability-chart canvas {
   width: auto !important;
   height: 100px !important;
   text-align: center;
+  overflow: visible;
 }
 .availability-label{
   text-align: right;
@@ -6351,6 +6907,7 @@ li.sub-menu.open > a > .arrow {
   margin-bottom: 2px;
   margin-top: 0px;
 }
+
 /*last update */
 .machine-footer {
   margin-top: 8px;
@@ -6362,8 +6919,6 @@ li.sub-menu.open > a > .arrow {
   display: flex;
   justify-content: flex-end;
 }
-
-
 
 /* ===== Page Machine efficiency ===== */
 .filter-bar {

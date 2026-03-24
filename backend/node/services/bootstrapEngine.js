@@ -98,6 +98,26 @@ async function hydrate() {
           offline_seconds: 0
         };
       }
+      // Inside the for (const m of machines) loop, after you get `normalized`:
+
+      // 🔥 Load last 30 cycle times for this machine
+      const [cycleRows] = await pool.query(
+        `
+        SELECT cycle_time, timestamp
+        FROM ${table}
+        WHERE machine = ?
+          AND cycle_time > 0
+        ORDER BY id_row DESC
+        LIMIT 30
+        `,
+        [m.machine]
+      );
+
+      // Reverse so oldest → newest (chart renders left to right)
+      normalized.cycleHistory = cycleRows
+        .reverse()
+        .map(r => ({ v: r.cycle_time, t: r.timestamp }));
+
       // 🔥 IMPORTANT: use plcEngine only
       plcEngine.processUpdate(normalized);
     }

@@ -6,12 +6,9 @@ const shiftEngine = require('./shiftEngine');
 function processUpdate(payload) {
 
   const { department, machine, metrics = {}, context = {}, timestamp } = payload;
-
   const key = `${department.toLowerCase()}_${machine}`;
   const machineState = stateStore.getPlc(key) || {};
-  
   const now = Date.now();
-
   const newStatus = stateStore.deriveStatus(department, metrics);
 
   let durations =
@@ -23,9 +20,20 @@ function processUpdate(payload) {
       offline_seconds: 0
     };
 
-
   const shiftInfo = shiftEngine.getShiftInfo(now);
+  // 🔥 Build cycleHistory: start from existing, or seed from bootstrap payload
+  let cycleHistory = machineState.cycleHistory ?? payload.cycleHistory ?? [];
 
+  // Push new entry only if cycle_time is valid and changed
+  const newCycleTime = metrics.cycle_time;
+  const lastEntry = cycleHistory[cycleHistory.length - 1];
+
+  if (newCycleTime > 0 && newCycleTime !== lastEntry?.v) {
+    cycleHistory = [
+      ...cycleHistory,
+      { v: newCycleTime, t: timestamp }
+    ].slice(-30); // keep only last 30
+  }
   const updated = {
     department,
     machine,
@@ -42,9 +50,8 @@ function processUpdate(payload) {
     context,
     tags: metrics
   };
-
-  stateStore.updatePlcBase(key, updated);
-
+    stateStore.updatePlcBase(key, updated);
+  // stateStore.upd
   shiftEngine.detectAndHandleShift(key);
 }
 

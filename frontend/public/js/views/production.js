@@ -651,7 +651,8 @@ export function productionOverviewMount(container) {
 
                                 const time = formatDuration(value);
 
-                                return `${label}:${time}(${percent}%)`;
+                                // return `${label}:${time}(${percent}%)`;
+                                return `${label}:${percent}%`;
                             }
 
                         }
@@ -757,11 +758,7 @@ export function productionOverviewUnmount() {
     initialized = false;
     shiftWindow = null;
 }
-// Make the whole dashboard update with ONE 1-second loop
 
-// Instead of multiple updates (cards, summary, timers).
-
-// This will make your system scale to 200+ machines without lag.
 // --------------- Machine Efficiency page --------------- //
 let efficiencyUnsubscribe = null; 
 let stopwatchInterval = null; 
