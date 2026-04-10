@@ -391,9 +391,6 @@ export function productionMachineEfficiencyUnmount() {
 }
 
 
-
-
-
 export function productionProductionHistoryView() {
   return `
     <div class="card">

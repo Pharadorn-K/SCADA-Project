@@ -1,5 +1,4 @@
 # backend/python/utils/db_writer.py
-
 # --- fatten data ---
 def flatten_press_event(data):
     return {

@@ -22,7 +22,9 @@ export const routes = {
       unmount: Production.productionMachineEfficiencyUnmount
     },
     production_history: {
-      view: Production. productionProductionHistoryView
+      view: Production. productionProductionHistoryView,
+      mount: Production. productionProductionHistoryMount,
+      unmount: Production. productionProductionHistoryUnmount
     },
     staff_management: {
       view: Production.productionStaffManagementView
@@ -31,11 +33,11 @@ export const routes = {
 
   maintenance: {
     overview: {
-      plant1: { view: Maintenance.plant1View },
-      plant2: { view: Maintenance.plant2View }
+      plant1: { view: Maintenance.maintenanceplant1View },
+      plant2: { view: Maintenance.maintenanceplant2View }
     },
-    request: { view: Maintenance.requestView },
-    report: { view: Maintenance.reportView }
+    request: { view: Maintenance.maintenancerequestView },
+    report: { view: Maintenance.maintenancereportView }
   },
 
   admin: {

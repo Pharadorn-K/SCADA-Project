@@ -89,16 +89,20 @@ export const scadaStore = {
         ...(payload.context || {})
       },
 
+      // tags: {
+      //   ...prev.tags,
+      //   ...(payload.metrics.cycle_time !== undefined && {cycle_time: payload.metrics.cycle_time}),
+      //   ...(payload.metrics.count_shift !== undefined && {count_shift: payload.metrics.count_shift})
+      // },
+      
       tags: {
         ...prev.tags,
-        ...(payload.metrics.cycle_time !== undefined && {
-          cycle_time: payload.metrics.cycle_time
-        }),
-        ...(payload.metrics.count_shift !== undefined && {
-          count_shift: payload.metrics.count_shift
-        })
+        ...Object.fromEntries(
+          Object.entries(payload.metrics ?? {})
+            .filter(([_, v]) => v !== undefined && v !== null)
+        )
       },
-
+      
       cycleHistory: payload.cycleHistory ?? prev.cycleHistory ?? [],
 
       alarms: payload.metrics.alarm

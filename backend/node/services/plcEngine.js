@@ -21,11 +21,14 @@ function processUpdate(payload) {
     };
 
   const shiftInfo = shiftEngine.getShiftInfo(now);
-  // 🔥 Build cycleHistory: start from existing, or seed from bootstrap payload
-  let cycleHistory = machineState.cycleHistory ?? payload.cycleHistory ?? [];
 
+  let cycleHistory = machineState.cycleHistory?.length
+    ? machineState.cycleHistory
+    : (payload.cycleHistory ?? []);
   // Push new entry only if cycle_time is valid and changed
-  const newCycleTime = metrics.cycle_time;
+  // const newCycleTime = metrics.cycle_time;
+  const prevCycleTime = machineState.tags?.cycle_time;
+  const newCycleTime = metrics.cycle_time ?? prevCycleTime;
   const lastEntry = cycleHistory[cycleHistory.length - 1];
 
   if (newCycleTime > 0 && newCycleTime !== lastEntry?.v) {
@@ -34,6 +37,7 @@ function processUpdate(payload) {
       { v: newCycleTime, t: timestamp }
     ].slice(-30); // keep only last 30
   }
+  const prevTags = machineState.tags || {};
   const updated = {
     department,
     machine,
@@ -48,11 +52,19 @@ function processUpdate(payload) {
     timestamp: new Date(timestamp).getTime(),
     lastUpdate: now,
     context,
-    tags: metrics
+    cycleHistory,
+    tags: {
+      ...prevTags,  // ← preserve cycle_time, count_shift from hydration
+      ...Object.fromEntries(
+        Object.entries(metrics).filter(([_, v]) => v !== undefined && v !== null)
+      )
+    }
   };
-    stateStore.updatePlcBase(key, updated);
-  // stateStore.upd
+
+  stateStore.updatePlcBase(key, updated);
   shiftEngine.detectAndHandleShift(key);
+  // console.log('metrics:', metrics);
+  // console.log('cycle_time:', metrics.cycle_time);
 }
 
 module.exports = { processUpdate };

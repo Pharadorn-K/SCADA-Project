@@ -18,7 +18,7 @@ export function renderSidebar(role) {
 
       <li class="sub-menu">
         <a href="javascript:void(0);" data-title="Production">
-          <i class="fa fa-table"></i><span>Production</span>
+          <i class="fa fa-chart-pie"></i><span>Production</span>
           <i class="arrow fa fa-angle-right"></i>
         </a>
         <ul>
@@ -31,14 +31,14 @@ export function renderSidebar(role) {
 
       <li class="sub-menu">
         <a href="javascript:void(0);" data-title="Maintenance">
-          <i class="fa fa-tasks"></i><span>Maintenance</span>
+          <i class="fa fa-toolbox"></i><span>Maintenance</span>
           <i class="arrow fa fa-angle-right"></i>
         </a>
 
         <ul>
           <li class="sub-menu">
             <a href="javascript:void(0);" data-title="Overview machine">
-              <i class="fa fa-desktop"></i><span>Overview machine</span>
+              <span>Overview machine</span>
               <i class="arrow fa fa-angle-right"></i>
             </a>
 
@@ -56,7 +56,7 @@ export function renderSidebar(role) {
       ${role === 'admin' ? `
       <li class="sub-menu">
         <a href="javascript:void(0);" data-title="Admin">
-          <i class="fa fa-cog"></i><span>Admin</span>
+          <i class="fa fa-computer"></i><span>Admin</span>
           <i class="arrow fa fa-angle-right"></i>
         </a>
         <ul>

@@ -571,8 +571,8 @@ def heat_clean(_db_pool,all_department,all_machine,all_data,data,clean_db_q,broa
                         },
 
                         "metrics": {
-                            "run": status_check[7],
-                            "heat": status_check[8],
+                            "run":  overright,
+                            "heat":  overright,
                             "count_signal": status_check[9],
                             "idle": status_check[10],
                             "setting": status_check[11],

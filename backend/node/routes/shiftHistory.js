@@ -104,7 +104,7 @@ router.get('/', async (req, res) => {
 
     });
 
-    const lastShifts = shiftArray.slice(0, 10);
+    const lastShifts = shiftArray.slice(0, 18);
     const shiftInfo = getShiftInfo();
     res.json({
       success: true,

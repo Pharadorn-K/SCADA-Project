@@ -91,11 +91,6 @@ async function openNewShiftForMachine(machine, now) {
     console.error("Error saving machine shift", e);
   }
 
-  // create new zero row immediately
-  // await persistenceEngine.saveMachineShift({
-  //   ...machine,
-  //   availability: 0
-  // });
 }
 
 async function processShiftBoundary() {
