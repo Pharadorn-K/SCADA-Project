@@ -12,7 +12,7 @@ export function renderSidebar(role) {
 
       <li>
         <a data-page="home" data-title="Home">
-          <i class="fa fa-dashboard"></i><span>Home</span>
+          <i class="fa-regular fa-house"></i><span>Home</span>
         </a>
       </li>
 
@@ -62,6 +62,7 @@ export function renderSidebar(role) {
         <ul>
           <li><a data-page="admin.alarm">Alarm Handle</a></li>
           <li><a data-page="admin.database">Database</a></li>
+          <li><a data-page="admin.roadmap">Project roadmap</a></li>
         </ul>
       </li>` : ''}
 

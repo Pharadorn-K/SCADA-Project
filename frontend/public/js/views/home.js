@@ -309,6 +309,10 @@ export function homeView() {
         <h3>Active alarms</h3>
         <div id="home-alarm-list" class="home-alarm-list"></div>
       </div>
+      <div class="detail-plant-container">
+        <h3>Summary count</h3>
+        <div id="home-production-count" class="home-production-count"></div>
+      </div>
     </div>
 
   </div>
@@ -435,7 +439,68 @@ export function homeMount() {
         `).join('');
       }
     }
+    // right panel — production count
+    const productionEl = document.getElementById('home-production-count');
+    if (productionEl) {
+      const machines = Object.values(state.machines);
+
+      // group → machineType → department → machines[]
+      const grouped = {};
+
+      machines.forEach(m => {
+        const type = m.machineType || 'Unknown';
+        const dept = m.department || 'Unknown';
+
+        if (!grouped[type]) grouped[type] = {};
+        if (!grouped[type][dept]) grouped[type][dept] = [];
+
+        grouped[type][dept].push(m);
+      });
+
+      productionEl.innerHTML = Object.entries(grouped).map(([type, depts]) => {
+        return `
+          <div class="prod-type">
+            <div class="prod-type-title">[${type}]</div>
+
+            ${Object.entries(depts).map(([dept, list]) => {
+              if (!list.length) {
+                return `
+                  <div class="prod-dept">
+                    <div class="prod-dept-title">${dept}</div>
+                    <div class="prod-empty">- empty</div>
+                  </div>
+                `;
+              }
+
+              return `
+                <div class="prod-dept">
+                  <div class="prod-dept-title">${dept}</div>
+                  <div class="prod-badge-wrap">
+                    ${list.map(m => {
+                      const id    = `${m.department.toLowerCase()}_${m.machine}`;
+                      const label = MACHINE_REGISTRY[id]?.label ?? m.machine;
+                      const part  = m.context?.part_name ?? '--';
+                      const count = m.tags?.count_shift ?? 0;
+                      const plan  = m.context?.plan ?? 0;
+
+                      return `
+                        <div class="prod-badge" onclick="handleMachineClick('${id}')">
+                          <div class="pb-name">${label}</div>
+                          <div class="pb-part">${part}/<span class="pb-count">${count}/${plan}</span></div>
+                        </div>
+                      `;
+                    }).join('')}
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        `;
+      }).join('');
+    }    
+
   });
+
 
   // ── pan / zoom (same logic as before) ───────────────────────────────────
   const svg      = document.getElementById('plant-layout');

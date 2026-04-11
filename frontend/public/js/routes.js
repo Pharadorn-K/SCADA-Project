@@ -50,7 +50,13 @@ export const routes = {
     database: {
       view: Admin.adminDatabaseView,
       role: 'admin'
-    }
+    },
+  roadmap: {                           // ← ADD THIS
+    view: Admin.adminRoadmapView,
+    mount: Admin.adminRoadmapMount,
+    unmount: Admin.adminRoadmapUnmount,
+    role: 'admin'
+  }
   }
 
 };
