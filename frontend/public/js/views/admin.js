@@ -48,158 +48,310 @@ function updateUIFromStatus(status) {
 // ---------------- Alarm Page ---------------- // 
 export function adminAlarmView() {
   return `
-      <h1>⚙️ Admin Panel</h1>
-      <p>Manage PLC and view real-time data.</p>
-      <div class="card">
-        <strong>Status:</strong>
+    <div class="h-pd-overview"><h1>Admin panel</h1></div>
+
+    <div class="adm-control-bar">
+      <div class="adm-status-group">
+        <span class="adm-status-label">PLC status</span>
         <span id="plc-badge" class="badge badge-gray">UNKNOWN</span>
       </div>
+      <div class="adm-btn-group">
+        <button id="btn-start" class="adm-btn adm-btn-green">Start</button>
+        <button id="btn-stop"  class="adm-btn adm-btn-red">Stop</button>
+      </div>
+      <div class="adm-write-group">
+        <input id="write-tag"   class="adm-input" placeholder="Tag e.g. B10" value="B10"/>
+        <input id="write-value" class="adm-input adm-input-sm" type="number" value="1"/>
+        <button id="btn-write"  class="adm-btn">Write tag</button>
+      </div>
+    </div>
 
-      <div class="card">
-        <button id="btn-start">▶️ Start</button>
-        <button id="btn-stop">⏹️ Stop</button>
-        <input id="write-tag" placeholder="Tag" value="B10">
-        <input id="write-value" type="number" value="1">
-        <button id="btn-write">✍️ Write</button>
+    <div class="adm-panels">
+
+      <div class="adm-panel">
+        <div class="adm-panel-head">
+          <span class="adm-panel-title">Active alarms</span>
+          <div class="adm-filter-row">
+            <label class="adm-filter-label">Range</label>
+            <select id="alarm-range" class="adm-select">
+              <option value="15">Last 15 min</option>
+              <option value="30">Last 30 min</option>
+              <option value="60" selected>Last 1 hr</option>
+              <option value="480">Last 8 hrs</option>
+              <option value="1440">Last 24 hrs</option>
+            </select>
+          </div>
+        </div>
+        <ul id="alarm-list" class="adm-alarm-list"></ul>
       </div>
 
-      <div class="card">
-        <label>Alarm History Range:</label>
-        <select id="alarm-range">
-          <option value="15">Last 15 minutes</option>
-          <option value="30">Last 30 minutes</option>
-          <option value="60" selected>Last 1 hour</option>
-          <option value="480">Last 8 hours</option>
-          <option value="1440">Last 24 hours</option>
-        </select>
-      </div>      
-
-      <div class="card">
-        <h3>🚨 Active Alarms</h3>
-        <ul id="alarm-list" class="alarm-list"></ul>
+      <div class="adm-panel">
+        <div class="adm-panel-head">
+          <span class="adm-panel-title">Alarm history</span>
+          <div class="adm-filter-row">
+            <input type="date" id="hist-from" class="adm-input adm-input-date"/>
+            <span class="adm-filter-label">to</span>
+            <input type="date" id="hist-to"   class="adm-input adm-input-date"/>
+            <label class="adm-check-label">
+              <input type="checkbox" id="hist-today" checked/>
+              Today
+            </label>
+          </div>
+        </div>
+        <ul id="alarm-history" class="adm-alarm-list"></ul>
       </div>
 
-      <div class="card">
-        <h3>🧾 Alarm History</h3>
-        <ul id="alarm-history" class="alarm-history"></ul>
+    </div>
+    <div class="adm-panel adm-sessions-panel">
+      <div class="adm-panel-head">
+        <span class="adm-panel-title">Active sessions</span>
+        <span id="session-count" class="adm-tag adm-tag-info">0 online</span>
       </div>
+      <div id="session-list" class="adm-session-list"></div>
+    </div>
   `;
 }
 export async function adminAlarmMount() {
-  // Initial status fetch
   const status = await refreshPlcStatus();
-  const alarmList = document.getElementById('alarm-list');
   updateUIFromStatus(status);
 
+  // ── PLC controls ──────────────────────────────────────────────────────
   document.getElementById('btn-start').addEventListener('click', async () => {
     await sendPlcCommand('start');
-    const status = await refreshPlcStatus();
-    updateUIFromStatus(status);
+    updateUIFromStatus(await refreshPlcStatus());
   });
 
   document.getElementById('btn-stop').addEventListener('click', async () => {
     await sendPlcCommand('stop');
-    const status = await refreshPlcStatus();
-    updateUIFromStatus(status);
+    updateUIFromStatus(await refreshPlcStatus());
   });
 
   document.getElementById('btn-write').addEventListener('click', () => {
-    const tag = document.getElementById('write-tag').value;
+    const tag   = document.getElementById('write-tag').value.trim();
     const value = parseInt(document.getElementById('write-value').value);
+    if (!tag) return;
     sendPlcCommand('write', { tag, value });
   });
 
-  function handleAlarmEvent(msg) {
-    if (msg.type !== 'alarm_event') return;
-    loadAlarms(); // re-render list instantly
-  }
-
-  alarmList.onclick = async (e) => {
-    if (!e.target.classList.contains('ack-btn')) return;
-
-    const id = e.target.dataset.id;
-
-    await fetch(`/api/alarms/ack/${id}`, {
-      method: 'POST',
-      credentials: 'same-origin'
-    });
-
-    loadAlarms();
-  };
-
-  async function loadAlarms() {
+  // ── Active alarms ─────────────────────────────────────────────────────
+  async function loadActiveAlarms() {
     const rangeMin = document.getElementById('alarm-range')?.value || 60;
+    const since    = Date.now() - rangeMin * 60 * 1000;
+    const listEl   = document.getElementById('alarm-list');
 
-    const from = new Date(Date.now() - rangeMin * 60 * 1000).toISOString();
-
-    const res = await fetch(
-      `/api/alarm-history?from=${encodeURIComponent(from)}`,
-      { credentials: 'same-origin' }
-    );
-
-    if (!res.ok) {
-      alarmList.innerHTML = '<li>No alarm access</li>';
-      return;
-    }
+    // /api/alarms returns the live alarmService array with acknowledged field
+    const res = await fetch('/api/alarms', { credentials: 'same-origin' });
+    if (!res.ok) { listEl.innerHTML = '<li class="adm-empty">No access</li>'; return; }
 
     const alarms = await res.json();
 
-    if (!Array.isArray(alarms)) return;
+    // filter by time window — alarm.id is a timestamp (Date.now())
+    const filtered = alarms
+      .filter(a => a.id >= since)
+      .sort((a, b) => b.id - a.id);
 
-    alarmList.innerHTML = alarms
-      .slice()
-      .reverse()
-      .map(a => `
-        <li class="alarm ${a.severity.toLowerCase()}">
-          <strong>${a.code}</strong>
-          <span>${a.message}</span>
-          <small>${new Date(a.ts).toLocaleString()}</small>
-        </li>
-      `)
-      .join('');
-  }
-
-  async function loadAlarmHistory() {
-    const el = document.getElementById('alarm-history');
-
-    const res = await fetch('/api/alarm-history', {
-      credentials: 'same-origin'
-    });
-
-    if (!res.ok) {
-      el.innerHTML = '<li>No access</li>';
+    if (!filtered.length) {
+      listEl.innerHTML = '<li class="adm-empty">No alarms in this range</li>';
       return;
     }
 
-    const logs = await res.json();
-
-    el.innerHTML = logs
-      .slice()
-      .reverse()
-      .map(l => `
-        <li class="alarm ${l.severity.toLowerCase()}">
-          <strong>${l.code}</strong>
-          <span>${l.message}</span>
-          <small>${new Date(l.ts).toLocaleString()}</small>
-        </li>
-      `)
-      .join('');
+    listEl.innerHTML = filtered.map(a => `
+      <li class="adm-alarm-item sev-${a.severity.toLowerCase()}">
+        <div class="adm-alarm-main">
+          <span class="adm-alarm-code">${a.code}</span>
+          <span class="adm-alarm-msg">${a.message}</span>
+          <span class="adm-alarm-time">${new Date(a.id).toLocaleTimeString()}</span>
+        </div>
+        <div class="adm-alarm-meta">
+          ${a.cleared
+            ? `<span class="adm-tag adm-tag-cleared">Cleared ${new Date(a.clearTime).toLocaleTimeString()}</span>`
+            : `<span class="adm-tag adm-tag-active">Active</span>`
+          }
+          ${a.acknowledged
+            ? `<span class="adm-tag adm-tag-acked">Acked by ${a.ackBy}</span>`
+            : `<button class="adm-ack-btn" data-id="${a.id}">Acknowledge</button>`
+          }
+        </div>
+      </li>
+    `).join('');
   }
-  const ws = scadaStore.ws;
-  ws.addEventListener('message', (event) => {
-    const msg = JSON.parse(event.data);
-    handleAlarmEvent(msg);
+
+  // Ack click — delegate on the list
+  document.getElementById('alarm-list').addEventListener('click', async e => {
+    const btn = e.target.closest('.adm-ack-btn');
+    if (!btn) return;
+    await fetch(`/api/alarms/ack/${btn.dataset.id}`, {
+      method: 'POST',
+      credentials: 'same-origin'
+    });
+    loadActiveAlarms();
   });
 
-  document.getElementById('alarm-range')
-  .addEventListener('change', loadAlarms);
+  document.getElementById('alarm-range').addEventListener('change', loadActiveAlarms);
 
-  await loadAlarms();
-  await loadAlarmHistory();
+  // ── Alarm history ─────────────────────────────────────────────────────
+  function todayISO() {
+    return new Date().toISOString().split('T')[0];
+  }
 
+  // initialise date pickers to today
+  const fromEl    = document.getElementById('hist-from');
+  const toEl      = document.getElementById('hist-to');
+  const todayChk  = document.getElementById('hist-today');
+  fromEl.value    = todayISO();
+  toEl.value      = todayISO();
+
+  todayChk.addEventListener('change', () => {
+    if (todayChk.checked) {
+      fromEl.value      = todayISO();
+      toEl.value        = todayISO();
+      fromEl.disabled   = true;
+      toEl.disabled     = true;
+    } else {
+      fromEl.disabled   = false;
+      toEl.disabled     = false;
+    }
+    loadHistory();
+  });
+
+  // lock pickers when today is checked on mount
+  fromEl.disabled = true;
+  toEl.disabled   = true;
+
+  fromEl.addEventListener('change', loadHistory);
+  toEl.addEventListener('change',   loadHistory);
+
+  async function loadHistory() {
+    const histEl = document.getElementById('alarm-history');
+    const from   = fromEl.value ? new Date(fromEl.value + 'T00:00:00').toISOString() : null;
+    const to     = toEl.value   ? new Date(toEl.value   + 'T23:59:59').toISOString() : null;
+
+    const params = new URLSearchParams({ limit: 200 });
+    if (from) params.set('from', from);
+    if (to)   params.set('to',   to);
+
+    const res = await fetch(`/api/alarm-history?${params}`, { credentials: 'same-origin' });
+    if (!res.ok) { histEl.innerHTML = '<li class="adm-empty">No access</li>'; return; }
+
+    const logs = await res.json();
+
+    if (!logs.length) {
+      histEl.innerHTML = '<li class="adm-empty">No history in this range</li>';
+      return;
+    }
+
+    histEl.innerHTML = [...logs].reverse().map(l => `
+      <li class="adm-alarm-item sev-${l.severity.toLowerCase()}">
+        <div class="adm-alarm-main">
+          <span class="adm-alarm-code">${l.code ?? '--'}</span>
+          <span class="adm-alarm-msg">${l.message}</span>
+          <span class="adm-alarm-time">${new Date(l.ts).toLocaleString()}</span>
+        </div>
+      </li>
+    `).join('');
+  }
+
+  // ── WebSocket — auto-refresh both panels on new alarm ─────────────────
+  const ws = scadaStore.ws;
+  // function handleAlarmWs(event) {
+  //   const msg = JSON.parse(event.data);
+  //   if (msg.type !== 'alarm_event') return;
+  //   loadActiveAlarms();
+  //   loadHistory();
+  // }
+  ws.addEventListener('message', handleAlarmWs);
+
+  // store cleanup ref
+  adminAlarmMount._wsCleanup = () => ws.removeEventListener('message', handleAlarmWs);
+// inside adminAlarmMount(), add after the WS handler setup:
+
+// ── Sessions ──────────────────────────────────────────────────────────
+async function loadSessions() {
+  const res = await fetch('/api/auth/sessions', { credentials: 'same-origin' });
+  if (!res.ok) return;
+  renderSessions(await res.json());
 }
+
+function renderSessions(sessions) {
+  const listEl   = document.getElementById('session-list');
+  const countEl  = document.getElementById('session-count');
+  if (!listEl) return;
+
+  countEl.textContent = `${sessions.length} online`;
+
+  if (!sessions.length) {
+    listEl.innerHTML = '<div class="adm-empty">No active sessions</div>';
+    return;
+  }
+
+  const now = Date.now();
+
+  listEl.innerHTML = sessions.map(s => {
+    const loginAgo    = formatSessionAge(now - s.loginAt);
+    const idleMs      = now - s.lastSeenAt;
+    const idleSec     = Math.floor(idleMs / 1000);
+    const isLong      = s.loginAt && (now - s.loginAt) > (8 * 3600 * 1000);
+    const isIdle      = idleSec > 300; // idle > 5 min
+    const idleLabel   = formatSessionAge(idleMs);
+
+    return `
+      <div class="adm-session-row ${isLong ? 'session-long' : ''} ${isIdle ? 'session-idle' : ''}">
+        <div class="adm-session-avatar">${s.userId.slice(0,2).toUpperCase()}</div>
+        <div class="adm-session-info">
+          <div class="adm-session-name">
+            ${s.userId}
+            <span class="adm-tag ${s.role === 'admin' ? 'adm-tag-admin' : 'adm-tag-op'}">${s.role}</span>
+            ${isLong ? '<span class="adm-tag adm-tag-warn">Long session</span>' : ''}
+          </div>
+          <div class="adm-session-meta">
+            Logged in ${loginAgo} ago
+            &nbsp;·&nbsp;
+            ${isIdle
+              ? `<span style="color:#BA7517">Idle ${idleLabel}</span>`
+              : `Active ${idleLabel} ago`
+            }
+          </div>
+        </div>
+        <div class="adm-session-dot ${isIdle ? 'dot-idle' : 'dot-active'}"></div>
+      </div>
+    `;
+  }).join('');
+}
+
+function formatSessionAge(ms) {
+  const s = Math.floor(ms / 1000);
+  if (s < 60)   return `${s}s`;
+  const m = Math.floor(s / 60);
+  if (m < 60)   return `${m}m`;
+  const h = Math.floor(m / 60);
+  if (h < 24)   return `${h}h ${m % 60}m`;
+  return `${Math.floor(h / 24)}d`;
+}
+
+// wire WS session updates into the existing handler:
+// replace the handleAlarmWs function with:
+function handleAlarmWs(event) {
+  const msg = JSON.parse(event.data);
+  if (msg.type === 'alarm_event') {
+    loadActiveAlarms();
+    loadHistory();
+  }
+  if (msg.type === 'session_update') {
+    renderSessions(msg.sessions);
+  }
+}
+
+  // initial load
+  await loadSessions();
+  await loadActiveAlarms();
+  await loadHistory();
+}
+
 export function adminAlarmUnmount() {
-  if (alarmTimer) clearInterval(alarmTimer);
+  if (adminAlarmMount._wsCleanup) {
+    adminAlarmMount._wsCleanup();
+    delete adminAlarmMount._wsCleanup;
+  }
 }
 
 // ---------------- Database Page ---------------- // 
@@ -542,6 +694,7 @@ export function adminRoadmapMount(container) {
     const btn = document.createElement('button');
     btn.textContent = t.label;
     btn.dataset.tab = t.id;
+    btn.className = 'rm-tab';
     btn.style.cssText = `background:none;border:none;border-bottom:2px solid transparent;
       padding:8px 14px;font-size:13px;cursor:pointer;color:var(--color-text-secondary);
       margin-bottom:-1px;transition:color .15s,border-color .15s;`;
@@ -576,17 +729,17 @@ export function adminRoadmapMount(container) {
 
   // panel: architecture
   const archPanel = panels['arch'].panel;
-  archPanel.innerHTML = svgArchitecture;
+  archPanel.innerHTML = `<div class="rm-svg">${svgArchitecture}</div>`;// svgArchitecture;
   page.appendChild(archPanel);
 
   // panel: data flow
   const flowPanel = panels['flow'].panel;
-  flowPanel.innerHTML = svgDataFlow;
+  flowPanel.innerHTML = `<div class="rm-svg">${svgDataFlow}</div>`;// svgDataFlow;
   page.appendChild(flowPanel);
 
   // panel: frontend routing
   const fePanel = panels['frontend'].panel;
-  fePanel.innerHTML = svgFrontend;
+  fePanel.innerHTML = `<div class="rm-svg">${svgFrontend}</div>`;//svgFrontend;
   page.appendChild(fePanel);
 
   // panel: file reference

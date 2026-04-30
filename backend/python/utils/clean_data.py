@@ -461,12 +461,15 @@ def heat_clean(_db_pool,all_department,all_machine,all_data,data,clean_db_q,broa
             for list_data in range(len(machine_data)):
                 status_check = machine_data[list_data].copy()  
                 status_check[point_int[0]] = 0
+                # print("🟡 Heat Clean Data:",status_check)
                 if status_check[point_int[1]:point_int[2]] != compare_heat_status[list_data]:
                     cycle_time = 0
                     count_shift = 0
                     skip_idle_check[list_data] = 1
                     compare_heat_status[list_data] = status_check[point_int[1]:point_int[2]]
-                    compare_heat_time[list_data] = status_check[0]         
+                    compare_heat_time[list_data] = status_check[0]                       
+                    if status_check[7] == 1 or status_check[8] == 1 and status_check[10] == 1:
+                        status_check[10] = 0
                     clean_db_q.put({
                         "event": "plc_clean",
                         "source": "clean_heat",
@@ -521,7 +524,7 @@ def heat_clean(_db_pool,all_department,all_machine,all_data,data,clean_db_q,broa
                             # "count_shift": count_shift
                         }
                     })
-                elif status_check[point_int[1]:point_int[2]] == compare_heat_status[list_data] and status_check[10] == 1:
+                elif sum(status_check[7:15]) > 0 and status_check[13] == 0:
                     detect_idle = (status_check[0]-compare_heat_time[list_data]).total_seconds()
                     if detect_idle > 140 and skip_idle_check[list_data] != 0:
                         print(status_check[0],status_check[2],detect_idle,skip_idle_check,"idle by time detected")
@@ -529,6 +532,7 @@ def heat_clean(_db_pool,all_department,all_machine,all_data,data,clean_db_q,broa
                         cycle_time = 0
                         count_shift = 0
                         overright = 0
+                        overleft = 1
                         clean_db_q.put({
                         "event": "plc_clean",
                         "source": "clean_heat",
@@ -547,7 +551,7 @@ def heat_clean(_db_pool,all_department,all_machine,all_data,data,clean_db_q,broa
                             "run": overright,
                             "heat": overright,
                             "count_signal": status_check[9],
-                            "idle": status_check[10],
+                            "idle": overleft,
                             "setting": status_check[11],
                             "alarm": status_check[12],
                             "offline": status_check[13],
@@ -585,8 +589,6 @@ def heat_clean(_db_pool,all_department,all_machine,all_data,data,clean_db_q,broa
                     })
                     else : 
                         pass            
-                else : 
-                    pass
                 
                 status_count_check = machine_data[list_data].copy()
                 count_check = status_count_check[point_int[0]]

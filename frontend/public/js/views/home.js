@@ -79,7 +79,7 @@ export function homeView() {
                 fill="#378ADD" opacity="0.12" stroke="#378ADD" stroke-width="1.5" />
           <rect x="430" y="14" width="348" height="98"
                 fill="#378ADD" opacity="0.12" stroke="#378ADD" stroke-width="1.5" />
-          <text x="470" y="25" text-anchor="middle" class="zone-label" fill="#185FA5">PRESS</text>
+          <text x="455" y="25" text-anchor="middle" class="zone-label" fill="#185FA5">PRESS</text>
 
           <!-- HEAT ZONE -->
           <rect x="810" y="150" width="305" height="230"

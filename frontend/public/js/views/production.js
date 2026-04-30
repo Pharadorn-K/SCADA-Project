@@ -46,7 +46,7 @@ function calculateShiftSummary() {
 
     });
 
-    const planned = totalRun + totalIdle + totalAlarm;
+    const planned = totalRun + totalIdle + totalAlarm + totalOffline;
     const availability = planned ? (totalRun / planned) * 100 : 0;
 
     return {
@@ -94,23 +94,56 @@ async function loadAndRenderShiftPanel(container) {
 }
 
 // ── KPI bar (live from stateStore) ────────────────────────────────────────
+
+let currentWindow = 'shift';  // 'shift' | '8' | '24'
+let windowData    = null;      // last fetched data for 8h/24h
+let windowFetchTimer = null;
+let currentProductionContainer = null;
+
+async function fetchAndCacheWindow(win) {
+  const res  = await fetch(`/api/plant-summary?window=${win}`, { credentials: 'same-origin' });
+  windowData = await res.json();
+}
+
 function updateKpiBar(container) {
-  const s = calculateShiftSummary();
+  let run, idle, alarm, offline, avail;
+
+  if (currentWindow === 'shift') {
+    // Live from store — real-time, no fetch needed
+    const s = calculateShiftSummary();
+    run     = s.totalRun;
+    idle    = s.totalIdle;
+    alarm   = s.totalAlarm;
+    offline = s.totalOffline;
+    avail   = s.availability;
+  } else {
+    // From last fetched DB data
+    if (!windowData) return;
+    run     = windowData.run;
+    idle    = windowData.idle;
+    alarm   = windowData.alarm;
+    offline = windowData.offline;
+    avail   = windowData.availability * 100;
+  }
 
   const avEl  = container.querySelector('#kpi-availability');
   const runEl = container.querySelector('#kpi-run');
   const idlEl = container.querySelector('#kpi-idle');
   const almEl = container.querySelector('#kpi-alarm');
   const offEl = container.querySelector('#kpi-off');
-
   if (!avEl) return;
 
-  avEl.textContent  = `${s.availability.toFixed(1)}%`;
-  avEl.className    = `kpi-val ${kpiClass(s.availability)}`;
-  runEl.textContent = formatTime(s.totalRun);
-  idlEl.textContent = formatTime(s.totalIdle);
-  almEl.textContent = formatTime(s.totalAlarm);
-  offEl.textContent = formatTime(s.totalOffline);
+  avEl.textContent  = `${avail.toFixed(1)}%`;
+  avEl.className    = `kpi-val ${kpiClass(avail)}`;
+  runEl.textContent = formatTime(run);
+  idlEl.textContent = formatTime(idle);
+  almEl.textContent = formatTime(alarm);
+  offEl.textContent = formatTime(offline);
+
+  // update label dynamically
+  const labels = { shift: 'Availability (shift)', '8': 'Availability (8h)', '24': 'Availability (24h)' };
+  container.querySelector('.sp-kpi-cell .sp-kpi-label').textContent =
+    labels[currentWindow] ?? 'Availability';
 }
 
 // ── Trend sparkline (Chart.js) ────────────────────────────────────────────
@@ -239,10 +272,9 @@ function renderShiftColumns(container, shifts) {
 function calcAvailability(m) {
   const d = m.shiftDurations;
   if (!d) return 0;
-  const planned = (d.run_seconds || 0) + (d.idle_seconds || 0) + (d.alarm_seconds || 0);
+  const planned = (d.run_seconds || 0) + (d.idle_seconds || 0) + (d.alarm_seconds || 0) + (d.offline_seconds || 0);
   return planned > 0 ? (d.run_seconds / planned) * 100 : 0;
 }
-// frontend/public/js/views/production.js
 
 // ── Standard cycle times (seconds) ───────────────────────────────────────
 // Key = stateStore machine key (department_machine)
@@ -289,69 +321,75 @@ export function productionOverviewMount(container) {
     </div>
 
     <div class="summary-panel">
-        <div class="sp-kpi-bar">
-          <div class="sp-kpi-cell">
-              <div class="sp-kpi-icon sp-icon-avail">
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                  <path d="M8 2a6 6 0 1 1 0 12A6 6 0 0 1 8 2z" stroke="currentColor" stroke-width="1.5" fill="none"/>
-                  <path d="M8 5v3l2 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-              </svg>
-              </div>
-              <div class="sp-kpi-text">
-              <div class="sp-kpi-label">Availability today</div>
-              <div class="kpi-val" id="kpi-availability">--%</div>
-              </div>
+      <div class="sp-kpi-bar">
+        <div class="sp-kpi-cell">
+          <div class="sp-kpi-icon sp-icon-avail">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <path d="M8 2a6 6 0 1 1 0 12A6 6 0 0 1 8 2z" stroke="currentColor" stroke-width="1.5" fill="none"/>
+              <path d="M8 5v3l2 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
           </div>
-          <div class="sp-kpi-cell">
-              <div class="sp-kpi-icon sp-icon-run">
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                  <polygon points="5,3 13,8 5,13" fill="currentColor"/>
-              </svg>
-              </div>
-              <div class="sp-kpi-text">
-              <div class="sp-kpi-label">Run total</div>
-              <div class="sp-kpi-val" id="kpi-run">--:--:--</div>
-              </div>
+          <div class="sp-kpi-text">
+            <div class="sp-kpi-label">Availability</div>
+            <div class="kpi-val" id="kpi-availability">--%</div>
           </div>
-          <div class="sp-kpi-cell">
-              <div class="sp-kpi-icon sp-icon-idle">
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                  <rect x="4" y="3" width="3" height="10" rx="1" fill="currentColor"/>
-                  <rect x="9" y="3" width="3" height="10" rx="1" fill="currentColor"/>
-              </svg>
-              </div>
-              <div class="sp-kpi-text">
-              <div class="sp-kpi-label">Idle total</div>
-              <div class="sp-kpi-val" id="kpi-idle">--:--:--</div>
-              </div>
+        </div>
+        <div class="sp-kpi-cell">
+          <div class="sp-kpi-icon sp-icon-run">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <polygon points="5,3 13,8 5,13" fill="currentColor"/>
+            </svg>
           </div>
-          <div class="sp-kpi-cell">
-              <div class="sp-kpi-icon sp-icon-alarm">
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                  <path d="M8 2l6 11H2L8 2z" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linejoin="round"/>
-                  <line x1="8" y1="7" x2="8" y2="10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-                  <circle cx="8" cy="12" r="0.7" fill="currentColor"/>
-              </svg>
-              </div>
-              <div class="sp-kpi-text">
-              <div class="sp-kpi-label">Alarm total</div>
-              <div class="sp-kpi-val" id="kpi-alarm">--:--:--</div>
-              </div>
+          <div class="sp-kpi-text">
+            <div class="sp-kpi-label">Run</div>
+            <div class="sp-kpi-val" id="kpi-run">--:--:--</div>
           </div>
-          <div class="sp-kpi-cell">
-              <div class="sp-kpi-icon sp-icon-off">
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                <path d="M5 5L11 11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-                <path d="M11 5L5 11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-                <circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.2"/>
-              </svg>
-              </div>
-              <div class="sp-kpi-text">
-              <div class="sp-kpi-label">Offline total</div>
-              <div class="sp-kpi-val" id="kpi-off">--:--:--</div>
-              </div>
+        </div>
+        <div class="sp-kpi-cell">
+          <div class="sp-kpi-icon sp-icon-idle">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <rect x="4" y="3" width="3" height="10" rx="1" fill="currentColor"/>
+              <rect x="9" y="3" width="3" height="10" rx="1" fill="currentColor"/>
+            </svg>
           </div>
-        </div>    
+          <div class="sp-kpi-text">
+            <div class="sp-kpi-label">Idle</div>
+            <div class="sp-kpi-val" id="kpi-idle">--:--:--</div>
+          </div>
+        </div>
+        <div class="sp-kpi-cell">
+          <div class="sp-kpi-icon sp-icon-alarm">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <path d="M8 2l6 11H2L8 2z" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linejoin="round"/>
+              <line x1="8" y1="7" x2="8" y2="10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+              <circle cx="8" cy="12" r="0.7" fill="currentColor"/>
+            </svg>
+          </div>
+          <div class="sp-kpi-text">
+            <div class="sp-kpi-label">Alarm</div>
+            <div class="sp-kpi-val" id="kpi-alarm">--:--:--</div>
+          </div>
+        </div>
+        <div class="sp-kpi-cell">
+          <div class="sp-kpi-icon sp-icon-off">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <path d="M5 5L11 11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+              <path d="M11 5L5 11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+              <circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.2"/>
+            </svg>
+          </div>
+          <div class="sp-kpi-text">
+            <div class="sp-kpi-label">Offline</div>
+            <div class="sp-kpi-val" id="kpi-off">--:--:--</div>
+          </div>
+        </div>
+
+        <div class="sp-window-selector">
+          <button class="sp-win-btn sp-win-active" data-window="shift">Shift</button>
+          <button class="sp-win-btn" data-window="8">8 hr</button>
+          <button class="sp-win-btn" data-window="24">24 hr</button>
+        </div>
+      </div>
     </div>
 
     <div class="shift-panel">
@@ -370,15 +408,40 @@ export function productionOverviewMount(container) {
     <section id="machine-grid" class="machine-grid"></section>
     `;
 
+    currentProductionContainer = container;
+
+    container.querySelectorAll('.sp-win-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        container.querySelectorAll('.sp-win-btn').forEach(b => b.classList.remove('sp-win-active'));
+        btn.classList.add('sp-win-active');
+        currentWindow = btn.dataset.window;
+
+        if (currentWindow !== 'shift') {
+          await fetchAndCacheWindow(currentWindow);
+        }
+        updateKpiBar(container);
+      });
+    });
+
     // replace the old loadTodayShiftHistory() + summaryTimer + shiftTimer calls with:
     loadAndRenderShiftPanel(container);
 
+    // summaryTimer: 1s for shift (live), 60s refetch for 8h/24h
     summaryTimer = setInterval(() => {
-    updateKpiBar(container);
+      if (currentWindow === 'shift') {
+        updateKpiBar(container);
+      }
     }, 1000);
 
+    windowFetchTimer = setInterval(async () => {
+      if (currentWindow !== 'shift' && currentProductionContainer) {
+        await fetchAndCacheWindow(currentWindow);
+        updateKpiBar(currentProductionContainer);
+      }
+    }, 60 * 1000);
+
     shiftTimer = setInterval(() => {
-    loadAndRenderShiftPanel(container);
+      loadAndRenderShiftPanel(container);
     }, 10000);
 
     const grid = container.querySelector('#machine-grid');
@@ -579,29 +642,16 @@ export function productionOverviewMount(container) {
 
 } 
 export function productionOverviewUnmount() {
-
-    if (unsubscribe) {
-        unsubscribe();
-        unsubscribe = null;
-    }
-
-    if (summaryTimer) {
-        clearInterval(summaryTimer);
-        summaryTimer = null;
-    }
-
-    if (shiftTimer) {
-        clearInterval(shiftTimer);
-        shiftTimer = null;
-    }
-
-    if (shiftTrendChart) {
-        shiftTrendChart.destroy();
-        shiftTrendChart = null;
-    }
-
-    initialized = false;
-    shiftWindow = null;
+  if (unsubscribe)        {unsubscribe();unsubscribe = null;}
+  if (summaryTimer)       {clearInterval(summaryTimer);       summaryTimer = null;}
+  if (shiftTimer)         {clearInterval(shiftTimer);         shiftTimer = null;}
+  if (windowFetchTimer)   { clearInterval(windowFetchTimer);  windowFetchTimer = null; }
+  currentProductionContainer = null;
+  if (shiftTrendChart)    {shiftTrendChart.destroy();         shiftTrendChart = null;}
+  initialized = false;
+  shiftWindow = null;
+  windowData   = null;
+  currentWindow = 'shift';
 }
 
 // --------------- Machine Efficiency page --------------- //
@@ -646,9 +696,10 @@ export function productionMachineEfficiencyView() {
 
           <div class="eff-info-grid">
             <span class="eff-il">Part</span>       <span class="eff-iv eff-part"></span>
-            <span class="eff-il">Operator</span>   <span class="eff-iv eff-operator"></span>
+            <span class="eff-il">Standard cycle time</span><span id="eff-std-box" class="eff-iv"></span>
             <span class="eff-il">Cycle time</span> <span class="eff-iv eff-cycle"></span>
-            <span class="eff-il">Count / Plan</span><span class="eff-iv eff-count"></span>
+            <span class="eff-il">Count / Plan</span><span class="eff-iv eff-count"></span>                        
+            <span class="eff-il">Operator</span>   <span class="eff-iv eff-operator"></span>
           </div>
 
           <div class="eff-dur-block">
@@ -719,6 +770,39 @@ export function productionMachineEfficiencyView() {
           </div>
         </div>
 
+        <div id="eff-timeline-wrap" class="eff-timeline-wrap" style="display:none">
+          <div class="eff-chart-header">
+            <span class="eff-chart-title">Status timeline</span>
+            <div class="eff-timeline-controls">
+              <select id="tl-shift" class="adm-select">
+                <option value="current">Current shift</option>
+                <option value="A">Shift A (06:00–14:00)</option>
+                <option value="B">Shift B (14:00–22:00)</option>
+                <option value="C">Shift C (22:00–06:00)</option>
+                <option value="custom">Custom range</option>
+              </select>
+              <div id="tl-custom-range" class="eff-tl-custom" style="display:none">
+                <input type="date" id="tl-from-date" class="adm-input adm-input-date"/>
+                <input type="time" id="tl-from-time" class="adm-input" style="width:90px" value="06:00"/>
+                <span style="font-size:11px;color:#aaa">to</span>
+                <input type="date" id="tl-to-date"   class="adm-input adm-input-date"/>
+                <input type="time" id="tl-to-time"   class="adm-input" style="width:90px" value="14:00"/>
+                <button id="tl-load-btn" class="adm-btn" style="padding:4px 10px;font-size:11px">Load</button>
+              </div>
+            </div>
+          </div>
+          <div id="eff-timeline-canvas" class="eff-timeline-canvas">
+            <div class="eff-tl-loading">Select a machine to view timeline</div>
+          </div>
+          <div class="eff-tl-legend">
+            <span class="eff-tl-leg"><span class="eff-tl-swatch" style="background:#1D9E75"></span>Running</span>
+            <span class="eff-tl-leg"><span class="eff-tl-swatch" style="background:#BA7517"></span>Idle</span>
+            <span class="eff-tl-leg"><span class="eff-tl-swatch" style="background:#A32D2D"></span>Alarm</span>
+            <span class="eff-tl-leg"><span class="eff-tl-swatch" style="background:#607d8b"></span>Stop</span>
+            <span class="eff-tl-leg"><span class="eff-tl-swatch" style="background:#888"></span>Offline</span>
+          </div>
+        </div>
+
         <div id="eff-empty" class="eff-empty">
           Select a department and machine to view efficiency data
         </div>
@@ -739,6 +823,17 @@ export function productionMachineEfficiencyMount(container) {
   let selectedId    = null;
   let cycleChart    = null;
   let deepLinkDone  = false;
+  let lastTimelineId  = null;   // track which machine the timeline is showing
+  let lastTimelineKey = null;   // track shift/range so manual changes still reload
+  let timelineDebounceTimer = null;
+
+  const today = new Date().toISOString().split('T')[0];
+  setTimeout(() => {
+    const fd = container.querySelector('#tl-from-date');
+    const td = container.querySelector('#tl-to-date');
+    if (fd) fd.value = today;
+    if (td) td.value = today;
+  }, 0);
 
   // ── helpers ──────────────────────────────────────────────────────────────
 
@@ -750,7 +845,7 @@ export function productionMachineEfficiencyMount(container) {
   function calcAvailabilityPct(m) {
     const d = m?.shiftDurations;
     if (!d) return 0;
-    const planned = (d.run_seconds || 0) + (d.idle_seconds || 0) + (d.alarm_seconds || 0);
+    const planned = (d.run_seconds || 0) + (d.idle_seconds || 0) + (d.alarm_seconds || 0) + (d.offline_seconds || 0);
     return planned > 0 ? (d.run_seconds / planned) * 100 : 0;
   }
 
@@ -875,7 +970,12 @@ export function productionMachineEfficiencyMount(container) {
     emptyMsg.style.display  = 'none';
 
     const stdLabel = container.querySelector('#eff-std-label');
+    const stdbox   = container.querySelector('#eff-std-box');
     stdLabel.textContent = std ? `Standard: ${std} s` : 'No standard set';
+    if (stdbox) {
+      stdbox.textContent = std ? `${std} s` : '--';
+      stdbox.style.display = '';
+    }
 
     const labels = history.map(p => new Date(p.t).toLocaleTimeString());
     const values = history.map(p => p.v);
@@ -1002,7 +1102,18 @@ export function productionMachineEfficiencyMount(container) {
     updateSidebarCard(id, m);
     updateOeeRow(m);
     updateCycleChart(m);
-  }
+
+    // ── timeline: only reload when machine changes or shift selector changes
+    // never reload on every 1s store tick
+    const shiftVal = container.querySelector('#tl-shift')?.value ?? 'current';
+    const tlKey    = `${id}__${shiftVal}`;
+
+    if (shiftVal !== 'custom' && tlKey !== lastTimelineKey) {
+      lastTimelineKey = tlKey;
+      const range = getShiftRange(shiftVal);
+      loadTimeline(id, range.from, range.to);
+    }
+}
 
   // ── dropdowns ─────────────────────────────────────────────────────────────
 
@@ -1031,15 +1142,36 @@ export function productionMachineEfficiencyMount(container) {
       });
   }
 
+  // deptSelect.addEventListener('change', e => {
+  //   const dept = e.target.value;
+  //   if (!dept) return;
+  //   buildMachines(scadaStore.state, dept);
+  //   selectedId = null;
+  //   machineCard.style.display = 'none';
+  //   oeeRow.style.display      = 'none';
+  //   chartWrap.style.display   = 'none';
+  //   emptyMsg.style.display    = '';
+  // });
+// replace the deptSelect change handler:
+
   deptSelect.addEventListener('change', e => {
     const dept = e.target.value;
     if (!dept) return;
     buildMachines(scadaStore.state, dept);
-    selectedId = null;
-    machineCard.style.display = 'none';
-    oeeRow.style.display      = 'none';
-    chartWrap.style.display   = 'none';
-    emptyMsg.style.display    = '';
+    selectedId      = null;
+    lastTimelineId  = null;
+    lastTimelineKey = null;
+
+    machineCard.style.display  = 'none';
+    oeeRow.style.display       = 'none';
+    chartWrap.style.display    = 'none';
+    emptyMsg.style.display     = '';
+
+    // clear timeline immediately so old machine doesn't linger
+    const wrap     = container.querySelector('#eff-timeline-wrap');
+    const canvasEl = container.querySelector('#eff-timeline-canvas');
+    if (wrap)     wrap.style.display = 'none';
+    if (canvasEl) canvasEl.innerHTML = '<div class="eff-tl-loading">Select a machine to view timeline</div>';
   });
 
   machineSelect.addEventListener('change', e => {
@@ -1049,8 +1181,183 @@ export function productionMachineEfficiencyMount(container) {
     selectedId = `${dept}_${machine}`;
     renderSelected(selectedId);
   });
+  // ── Timeline helpers ────────────────────────────────────────────────────
+  const STATUS_COLOR = {
+    RUNNING: '#1D9E75',
+    IDLE:    '#BA7517',
+    ALARM:   '#A32D2D',
+    STOP:    '#607d8b',
+    OFFLINE: '#888888'
+  };
+
+  function getShiftRange(shiftKey) {
+    const now  = new Date();
+    const date = now.toISOString().split('T')[0];
+
+    // detect current shift
+    const hour = now.getHours();
+    let currentShift = hour >= 6 && hour < 14 ? 'A'
+                    : hour >= 14 && hour < 22 ? 'B' : 'C';
+
+    const shift = shiftKey === 'current' ? currentShift : shiftKey;
+
+    // shift C spans midnight — handle date rollback
+    let fromDate = date;
+    if (shift === 'C') {
+      // if we're past midnight but before 06:00, shift C started yesterday
+      if (hour < 6) {
+        const yesterday = new Date(now);
+        yesterday.setDate(yesterday.getDate() - 1);
+        fromDate = yesterday.toISOString().split('T')[0];
+      }
+    }
+
+    const times = { A: ['06:00', '14:00'], B: ['14:00', '22:00'], C: ['22:00', '06:00'] };
+    const [startT, endT] = times[shift];
+
+    const toDate = shift === 'C' && hour >= 22
+      ? (() => {
+          const tomorrow = new Date(now);
+          tomorrow.setDate(tomorrow.getDate() + 1);
+          return tomorrow.toISOString().split('T')[0];
+        })()
+      : date;
+
+    // for current shift, cap end at now
+    const endFull = shiftKey === 'current'
+      ? now.toISOString()
+      : `${toDate}T${endT}:00`;
+
+    return {
+      from: `${fromDate}T${startT}:00`,
+      to:   endFull
+    };
+  }
+
+  function renderTimeline(canvasEl, segments, fromMs, toMs) {
+    const totalMs = toMs - fromMs;
+    if (totalMs <= 0) return;
+
+    // Build HTML bar
+    const bars = segments.map(seg => {
+      const leftPct  = ((seg.startMs - fromMs) / totalMs * 100).toFixed(3);
+      const widthPct = (seg.durationMs / totalMs * 100).toFixed(3);
+      const color    = STATUS_COLOR[seg.status] || '#ccc';
+      const mins     = Math.round(seg.durationMs / 60000);
+      const label    = mins >= 2 ? `${mins}m` : '';
+
+      const startLabel = new Date(seg.startMs).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      return `<div class="eff-tl-seg"
+        style="left:${leftPct}%;width:${widthPct}%;background:${color};"
+        title="${startLabel} · ${seg.status} · ${mins} min${seg.part_name ? ' · ' + seg.part_name : ''}">
+        <span class="eff-tl-seg-label">${label}</span>
+      </div>`;
+    }).join('');
+
+    // Time axis labels — every hour
+    const axisLabels = [];
+    const startHour = new Date(fromMs);
+    startHour.setMinutes(0, 0, 0);
+    startHour.setHours(startHour.getHours() + (new Date(fromMs).getMinutes() > 0 ? 1 : 0));
+
+    let t = startHour.getTime();
+    while (t <= toMs) {
+      const pct = ((t - fromMs) / totalMs * 100).toFixed(2);
+      const label = new Date(t).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      axisLabels.push(`<div class="eff-tl-tick" style="left:${pct}%">${label}</div>`);
+      t += 3600000; // +1hr
+    }
+
+    canvasEl.innerHTML = `
+      <div class="eff-tl-bar-wrap">
+        <div class="eff-tl-bar">${bars}</div>
+      </div>
+      <div class="eff-tl-axis">${axisLabels.join('')}</div>
+    `;
+  }
+
+  async function loadTimeline(id, fromISO, toISO) {
+    const wrap      = container.querySelector('#eff-timeline-wrap');
+    const canvasEl  = container.querySelector('#eff-timeline-canvas');
+    if (!wrap || !canvasEl) return;
+
+    wrap.style.display = '';
+    canvasEl.innerHTML = '<div class="eff-tl-loading">Loading...</div>';
+
+    const [dept, ...machineParts] = id.split('_');
+    const machine = machineParts.join('_');
+
+    const params = new URLSearchParams({ dept, machine, from: fromISO, to: toISO });
+    const res    = await fetch(`/api/machine-timeline?${params}`, { credentials: 'same-origin' });
+
+    if (!res.ok) {
+      canvasEl.innerHTML = '<div class="eff-tl-loading">Failed to load</div>';
+      return;
+    }
+
+    const data = await res.json();
+
+    if (!data.segments?.length) {
+      canvasEl.innerHTML = '<div class="eff-tl-loading">No data in this range</div>';
+      return;
+    }
+
+    renderTimeline(
+      canvasEl,
+      data.segments,
+      new Date(data.from).getTime(),
+      new Date(data.to).getTime()
+    );
+  }
+
+  // ── Timeline controls wiring ────────────────────────────────────────────
+  const tlShift   = container.querySelector('#tl-shift');
+  const tlCustom  = container.querySelector('#tl-custom-range');
+  const tlLoadBtn = container.querySelector('#tl-load-btn');
+
+  // tlShift?.addEventListener('change', () => {
+  //   const isCustom = tlShift.value === 'custom';
+  //   tlCustom.style.display = isCustom ? 'flex' : 'none';
+
+  //   if (!isCustom && selectedId) {
+  //     const range = getShiftRange(tlShift.value);
+  //     loadTimeline(selectedId, range.from, range.to);
+  //   }
+  // });
+
+  // tlLoadBtn?.addEventListener('click', () => {
+  //   if (!selectedId) return;
+  //   const fromDate = container.querySelector('#tl-from-date').value;
+  //   const fromTime = container.querySelector('#tl-from-time').value;
+  //   const toDate   = container.querySelector('#tl-to-date').value;
+  //   const toTime   = container.querySelector('#tl-to-time').value;
+  //   if (!fromDate || !toDate) return;
+  //   loadTimeline(selectedId, `${fromDate}T${fromTime}:00`, `${toDate}T${toTime}:00`);
+  // });
 
   // ── deep link ─────────────────────────────────────────────────────────────
+
+  tlShift?.addEventListener('change', () => {
+    const isCustom = tlShift.value === 'custom';
+    tlCustom.style.display = isCustom ? 'flex' : 'none';
+
+    if (!isCustom && selectedId) {
+      lastTimelineKey = null; // force reload
+      const range = getShiftRange(tlShift.value);
+      loadTimeline(selectedId, range.from, range.to);
+    }
+  });
+
+  tlLoadBtn?.addEventListener('click', () => {
+    if (!selectedId) return;
+    const fromDate = container.querySelector('#tl-from-date').value;
+    const fromTime = container.querySelector('#tl-from-time').value;
+    const toDate   = container.querySelector('#tl-to-date').value;
+    const toTime   = container.querySelector('#tl-to-time').value;
+    if (!fromDate || !toDate) return;
+    lastTimelineKey = null; // allow re-fetch
+    loadTimeline(selectedId, `${fromDate}T${fromTime}:00`, `${toDate}T${toTime}:00`);
+  });
 
   function applyDeepLink(state) {
     const hash   = location.hash;
@@ -1081,6 +1388,7 @@ export function productionMachineEfficiencyMount(container) {
 
     if (selectedId) renderSelected(selectedId);
   });
+
 }
 export function productionMachineEfficiencyUnmount() {
     if (efficiencyUnsubscribe) {

@@ -93,13 +93,12 @@ scada-project/
 │   │       ├── __pycache__/
 │   │       ├── clean_data.py
 │   │       ├── db_connector.py
-│   │       ├── db_writer.py            
-│   │       └── plc_driver.py           
+│   │       └── db_writer.py                     
 │   └── node/ 
-│       ├── .env
+│       ├── .env1️⃣
 │       ├── package.json 
 │       ├── package-lock.json    
-│       ├── server.js
+│       ├── server.js0️⃣
 │       ├── data/ 
 │       │   └── systemState.json
 │       ├── logs/ 
@@ -109,24 +108,26 @@ scada-project/
 │       ├── node_modules/ ...
 │       ├── routes/ 
 │       │   ├── api/                    
-│       │   │   ├── alam.js
-│       │   │   ├── alamHistory.js   
-│       │   │   ├── audit.js   
-│       │   │   ├── auth.js              
-│       │   │   └── plc.js  
-│       │   └── shiftSummary.js  
+│       │   │   ├── alam.js3️⃣
+│       │   │   ├── alamHistory.js3️⃣   
+│       │   │   ├── audit.js3️⃣   
+│       │   │   ├── auth.js3️⃣              
+│       │   │   └── plc.js3️⃣  
+│       │   ├── machineTimeline.js3️⃣
+│       │   ├── shiftHistory.js3️⃣
+│       │   └── shiftSummary.js3️⃣  
 │       └── services/ 
-│           ├── alarmService.js
-│           ├── bootstrapEngine.js
-│           ├── db.js
-│           ├── dbService.js
-│           ├── logService.js
-│           ├── persistenceEngine.js 
-│           ├── plcEngine.js
-│           ├── plcMonitor.js 
-│           ├── pythonBridge.js
-│           ├── shiftEngine.js     
-│           └── stateStore.js         
+│           ├── alarmService.js2️⃣
+│           ├── bootstrapEngine.js4️⃣
+│           ├── db.js5️⃣
+│           ├── logService.js2️⃣
+│           ├── persistenceEngine.js4️⃣ 
+│           ├── plcEngine.js4️⃣
+│           ├── plcMonitor.js4️⃣ 
+│           ├── pythonBridge.js4️⃣
+│           ├── sessionRegistry.js2️⃣
+│           ├── shiftEngine.js4️⃣     
+│           └── stateStore.js2️⃣         
 │ 
 ├── frontend/ 
 │   ├── public/                        
@@ -136,6 +137,7 @@ scada-project/
 │   │   ├── css/
 │   │   │   ├── fontawesome/
 │   │   │   ├── webfonts/
+│   │   │   ├── header_press.png
 │   │   │   └── main.css
 │   │   ├── images/
 │   │   │   ├── Availability.png
@@ -167,7 +169,6 @@ scada-project/
 │   │           ├── admin.js            
 │   │           ├── home.js
 │   │           ├── maintenance.js
-│   │           ├── oee.js
 │   │           └── production.js
 │   └── src/                            
 │       ├── main.js                     
@@ -190,3 +191,53 @@ scada-project/
 └── docker-compose.yml                  
 
 
+clean_db_q.put({
+    "event": "plc_clean",
+    "source": "clean_press",
+    "department": "Press",
+    "machine": status_count_check[2],
+    "machine_type": status_count_check[3],
+    "timestamp": status_count_check[0],
+
+    "context": {
+        "part_name": status_count_check[4],
+        "plan": status_count_check[5],
+        "operator_id": status_count_check[6],
+    },
+
+    "metrics": {
+        "count_signal": status_count_check[7],
+        "run": status_count_check[8],
+        "idle": status_count_check[9],
+        "alarm": status_count_check[10],
+        "offline": status_count_check[11],
+        "alarm_code": status_count_check[12],
+        "cycle_time": cycle_time,
+        "count_shift": count_shift
+    }
+})
+broadcast_q.put({
+    "event": "plc_clean",
+    "source": "clean_press",
+    "department": "Press",
+    "machine": status_count_check[2],
+    "machine_type": status_count_check[3],
+    "timestamp": status_count_check[0],
+
+    "context": {
+        "part_name": status_count_check[4],
+        "plan": status_count_check[5],
+        "operator_id": status_count_check[6],
+    },
+
+    "metrics": {
+        "count_signal": status_count_check[7],
+        "run": status_count_check[8],
+        "idle": status_count_check[9],
+        "alarm": status_count_check[10],
+        "offline": status_count_check[11],
+        "alarm_code": status_count_check[12],
+        "cycle_time": cycle_time,
+        "count_shift": count_shift
+    }
+})

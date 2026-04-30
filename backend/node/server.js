@@ -7,7 +7,6 @@ const path = require('path');
 const session = require('express-session');
 
 // Initialize global services BEFORE importing modules that depend on them
-
 const stateStore = require('./services/stateStore');
 const logService = require('./services/logService');
 
@@ -16,10 +15,12 @@ global.services = {
   stateStore,  
   wss: null // Will be set later
 };
+
 logService.loadFromFile(10);
 const alarmService = require('./services/alarmService');
 global.services.alarmService = alarmService;
-
+const sessionRegistry = require('./services/sessionRegistry');
+global.services.sessionRegistry = sessionRegistry;
 // Import services
 const plcRoutes = require('./routes/api/plc');
 const authRoutes = require('./routes/api/auth');
@@ -62,6 +63,8 @@ app.use('/api/alarm-history', require('./routes/api/alarmHistory'));
 app.use('/api/audit', auditRoutes);
 app.use('/api/shift-summary', shiftSummaryRoute);
 app.use('/api/shift-history', shiftHistoryRoute);
+app.use('/api/machine-timeline', require('./routes/machineTimeline'));
+app.use('/api/plant-summary', require('./routes/api/plantSummary'));
 // Serve static files
 app.use(express.static(path.join(__dirname, '../../frontend/public')));
 
@@ -126,6 +129,8 @@ async function bootstrap() {
   const plcEngine = require('./services/plcEngine');
   const shiftEngine = require('./services/shiftEngine');
   const persistenceEngine = require('./services/persistenceEngine');
+  const hourlyAggregator = require('./services/hourlyAggregator');
+  hourlyAggregator.startHourlyAggregator();
   const bootstrapEngine = require('./services/bootstrapEngine');
 
   // Register globally (only if you want global access)
@@ -135,10 +140,9 @@ async function bootstrap() {
 
   // Hydrate state
   await bootstrapEngine.hydrate();
-  const { detectAndHandleShift } = require('./services/shiftEngine');
-
+  const { detectAndHandleShift, checkMissedBoundary } = require('./services/shiftEngine');
+  await checkMissedBoundary(); // ← add this line
   const machines = stateStore.getPlcSnapshot().machines;
-
   for (const key of Object.keys(machines)) {
     await detectAndHandleShift(key);
   }
@@ -194,8 +198,6 @@ async function bootstrap() {
     console.log(`📡 WebSocket server ready`);
   });
 }
-
-
 
 // Start everything
 bootstrap().catch(err => {

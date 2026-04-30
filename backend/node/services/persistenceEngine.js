@@ -2,140 +2,108 @@
 const stateStore = require('./stateStore');
 const { getDbPool } = require('./db');
 
-async function saveAllShifts() {
+const SHIFT_BUCKET = '1970-01-01 00:00:00'; // sentinel for shift rows
 
-  const pool = await getDbPool();
+async function saveAllShifts() {
+  const pool     = await getDbPool();
   const machines = stateStore.getPlcSnapshot().machines;
 
   for (const [key, machine] of Object.entries(machines)) {
-
     if (!machine.shiftDurations) continue;
 
+    const d       = machine.shiftDurations;
+    // const planned = d.run_seconds + d.idle_seconds + d.alarm_seconds;
+    // const avail   = planned > 0 ? d.run_seconds / planned : null;
+    const planned = d.run_seconds + d.idle_seconds + d.alarm_seconds + d.offline_seconds;
+    const avail   = planned > 0 ? d.run_seconds / planned : null;
+
     await pool.query(
-      `
-      INSERT INTO machine_shift_status
-      (date, shift, department, machine,
-       run_seconds, idle_seconds,
-       alarm_seconds, offline_seconds)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-      ON DUPLICATE KEY UPDATE
-        run_seconds = VALUES(run_seconds),
-        idle_seconds = VALUES(idle_seconds),
-        alarm_seconds = VALUES(alarm_seconds),
-        offline_seconds = VALUES(offline_seconds)
-      `,
+      `INSERT INTO machine_shift_status
+         (date, shift, hour_bucket, department, machine,
+          run_seconds, idle_seconds, alarm_seconds, offline_seconds, availability)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       ON DUPLICATE KEY UPDATE
+         run_seconds     = VALUES(run_seconds),
+         idle_seconds    = VALUES(idle_seconds),
+         alarm_seconds   = VALUES(alarm_seconds),
+         offline_seconds = VALUES(offline_seconds),
+         availability    = VALUES(availability),
+         updated_at      = NOW()`,
       [
         machine.shiftDate,
         machine.shift,
+        SHIFT_BUCKET,       // ← sentinel, not NULL
         machine.department,
         machine.machine,
-        machine.shiftDurations.run_seconds,
-        machine.shiftDurations.idle_seconds,
-        machine.shiftDurations.alarm_seconds,
-        machine.shiftDurations.offline_seconds
+        d.run_seconds,
+        d.idle_seconds,
+        d.alarm_seconds,
+        d.offline_seconds,
+        avail
       ]
     );
   }
 }
 
 function startAutoSave() {
-  setInterval(saveAllShifts, 30 * 1000);
+  // Save every 60 seconds (was 30s — DB writes are cheap but no need to thrash)
+  setInterval(saveAllShifts, 60 * 1000);
 }
 
 async function saveMachineShift(machine) {
-  const pool = await getDbPool();
-  const {
-    shiftDate,
-    shift,
-    department,
-    machine: machineName,
-    shiftDurations,
-    availability
-  } = machine;
+  const pool    = await getDbPool();
+  const d       = machine.shiftDurations;
+  // const planned = d.run_seconds + d.idle_seconds + d.alarm_seconds;
+  // const avail   = machine.availability ?? (planned > 0 ? d.run_seconds / planned : 0);
+  const planned = d.run_seconds + d.idle_seconds + d.alarm_seconds + d.offline_seconds;
+  const avail   = machine.availability ?? (planned > 0 ? d.run_seconds / planned : 0);
 
-  await pool.query(`
-    INSERT INTO machine_shift_status
-    (date, shift, department, machine,
-     run_seconds, idle_seconds, alarm_seconds, offline_seconds,
-     availability)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    ON DUPLICATE KEY UPDATE
-      run_seconds = VALUES(run_seconds),
-      idle_seconds = VALUES(idle_seconds),
-      alarm_seconds = VALUES(alarm_seconds),
-      offline_seconds = VALUES(offline_seconds),
-      availability = VALUES(availability)
-  `, [
-    shiftDate,
-    shift,
-    department,
-    machineName,
-    shiftDurations.run_seconds,
-    shiftDurations.idle_seconds,
-    shiftDurations.alarm_seconds,
-    shiftDurations.offline_seconds,
-    availability ?? null
-  ]);
-}
-function accumulateCurrentStatus(machine) {
-  const now = Date.now();
-  const diff = Math.floor((now - machine.statusStartedAt) / 1000);
-
-  const bucketMap = {
-    RUNNING: 'run_seconds',
-    IDLE: 'idle_seconds',
-    ALARM: 'alarm_seconds',
-    OFFLINE: 'offline_seconds'
-  };
-
-  const bucket = bucketMap[machine.status];
-  if (bucket) {
-    machine.shiftDurations[bucket] += diff;
-  }
-
-  machine.statusStartedAt = now;
-}
-
-function scheduleNextShiftCheck() {
-  const now = new Date();
-  const next = calculateNextShiftBoundary(now);
-
-  const delay = next.getTime() - now.getTime();
-
-  setTimeout(() => {
-    processShiftBoundary();
-    scheduleNextShiftCheck();
-  }, delay);
+  await pool.query(
+    `INSERT INTO machine_shift_status
+       (date, shift, hour_bucket, department, machine,
+        run_seconds, idle_seconds, alarm_seconds, offline_seconds, availability)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+     ON DUPLICATE KEY UPDATE
+       run_seconds     = VALUES(run_seconds),
+       idle_seconds    = VALUES(idle_seconds),
+       alarm_seconds   = VALUES(alarm_seconds),
+       offline_seconds = VALUES(offline_seconds),
+       availability    = VALUES(availability),
+       updated_at      = NOW()`,
+    [
+      machine.shiftDate,
+      machine.shift,
+      SHIFT_BUCKET,         // ← sentinel, not NULL
+      machine.department,
+      machine.machine,
+      d.run_seconds,
+      d.idle_seconds,
+      d.alarm_seconds,
+      d.offline_seconds,
+      avail
+    ]
+  );
 }
 
 function startDurationTicker() {
   setInterval(() => {
-
     const machines = stateStore.getPlcSnapshot().machines;
-
     for (const machine of Object.values(machines)) {
-
       if (!machine.status || !machine.shiftDurations) continue;
-
       const bucketMap = {
         RUNNING: 'run_seconds',
-        IDLE: 'idle_seconds',
-        ALARM: 'alarm_seconds',
+        IDLE:    'idle_seconds',
+        ALARM:   'alarm_seconds',
         OFFLINE: 'offline_seconds'
       };
-
       const bucket = bucketMap[machine.status];
-      if (!bucket) continue;
-
-      machine.shiftDurations[bucket] += 1;
+      if (bucket) machine.shiftDurations[bucket] += 1;
     }
-
   }, 1000);
 }
+
 module.exports = {
   saveMachineShift,
-  accumulateCurrentStatus,
-  scheduleNextShiftCheck,
   startAutoSave,
   startDurationTicker
 };

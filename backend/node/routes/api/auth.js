@@ -19,36 +19,31 @@ const VALID_USERS = [
 
 router.post('/login', (req, res) => {
   const { username, password } = req.body;
-  console.log('Login attempt:', { username, password }); // ← see what's received
-
   const user = VALID_USERS.find(u => u.username === username);
-  if (user) {
-    console.log('Stored hash:', user.passwordHash);
-    console.log('Password matches?', bcrypt.compareSync(password, user.passwordHash));
-  }
 
-  // In /login route
   if (user && bcrypt.compareSync(password, user.passwordHash)) {
     req.session.userId = username;
-    req.session.role = user.role; // 👈 store role
+    req.session.role   = user.role;
+
+    // register session
+    global.services?.sessionRegistry?.register(
+      req.sessionID, username, user.role
+    );
+
     global.services.logService.log({
-      type: 'AUDIT',
-      severity: 'INFO',
-      user: req.session.userId || 'unknown',
-      role: req.session.role || 'unknown',
-      action: 'LOGIN',
-      message: 'User logged in'
+      type: 'AUDIT', severity: 'INFO',
+      user: username, role: user.role,
+      action: 'LOGIN', message: 'User logged in'
     });
     return res.json({ success: true });
-
   }
   res.status(401).json({ success: false, message: 'Invalid credentials' });
 });
 
 router.post('/logout', (req, res) => {
-  // ✅ Capture data BEFORE destroy
-  const userId = req.session?.userId || 'unknown';
-  const role = req.session?.role || 'unknown';
+  const userId    = req.session?.userId   || 'unknown';
+  const role      = req.session?.role     || 'unknown';
+  const sessionId = req.sessionID;
 
   req.session.destroy(err => {
     if (err) {
@@ -56,16 +51,13 @@ router.post('/logout', (req, res) => {
       return res.status(500).json({ success: false });
     }
 
-    // ✅ Log AFTER destroy using captured values
-    global.services.logService.log({
-      type: 'AUDIT',
-      severity: 'INFO',
-      user: userId,
-      role: role,
-      action: 'LOGOUT',
-      message: 'User logged out'
-    });
+    global.services?.sessionRegistry?.remove(sessionId);
 
+    global.services.logService.log({
+      type: 'AUDIT', severity: 'INFO',
+      user: userId, role: role,
+      action: 'LOGOUT', message: 'User logged out'
+    });
     res.json({ success: true });
   });
 });
@@ -78,6 +70,12 @@ router.get('/status', (req, res) => {
   });
 });
 
+router.get('/sessions', (req, res) => {
+  if (req.session?.role !== 'admin') {
+    return res.status(403).json({ error: 'Admin only' });
+  }
+  res.json(global.services?.sessionRegistry?.getAll() ?? []);
+});
 // TEMP: Simple role switch for testing (remove in production)
 router.post('/switch-role', (req, res) => {
   const { role } = req.body;
