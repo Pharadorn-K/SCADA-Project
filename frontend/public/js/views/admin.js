@@ -253,12 +253,7 @@ export async function adminAlarmMount() {
 
   // ── WebSocket — auto-refresh both panels on new alarm ─────────────────
   const ws = scadaStore.ws;
-  // function handleAlarmWs(event) {
-  //   const msg = JSON.parse(event.data);
-  //   if (msg.type !== 'alarm_event') return;
-  //   loadActiveAlarms();
-  //   loadHistory();
-  // }
+
   ws.addEventListener('message', handleAlarmWs);
 
   // store cleanup ref

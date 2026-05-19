@@ -1,26 +1,4 @@
-# Machine Monitoring App 📖
-It provides:
-- A desktop GUI to manage settings (Tkinter).📊
-- A Flask web server for dashboards (HTML/CSS/JS).🖥️
-- AI module for anomaly detection in machine cycle time.🧠
-- MySQL integration for real-time data logging.🗄️
-
----
-# Prepare your computer 🚀
-1. Clone the repository
-- Place Link to (GitHub desktop) in clone function with URL.
-```bash
-git clone https://github.com/Sunstar-TH/SCADA-Project.git
-```
-
-2. Install requirements pip
-- Run this code in your termianl to install all request pip.
-```bash
-pip install -r requirements.txt
-npm install express-session bcryptjs
-```
-
-3. Program test run:
+1. Program test run:
 - Terminal 1 python_loop - PLC 
 ```bash
 cd backend/python
@@ -32,212 +10,141 @@ cd backend/node
 npm run dev
 ```
 
-4. Console check value:
-```bash
-const m = scadaStore.state.machines['press_AIDA630T'];m.shiftDurations;
-scadaStore.state.machines["press_AIDA630T"]
-Object.keys(scadaStore.state.machines)
-```
-
-5. Generate new hash(user/password)
-```bash
-node generate-hash.js
-```
-
-6. Confirm access PLC and MySQL
-- You have to confirm that your computer can access PLC and MySQL before run any functions in program.
-```bash
-# PLC location
-ping 10.207.1.24
-
-#MySQL location
-ping 10.207.1.84
-```
-
-7. Database for count time in state:
-```bash
-USE scada;
-CREATE TABLE machine_shift_status (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    date DATE NOT NULL,
-    shift CHAR(1) NOT NULL,
-    department VARCHAR(20) NOT NULL,
-    machine VARCHAR(50) NOT NULL,
-
-    run_seconds INT DEFAULT 0,
-    idle_seconds INT DEFAULT 0,
-    alarm_seconds INT DEFAULT 0,
-    offline_seconds INT DEFAULT 0,
-    availability DECIMAL(6,4),
-
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-
-    UNIQUE KEY unique_shift (date, shift, department, machine)
-);
-```
-
-
-# Project structure :
-scada-project/ 
-│ 
-├── .vscode/ 
-│   └── settings.json
-├── backend/ 
-│   ├── python/ 
-│   │   ├── __pycache__/
-│   │   ├── __init__.py 
-│   │   ├── plc_loop.py              
-│   │   ├── plc_service.py               
-│   │   └── utils/
-│   │       ├── __pycache__/
-│   │       ├── clean_data.py
-│   │       ├── db_connector.py
-│   │       └── db_writer.py                     
-│   └── node/ 
-│       ├── .env1️⃣
-│       ├── package.json 
-│       ├── package-lock.json    
-│       ├── server.js0️⃣
-│       ├── data/ 
-│       │   └── systemState.json
-│       ├── logs/ 
-│       │   └── scada.log
-│       ├── middleware/ 
-│       │   └── requireRole.js                                      
-│       ├── node_modules/ ...
-│       ├── routes/ 
-│       │   ├── api/                    
-│       │   │   ├── alam.js3️⃣
-│       │   │   ├── alamHistory.js3️⃣   
-│       │   │   ├── audit.js3️⃣   
-│       │   │   ├── auth.js3️⃣              
-│       │   │   └── plc.js3️⃣  
-│       │   ├── machineTimeline.js3️⃣
-│       │   ├── shiftHistory.js3️⃣
-│       │   └── shiftSummary.js3️⃣  
-│       └── services/ 
-│           ├── alarmService.js2️⃣
-│           ├── bootstrapEngine.js4️⃣
-│           ├── db.js5️⃣
-│           ├── logService.js2️⃣
-│           ├── persistenceEngine.js4️⃣ 
-│           ├── plcEngine.js4️⃣
-│           ├── plcMonitor.js4️⃣ 
-│           ├── pythonBridge.js4️⃣
-│           ├── sessionRegistry.js2️⃣
-│           ├── shiftEngine.js4️⃣     
-│           └── stateStore.js2️⃣         
-│ 
-├── frontend/ 
-│   ├── public/                        
-│   │   ├── favicon.ico
-│   │   ├── index.html
-│   │   ├── login.html
-│   │   ├── css/
-│   │   │   ├── fontawesome/
-│   │   │   ├── webfonts/
-│   │   │   ├── header_press.png
-│   │   │   └── main.css
-│   │   ├── images/
-│   │   │   ├── Availability.png
-│   │   │   ├── Performance.png
-│   │   │   ├── OEE.png
-│   │   │   ├── heat_DKK1.png
-│   │   │   ├── heat_DKK2.png
-│   │   │   ├── heat_K3.png
-│   │   │   ├── heat_K4.png
-│   │   │   ├── heat_K5.png
-│   │   │   ├── heat_K6.png
-│   │   │   ├── heat_K7.png
-│   │   │   ├── heat_K8.png
-│   │   │   ├── lathe_Rotor TK1.png
-│   │   │   ├── lathe_Rotor TK4.png
-│   │   │   ├── press_AIDA630T.png
-│   │   │   └── press_M-20id-25.png
-│   │   └── js/
-│   │       ├── api.js
-│   │       ├── app.js
-│   │       ├── routes.js
-│   │       ├── shiftSummary.js
-│   │       ├── sidebar-behavior.js
-│   │       ├── sidebar.js
-│   │       ├── store.js
-│   │       ├── storeSelectors.js
-│   │       ├── utils.js
-│   │       └── views/
-│   │           ├── admin.js            
-│   │           ├── home.js
-│   │           ├── maintenance.js
-│   │           └── production.js
-│   └── src/                            
-│       ├── main.js                     
-│       ├── dashboard.js                
-│       ├── api.js                      
-│       └── styles/ 
-│           └── main.css 
-│
-├── database/ 
-│   ├── migrations/                     
-│   ├── schema.sql                      
-│   └── seed.sql                        
-│ 
-├── scripts/ 
-│   ├── start-dev.sh                    
-│   └── deploy.sh
-│ 
-├── .gitignore 
-├── README.md 
-└── docker-compose.yml                  
-
-
-clean_db_q.put({
-    "event": "plc_clean",
-    "source": "clean_press",
-    "department": "Press",
-    "machine": status_count_check[2],
-    "machine_type": status_count_check[3],
-    "timestamp": status_count_check[0],
-
-    "context": {
-        "part_name": status_count_check[4],
-        "plan": status_count_check[5],
-        "operator_id": status_count_check[6],
-    },
-
-    "metrics": {
-        "count_signal": status_count_check[7],
-        "run": status_count_check[8],
-        "idle": status_count_check[9],
-        "alarm": status_count_check[10],
-        "offline": status_count_check[11],
-        "alarm_code": status_count_check[12],
-        "cycle_time": cycle_time,
-        "count_shift": count_shift
-    }
-})
-broadcast_q.put({
-    "event": "plc_clean",
-    "source": "clean_press",
-    "department": "Press",
-    "machine": status_count_check[2],
-    "machine_type": status_count_check[3],
-    "timestamp": status_count_check[0],
-
-    "context": {
-        "part_name": status_count_check[4],
-        "plan": status_count_check[5],
-        "operator_id": status_count_check[6],
-    },
-
-    "metrics": {
-        "count_signal": status_count_check[7],
-        "run": status_count_check[8],
-        "idle": status_count_check[9],
-        "alarm": status_count_check[10],
-        "offline": status_count_check[11],
-        "alarm_code": status_count_check[12],
-        "cycle_time": cycle_time,
-        "count_shift": count_shift
-    }
-})
+# Project structure           
+D:\GitHub\SCADA-Project
+├───README.md
+│   
+├───.git
+│   └───(...)
+│   
+├───.vscode
+│   └───settings.json
+│       
+├───backend
+│   ├───node
+│   │   ├───.env ✅
+│   │   ├───generate-hash.js
+│   │   ├───package.json
+│   │   ├───package-lock.json
+│   │   ├───server.js ✅
+│   │   │   
+│   │   ├───data
+│   │   │   └───systemState.json
+│   │   │       
+│   │   ├───logs
+│   │   │   └───scada.log
+│   │   │       
+│   │   ├───middleware
+│   │   │   └───requireRole.js ✅
+│   │   │       
+│   │   ├───node_modules
+│   │   │   └───(...)
+│   │   │   
+│   │   ├───routes
+│   │   │   ├───machineTimeline.js ✅
+│   │   │   ├───shiftHistory.js ✅
+│   │   │   ├───shiftSummary.js ✅
+│   │   │   │   
+│   │   │   └───api
+│   │   │       ├───alarm.js ✅
+│   │   │       ├───alarmHistory.js ✅
+│   │   │       ├───audit.js ✅
+│   │   │       ├───auth.js ✅
+│   │   │       ├───machineHistory.js ✅
+│   │   │       ├───machineOee.js ✅
+│   │   │       ├───machinePartHistory.js ✅
+│   │   │       ├───plantSummary.js ✅
+│   │   │       └───plc.js ✅
+│   │   │      
+│   │   └───services
+│   │       ├───alarmService.js ✅
+│   │       ├───bootstrapEngine.js ✅
+│   │       ├───db.js ✅
+│   │       ├───hourlyAggregator.js ✅
+│   │       ├───logService.js ✅
+│   │       ├───persistenceEngine.js ✅
+│   │       ├───plcEngine.js ✅
+│   │       ├───plcMonitor.js ✅
+│   │       ├───pythonBridge.js ✅
+│   │       ├───sessionRegistry.js ✅
+│   │       ├───shiftEngine.js ✅
+│   │       └───stateStore.js ✅
+│   │          
+│   └───python
+│       ├───__init__.py
+│       ├───plc_loop.py ✅
+│       ├───plc_service.py ✅
+│       │   
+│       ├───utils
+│       │   ├───clean_data.py ✅
+│       │   ├───db_connector.py ✅
+│       │   ├───db_writer.py ✅
+│       │   │   
+│       │   └───__pycache__
+│       │       └───(...)
+│       │           
+│       └───__pycache__
+│           └───(...)
+│              
+├───database
+│   └───(...)
+│      
+├───env_01
+│   └───(...)
+│   
+├───frontend
+│   ├───public
+│   │   ├───favicon.ico
+│   │   ├───index.html ✅
+│   │   ├───login.html ✅
+│   │   │   
+│   │   ├───css
+│   │   │   ├───header_press.png
+│   │   │   ├───main.css ✅
+│   │   │   │   
+│   │   │   ├───fontawesome
+│   │   │   │   └───(...)
+│   │   │   │       
+│   │   │   └───webfonts
+│   │   │       └───(...)
+│   │   │           
+│   │   ├───images
+│   │   │   ├───Availability.png
+│   │   │   ├───Availability2.png
+│   │   │   ├───heat_DKK1.png
+│   │   │   ├───heat_DKK2.png
+│   │   │   ├───heat_K3.png
+│   │   │   ├───heat_K4.png
+│   │   │   ├───heat_K5.png
+│   │   │   ├───heat_K6.png
+│   │   │   ├───heat_K7.png
+│   │   │   ├───heat_K8.png
+│   │   │   ├───lathe_Rotor TK1.png
+│   │   │   ├───lathe_Rotor TK4.png
+│   │   │   ├───OEE.png
+│   │   │   ├───Performance.png
+│   │   │   ├───press_AIDA630T.png
+│   │   │   └───press_M-20id-25.png
+│   │   │       
+│   │   └───js
+│   │       ├───api.js ✅
+│   │       ├───app.js ✅
+│   │       ├───routes.js ✅
+│   │       ├───shiftSummary.js ✅
+│   │       ├───sidebar-behavior.js ✅
+│   │       ├───sidebar.js ✅
+│   │       ├───store.js ✅
+│   │       ├───storeSelectors.js ✅
+│   │       ├───utils.js ✅
+│   │       │   
+│   │       └───views
+│   │           ├───admin.js ✅
+│   │           ├───home.js ✅
+│   │           ├───maintenance.js ✅
+│   │           └───production.js ✅
+│   │               
+│   └───src
+│       └───(...)
+│               
+└───scripts
+    └───(...)
