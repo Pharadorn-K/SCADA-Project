@@ -393,9 +393,6 @@ let efficiencyUnsubscribe = null;
 let stopwatchInterval     = null;
 
 // ── ALL chart instances and state are MODULE-LEVEL so unmount can clean them ──
-// But they must be RESET on every mount to avoid stale canvas references.
-// Solution: declare here, reset inside mount. This is the fix for the
-// "history chart shows old machine data on dept change" bug.
 let oeeWindowTimer  = null;
 let histAvailChart  = null;
 let histPerfChart   = null;
@@ -611,22 +608,38 @@ export function productionMachineEfficiencyMount(container) {
   // ── helpers ──────────────────────────────────────────────────────────────
   function getStandardCycleTime(m) { return m?.standard_cycle_time ?? null; }
 
-  function calcAvailabilityPct(m) {
+function calcAvailabilityPct(m) {
     const d = m?.shiftDurations;
     if (!d) return 0;
-    const planned = (d.run_seconds||0)+(d.idle_seconds||0)+(d.alarm_seconds||0)+(d.offline_seconds||0);
-    return planned > 0 ? (d.run_seconds / planned) * 100 : 0;
+    let run     = d.run_seconds     || 0;
+    let idle    = d.idle_seconds    || 0;
+    let alarm   = d.alarm_seconds   || 0;
+    let offline = d.offline_seconds || 0;
+    // Add live seconds for the current status not yet ticked into shiftDurations
+    if (m.statusStartedAt) {
+      const live = Math.floor((Date.now() - m.statusStartedAt) / 1000);
+      if (m.status === 'RUNNING') run     += live;
+      if (m.status === 'IDLE')    idle    += live;
+      if (m.status === 'ALARM')   alarm   += live;
+      if (m.status === 'OFFLINE') offline += live;
+    }
+    const planned = run + idle + alarm + offline;
+    return planned > 0 ? (run / planned) * 100 : 0;
   }
 
   function calcPerformancePct(m) {
     const std = getStandardCycleTime(m);
     if (!std) return null;
-    const runTime = m?.shiftDurations?.run_seconds || 0;
-    const count   = m?.tags?.count_shift || 0;
+    let runTime = m?.shiftDurations?.run_seconds || 0;
+    // Add live run seconds if machine is currently running
+    if (m.statusStartedAt && m.status === 'RUNNING') {
+      runTime += Math.floor((Date.now() - m.statusStartedAt) / 1000);
+    }
+    const count = m?.tags?.count_shift || 0;
     if (!runTime || !count) return 0;
     return Math.min((std * count) / runTime * 100, 200);
   }
-
+  
   function calcOEE(avail, perf) {
     if (perf === null) return null;
     return (avail / 100) * (perf / 100) * 100;
@@ -647,40 +660,62 @@ export function productionMachineEfficiencyMount(container) {
   }
 
   // ── History chart helpers ─────────────────────────────────────────────────
-  function histBarColor(value) {
-    if (value === null)  return 'rgba(200,200,200,0.5)';
-    if (value >= 85)     return 'rgba(29,158,117,0.75)';
-    if (value >= 60)     return 'rgba(186,117,23,0.75)';
-    return                      'rgba(163,45,45,0.75)';
+  function histBarColor(value, isPerf = false) {
+    if (value === null)            return 'rgba(200,200,200,0.5)';
+    if (isPerf && value > 100)     return 'rgba(55,138,221,0.75)';  // blue — above standard
+    if (value >= 85)               return 'rgba(29,158,117,0.75)';  // green
+    if (value >= 60)               return 'rgba(186,117,23,0.75)';  // amber
+    return                                'rgba(163,45,45,0.75)';   // red
   }
 
-  function buildBarColors(values) { return values.map(histBarColor); }
+  function buildBarColors(values, isPerf = false) {
+    return values.map(v => histBarColor(v, isPerf));
+  }
 
-  // function makeHistChartConfig(labels, values, title) {
-  //   const colors = buildBarColors(values);
-  //   return {
-  //     type: 'bar',
-  //     data: {
-  //       labels,
-  //       datasets: [{ label: title, data: values.map(v => v ?? 0), backgroundColor: colors, borderColor: colors.map(c => c.replace('0.75','1')), borderWidth: 1, borderRadius: 3 }]
-  //     },
-  //     options: {
-  //       animation: false, responsive: true, maintainAspectRatio: false,
-  //       plugins: {
-  //         legend: { display: false },
-  //         tooltip: { callbacks: { label: ctx => { const raw = values[ctx.dataIndex]; return raw !== null ? `${raw.toFixed(1)}%` : 'N/A'; } } },
-  //         annotation: { annotations: { target85: { type:'line', yMin:85, yMax:85, borderColor:'rgba(29,158,117,0.5)', borderWidth:1, borderDash:[4,4], label:{ display:true, content:'85%', position:'end', color:'#1D9E75', font:{size:9} } } } }
-  //       },
-  //       scales: {
-  //         x: { ticks: { font:{size:9}, maxRotation:45, minRotation:30 }, grid: { display:false } },
-  //         y: { min:0, max:100, ticks: { font:{size:9}, callback: v=>`${v}%`, maxTicksLimit:6 }, grid: { color:'rgba(0,0,0,0.05)' } }
-  //       }
-  //     }
-  //   };
-  // }
   function makeHistChartConfig(labels, values, title) {
-    const colors = buildBarColors(values);
-  
+    const isPerf = title === 'Performance';    
+    const colors = buildBarColors(values, isPerf);
+
+
+    // For performance charts, allow Y-axis to expand above 100%
+    const maxVal   = values.reduce((a, v) => (v !== null && v > a ? v : a), 0);
+    const yMax     = isPerf ? Math.max(100, Math.ceil(maxVal / 10) * 10 + 10) : 100;
+
+    // Annotations: always show 85% target; show 100% reference only for performance
+    const annotations = {
+      target85: {
+        type: 'line',
+        yMin: 85, yMax: 85,
+        borderColor: 'rgba(29,158,117,0.5)',
+        borderWidth: 1,
+        borderDash: [4, 4],
+        label: {
+          display: true,
+          content: '85%',
+          position: 'end',
+          color: '#1D9E75',
+          font: { size: 9 }
+        }
+      }
+    };
+
+    if (isPerf) {
+      annotations.target100 = {
+        type: 'line',
+        yMin: 100, yMax: 100,
+        borderColor: 'rgba(55,138,221,0.6)',
+        borderWidth: 1,
+        borderDash: [4, 4],
+        label: {
+          display: true,
+          content: '100% (standard)',
+          position: 'end',
+          color: '#185FA5',
+          font: { size: 9 }
+        }
+      };
+    }
+
     return {
       type: 'bar',
       data: {
@@ -692,8 +727,6 @@ export function productionMachineEfficiencyMount(container) {
           borderColor:     colors.map(c => c.replace('0.75', '1')),
           borderWidth: 1,
           borderRadius: 3,
-          // Store original values (including nulls) as a custom property
-          // so the tooltip can distinguish "0" from "no data"
           originalValues: values.slice()
         }]
       },
@@ -706,7 +739,6 @@ export function productionMachineEfficiencyMount(container) {
           tooltip: {
             callbacks: {
               label: ctx => {
-                // ── Read from the dataset's own originalValues — always current ──
                 const originals = ctx.dataset.originalValues;
                 const raw = originals ? originals[ctx.dataIndex] : ctx.parsed.y;
                 return raw !== null && raw !== undefined
@@ -715,24 +747,7 @@ export function productionMachineEfficiencyMount(container) {
               }
             }
           },
-          annotation: {
-            annotations: {
-              target85: {
-                type: 'line',
-                yMin: 85, yMax: 85,
-                borderColor: 'rgba(29,158,117,0.5)',
-                borderWidth: 1,
-                borderDash: [4, 4],
-                label: {
-                  display: true,
-                  content: '85%',
-                  position: 'end',
-                  color: '#1D9E75',
-                  font: { size: 9 }
-                }
-              }
-            }
-          }
+          annotation: { annotations }
         },
         scales: {
           x: {
@@ -740,7 +755,7 @@ export function productionMachineEfficiencyMount(container) {
             grid:  { display: false }
           },
           y: {
-            min: 0, max: 100,
+            min: 0, max: yMax,
             ticks: { font: { size: 9 }, callback: v => `${v}%`, maxTicksLimit: 6 },
             grid:  { color: 'rgba(0,0,0,0.05)' }
           }
@@ -748,41 +763,31 @@ export function productionMachineEfficiencyMount(container) {
       }
     };
   }
-  // function renderHistChart(canvasId, existingChart, labels, values, title) {
-  //   const canvas = document.getElementById(canvasId);
-  //   if (!canvas) return existingChart;
-  //   if (!existingChart) return new Chart(canvas, makeHistChartConfig(labels, values, title));
-  //   const colors = buildBarColors(values);
-  //   existingChart.data.labels                       = labels;
-  //   existingChart.data.datasets[0].data             = values.map(v => v ?? 0);
-  //   existingChart.data.datasets[0].backgroundColor  = colors;
-  //   existingChart.data.datasets[0].borderColor      = colors.map(c => c.replace('0.75','1'));
-  //   existingChart.update('none');
-  //   return existingChart;
-  // }
 
   // ── Destroy all history charts (called on dept change) ────────────────────
-
   function renderHistChart(canvasId, existingChart, labels, values, title) {
-    const canvas = document.getElementById(canvasId);
-    if (!canvas) return existingChart;
-  
-    if (!existingChart) {
-      return new Chart(canvas, makeHistChartConfig(labels, values, title));
-    }
-  
-    // Update in-place — never recreate the canvas
-    const colors = buildBarColors(values);
-    existingChart.data.labels                              = labels;
-    existingChart.data.datasets[0].data                   = values.map(v => v ?? 0);
-    existingChart.data.datasets[0].backgroundColor        = colors;
-    existingChart.data.datasets[0].borderColor            = colors.map(c => c.replace('0.75', '1'));
-    // ── Keep originalValues in sync so tooltip always shows current data ──
-    existingChart.data.datasets[0].originalValues         = values.slice();
-    existingChart.update('none');
-    return existingChart;
-  }
+      const canvas = document.getElementById(canvasId);
+      if (!canvas) return existingChart;
+    
+      if (!existingChart) {
+        return new Chart(canvas, makeHistChartConfig(labels, values, title));
+      }
+    
+      // Update in-place — never recreate the canvas
+      const isPerf  = title === 'Performance';
+      const colors  = buildBarColors(values, isPerf);
+      const maxVal  = values.reduce((a, v) => (v !== null && v > a ? v : a), 0);
+      const yMax    = isPerf ? Math.max(100, Math.ceil(maxVal / 10) * 10 + 10) : 100;
 
+      existingChart.data.labels                              = labels;
+      existingChart.data.datasets[0].data                   = values.map(v => v ?? 0);
+      existingChart.data.datasets[0].backgroundColor        = colors;
+      existingChart.data.datasets[0].borderColor            = colors.map(c => c.replace('0.75', '1'));
+      existingChart.data.datasets[0].originalValues         = values.slice();
+      existingChart.options.scales.y.max                    = yMax;
+      existingChart.update('none');
+      return existingChart;
+    }
 
   function destroyHistoryCharts() {
     if (histAvailChart) { histAvailChart.destroy(); histAvailChart = null; }
@@ -1227,15 +1232,768 @@ export function productionMachineEfficiencyUnmount() {
 }
 
 // --------------- HISTORY page --------------- //
-export function productionProductionHistoryView() {
-  return `<div class="card"><h2>Production History</h2><div class="card"><h3>📡 Live PLC Data</h3><pre id="plc-data">No data...</pre></div></div>`;
-}
-export async function productionProductionHistoryMount() {
-  const dataEl = document.getElementById('plc-data');
-  unsubscribe = scadaStore.subscribe((data) => { dataEl.textContent = JSON.stringify(data, null, 2); });
-}
-export function productionProductionHistoryUnmount() { if (unsubscribe) unsubscribe(); }
+// --------------- HISTORY page --------------- //
 
+// ── shared helpers ─────────────────────────────────────────────────────────
+function phFmtTime(s) {
+  if (!s) return '0h 0m';
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  return `${h}h ${m}m`;
+}
+function phMetricColor(v, isPerf = false) {
+  if (v === null || v === undefined) return '#aaa';
+  if (isPerf && v > 100) return '#185FA5';
+  if (v >= 85) return '#1D9E75';
+  if (v >= 60) return '#BA7517';
+  return '#A32D2D';
+}
+function phMetricClass(v) {
+  if (v === null || v === undefined) return '';
+  return v >= 85 ? 'ph-tbl-good' : v >= 60 ? 'ph-tbl-warn' : 'ph-tbl-bad';
+}
+function phAvailBar(run, idle, alarm, offline) {
+  const tot = run + idle + alarm + offline || 1;
+  return `<div class="ph-comp-bar">
+    <div class="ph-cb-run"     style="flex:${run}"></div>
+    <div class="ph-cb-idle"    style="flex:${idle}"></div>
+    <div class="ph-cb-alarm"   style="flex:${alarm}"></div>
+    <div class="ph-cb-offline" style="flex:${offline || 0.1}"></div>
+  </div>`;
+}
+
+// ── module-level state for this page ──────────────────────────────────────
+let _phSection   = 'output';   // 'output' | 'machine'
+let _phMonth     = '';
+let _phDept      = 'All';
+let _phMachine   = 'All';
+let _phPart      = 'All';
+let _phMachineId = 'heat_K7';  // for machine section
+let _phMode      = 'shifts';
+let _phMetric    = 'avail';
+let _phHistCharts = {};        // { avail, perf, oee }
+let _phHistMode  = { avail: 'shifts', perf: 'shifts', oee: 'shifts' };
+let _phUnsubscribe = null;
+let _phTimers    = [];
+const PH_MACHINES = [
+  { dept: 'Press', id: 'press_AIDA630T',   label: 'AIDA 630T'  },
+  { dept: 'Press', id: 'press_M-20id-25',  label: 'M-20iD/25'  },
+  { dept: 'Heat',  id: 'heat_DKK1',        label: 'DKK1'        },
+  { dept: 'Heat',  id: 'heat_DKK2',        label: 'DKK2'        },
+  { dept: 'Heat',  id: 'heat_K3',          label: 'K3'          },
+  { dept: 'Heat',  id: 'heat_K4',          label: 'K4'          },
+  { dept: 'Heat',  id: 'heat_K5',          label: 'K5'          },
+  { dept: 'Heat',  id: 'heat_K6',          label: 'K6'          },
+  { dept: 'Heat',  id: 'heat_K7',          label: 'K7'          },
+  { dept: 'Heat',  id: 'heat_K8',          label: 'K8'          },
+  { dept: 'Lathe', id: 'lathe_Rotor TK1',  label: 'Rotor TK1'  },
+  { dept: 'Lathe', id: 'lathe_Rotor TK4',  label: 'Rotor TK4'  },
+];
+
+export function productionProductionHistoryView() {
+  // get current month as default
+  const now  = new Date();
+  _phMonth   = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
+  return `
+  <!-- ── CSS injected once ── -->
+  <style>
+  .ph-header{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:14px}
+  .ph-title{font-size:20px;font-weight:700;color:#1a1a1a}
+  .ph-sub{font-size:11px;color:#aaa;margin-top:2px}
+  .ph-section-tabs{display:flex;gap:4px;margin-bottom:12px;border-bottom:1px solid #e5e9f0;padding-bottom:0}
+  .ph-section-tab{background:none;border:none;border-bottom:2px solid transparent;
+    padding:8px 16px;font-size:13px;font-weight:600;cursor:pointer;color:#888;
+    margin-bottom:-1px;transition:color .15s,border-color .15s}
+  .ph-section-tab.active{color:#185FA5;border-bottom-color:#378ADD}
+  .ph-toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+    background:#fff;border:0.5px solid #e5e9f0;border-radius:10px;
+    padding:10px 14px;margin-bottom:12px}
+  .ph-toolbar-sep{width:1px;height:22px;background:#e5e9f0;flex-shrink:0}
+  .ph-lbl{font-size:10px;font-weight:600;color:#aaa;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap}
+  .ph-sel{font-size:12px;padding:5px 8px;border:0.5px solid #d0d7e3;
+    border-radius:7px;background:#fff;color:#1a1a1a;cursor:pointer}
+  .ph-sel:focus{outline:none;border-color:#378ADD}
+  .ph-mode-group{display:flex;gap:3px}
+  .ph-mode-btn{padding:4px 10px;font-size:11px;font-weight:600;border-radius:6px;
+    border:0.5px solid #d0d7e3;background:#fff;cursor:pointer;color:#666;transition:all .12s}
+  .ph-mode-btn:hover{background:#f3f6fa}
+  .ph-mode-btn.ph-active{background:#E6F1FB;border-color:#378ADD;color:#185FA5}
+  .ph-spacer{flex:1}
+  .ph-layout{display:grid;grid-template-columns:210px 1fr;gap:12px;align-items:start}
+  .ph-machine-panel{background:#fff;border:0.5px solid #e5e9f0;border-radius:10px;overflow:hidden;position:sticky;top:0}
+  .ph-machine-panel-head{padding:10px 12px 8px;border-bottom:0.5px solid #f0f0f0;background:#fafbfc}
+  .ph-machine-panel-title{font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.4px}
+  .ph-dept-section{padding:4px 0}
+  .ph-dept-head{display:flex;align-items:center;gap:6px;padding:5px 10px;
+    font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;
+    border-left:3px solid transparent;margin:0 4px;border-radius:0 5px 5px 0}
+  .ph-dept-head.press{color:#185FA5;border-left-color:#378ADD;background:#f0f7ff}
+  .ph-dept-head.heat {color:#854F0B;border-left-color:#E67E22;background:#fff8f0}
+  .ph-dept-head.lathe{color:#6C3483;border-left-color:#9B59B6;background:#f9f5ff}
+  .ph-machine-item{display:flex;align-items:center;gap:7px;padding:6px 10px 6px 16px;
+    cursor:pointer;border-radius:6px;margin:1px 4px;transition:background .1s;
+    border:0.5px solid transparent}
+  .ph-machine-item:hover{background:#f3f6fa;border-color:#e5e9f0}
+  .ph-machine-item.ph-selected{background:#E6F1FB;border-color:#378ADD}
+  .ph-machine-item.ph-selected .ph-mi-name{color:#185FA5;font-weight:700}
+  .ph-mi-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;background:#ccc}
+  .ph-mi-dot.running{background:#1D9E75} .ph-mi-dot.idle{background:#BA7517}
+  .ph-mi-dot.alarm{background:#A32D2D}   .ph-mi-dot.offline{background:#888}
+  .ph-mi-name{font-size:11px;font-weight:600;color:#333}
+  .ph-main{display:flex;flex-direction:column;gap:10px}
+  .ph-summary-strip{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:12px}
+  .ph-sum-card{background:#fff;border:0.5px solid #e5e9f0;border-radius:10px;padding:10px 12px}
+  .ph-sum-label{font-size:10px;color:#aaa;font-weight:600;text-transform:uppercase;letter-spacing:.3px}
+  .ph-sum-val{font-size:18px;font-weight:700;color:#1a1a1a;line-height:1.3}
+  .ph-sum-sub{font-size:10px;color:#bbb;margin-top:2px}
+  .ph-chart-panel{background:#fff;border:0.5px solid #e5e9f0;border-radius:10px;padding:14px 16px}
+  .ph-chart-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+  .ph-chart-title{font-size:13px;font-weight:700;color:#1a1a1a}
+  .ph-chart-meta{font-size:11px;color:#aaa}
+  .ph-chart-container{position:relative;height:220px}
+  .ph-chart-container canvas{position:absolute;inset:0;width:100%!important;height:100%!important}
+  .ph-table-panel{background:#fff;border:0.5px solid #e5e9f0;border-radius:10px;overflow:hidden}
+  .ph-table-head{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;
+    padding:10px 14px;border-bottom:0.5px solid #f0f0f0;background:#fafbfc}
+  .ph-table-title{font-size:12px;font-weight:700;color:#1a1a1a}
+  .ph-table-wrap{overflow-x:auto;max-height:420px;overflow-y:auto}
+  .ph-table-wrap::-webkit-scrollbar{width:4px;height:4px}
+  .ph-table-wrap::-webkit-scrollbar-thumb{background:#d0d7e3;border-radius:2px}
+  table.ph-table{width:100%;border-collapse:collapse}
+  table.ph-table th{text-align:left;padding:7px 10px;font-size:10px;font-weight:600;
+    color:#888;text-transform:uppercase;letter-spacing:.3px;border-bottom:0.5px solid #e5e9f0;
+    background:#fafbfc;white-space:nowrap;position:sticky;top:0;z-index:1}
+  table.ph-table th.r,table.ph-table td.r{text-align:right}
+  table.ph-table td{padding:6px 10px;font-size:12px;border-bottom:0.5px solid #f5f5f5;white-space:nowrap}
+  table.ph-table tr:last-child td{border-bottom:none}
+  table.ph-table tr:hover td{background:#f7f9fc}
+  .ph-shift-badge{display:inline-block;font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;letter-spacing:.3px}
+  .ph-shift-A{background:#EAF3DE;color:#3B6D11} .ph-shift-B{background:#E6F1FB;color:#185FA5}
+  .ph-shift-C{background:#F5EEF8;color:#6C3483}
+  .ph-tbl-good{color:#1D9E75;font-weight:700} .ph-tbl-warn{color:#BA7517;font-weight:700}
+  .ph-tbl-bad{color:#A32D2D;font-weight:700}  .ph-tbl-blue{color:#185FA5;font-weight:700}
+  .ph-comp-bar{display:flex;height:7px;border-radius:4px;overflow:hidden;width:100px;gap:1px}
+  .ph-cb-run{background:#1D9E75} .ph-cb-idle{background:#BA7517}
+  .ph-cb-alarm{background:#A32D2D} .ph-cb-offline{background:#888}
+  .ph-empty{display:flex;align-items:center;justify-content:center;height:160px;
+    color:#bbb;font-size:13px;flex-direction:column;gap:6px}
+  .ph-loading{display:flex;align-items:center;justify-content:center;height:100px;
+    color:#aaa;font-size:12px;gap:8px}
+  .ph-spinner{width:16px;height:16px;border:2px solid #e5e9f0;border-top-color:#378ADD;
+    border-radius:50%;animation:ph-spin .7s linear infinite}
+  @keyframes ph-spin{to{transform:rotate(360deg)}}
+  .ph-hint{font-size:10px;color:#bbb;padding:4px 14px 8px;font-style:italic}
+  /* output filter toolbar */
+  .ph-out-toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+    background:#fff;border:0.5px solid #e5e9f0;border-radius:10px;
+    padding:10px 14px;margin-bottom:12px}
+  /* hist chart row */
+  .ph-hist-row{display:flex;gap:10px}
+  .ph-hist-wrap{flex:1;background:#fff;border:0.5px solid #e5e9f0;border-radius:10px;padding:10px 12px}
+  .ph-hist-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+  .ph-hist-container{position:relative;height:170px}
+  .ph-hist-container canvas{position:absolute;inset:0;width:100%!important;height:100%!important}
+  .ph-hist-na{font-size:12px;color:#bbb;text-align:center;padding:40px 0}
+  </style>
+
+  <div class="ph-header">
+    <div>
+      <div class="ph-title">Production History</div>
+      <div class="ph-sub">Output records · Machine efficiency history</div>
+    </div>
+  </div>
+
+  <!-- section tabs -->
+  <div class="ph-section-tabs">
+    <button class="ph-section-tab ${_phSection === 'output' ? 'active' : ''}" data-tab="output">📦 Output</button>
+    <button class="ph-section-tab ${_phSection === 'machine' ? 'active' : ''}" data-tab="machine">⚙️ Machine</button>
+  </div>
+
+  <!-- content placeholder -->
+  <div id="ph-content"></div>
+  `;
+}
+
+export async function productionProductionHistoryMount(container) {
+  // destroy old chart refs on every mount
+  Object.values(_phHistCharts).forEach(c => { try { c?.destroy(); } catch(e){} });
+  _phHistCharts = {};
+  _phHistMode   = { avail: 'shifts', perf: 'shifts', oee: 'shifts' };
+  _phTimers.forEach(clearInterval);
+  _phTimers = [];
+
+  const content = container.querySelector('#ph-content');
+
+  // ── section tab switching ─────────────────────────────────────────────
+  container.querySelectorAll('.ph-section-tab').forEach(btn => {
+    btn.addEventListener('click', () => {
+      container.querySelectorAll('.ph-section-tab').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      _phSection = btn.dataset.tab;
+      renderSection(content);
+    });
+  });
+
+  // initial render
+  await renderSection(content);
+
+  // ── SECTION ROUTER ────────────────────────────────────────────────────
+  async function renderSection(el) {
+    Object.values(_phHistCharts).forEach(c => { try { c?.destroy(); } catch(e){} });
+    _phHistCharts = {};
+    _phTimers.forEach(clearInterval);
+    _phTimers = [];
+    el.innerHTML = '';
+
+    if (_phSection === 'output') {
+      await renderOutputSection(el);
+    } else {
+      renderMachineSection(el);
+    }
+  }
+
+  // ══════════════════════════════════════════════════════════════════════
+  //  OUTPUT SECTION
+  // ══════════════════════════════════════════════════════════════════════
+  async function renderOutputSection(el) {
+    // build month options — current month + 11 past months
+    const monthOpts = buildMonthOptions();
+
+    el.innerHTML = `
+      <!-- filter toolbar -->
+      <div class="ph-out-toolbar" id="out-toolbar">
+        <span class="ph-lbl">Month</span>
+        <select class="ph-sel" id="out-month">${monthOpts}</select>
+        <div class="ph-toolbar-sep"></div>
+        <span class="ph-lbl">Dept</span>
+        <select class="ph-sel" id="out-dept"><option value="All">All</option></select>
+        <div class="ph-toolbar-sep"></div>
+        <span class="ph-lbl">Machine</span>
+        <select class="ph-sel" id="out-machine"><option value="All">All</option></select>
+        <div class="ph-toolbar-sep"></div>
+        <span class="ph-lbl">Part</span>
+        <select class="ph-sel" id="out-part"><option value="All">All</option></select>
+        <div class="ph-spacer"></div>
+        <button class="ph-mode-btn ph-active" id="out-load-btn">Load</button>
+      </div>
+
+      <!-- summary strip -->
+      <div id="out-summary" class="ph-summary-strip" style="display:none">
+        <div class="ph-sum-card">
+          <div class="ph-sum-label">Total Output</div>
+          <div class="ph-sum-val" id="os-count">—</div>
+          <div class="ph-sum-sub">parts (count_signal=1)</div>
+        </div>
+        <div class="ph-sum-card">
+          <div class="ph-sum-label">Avg Cycle Time</div>
+          <div class="ph-sum-val" id="os-cycle">—</div>
+          <div class="ph-sum-sub">seconds / part</div>
+        </div>
+        <div class="ph-sum-card">
+          <div class="ph-sum-label">Avg Availability</div>
+          <div class="ph-sum-val" id="os-avail">—</div>
+          <div class="ph-sum-sub">run / planned</div>
+        </div>
+        <div class="ph-sum-card">
+          <div class="ph-sum-label">Avg Performance</div>
+          <div class="ph-sum-val" id="os-perf">—</div>
+          <div class="ph-sum-sub">std × count / run</div>
+        </div>
+        <div class="ph-sum-card">
+          <div class="ph-sum-label">Avg OEE</div>
+          <div class="ph-sum-val" id="os-oee">—</div>
+          <div class="ph-sum-sub">Avail × Perf</div>
+        </div>
+      </div>
+
+      <!-- table -->
+      <div id="out-table-area">
+        <div class="ph-empty" style="background:#fff;border:0.5px solid #e5e9f0;border-radius:10px;height:200px">
+          Select month and filters, then press <strong>Load</strong>
+        </div>
+      </div>
+    `;
+
+    // Load filters for current month
+    await loadOutputFilters(_phMonth);
+
+    // Bind month change → reload filters
+    el.querySelector('#out-month').addEventListener('change', async e => {
+      _phMonth = e.target.value;
+      await loadOutputFilters(_phMonth);
+    });
+
+    el.querySelector('#out-load-btn').addEventListener('click', () => loadOutputData());
+
+    // Auto-load on first render
+    loadOutputData();
+  }
+
+  function buildMonthOptions() {
+    const opts = [];
+    const now  = new Date();
+    for (let i = 0; i < 12; i++) {
+      const d  = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const val = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      const lbl = d.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+      opts.push(`<option value="${val}" ${val === _phMonth ? 'selected' : ''}>${lbl}</option>`);
+    }
+    return opts.join('');
+  }
+
+  async function loadOutputFilters(month) {
+    try {
+      const res  = await fetch(`/api/production-output/filters?month=${month}`, { credentials: 'same-origin' });
+      const data = await res.json();
+      if (!data.success) return;
+
+      const deptSel    = document.getElementById('out-dept');
+      const machineSel = document.getElementById('out-machine');
+      const partSel    = document.getElementById('out-part');
+      if (!deptSel) return;
+
+      const prevDept    = deptSel.value;
+      const prevMachine = machineSel.value;
+      const prevPart    = partSel.value;
+
+      deptSel.innerHTML    = `<option value="All">All</option>` + data.departments.map(d => `<option value="${d}" ${d === prevDept ? 'selected' : ''}>${d}</option>`).join('');
+      machineSel.innerHTML = `<option value="All">All</option>` + data.machines.map(m => `<option value="${m}" ${m === prevMachine ? 'selected' : ''}>${m}</option>`).join('');
+      partSel.innerHTML    = `<option value="All">All</option>` + data.parts.map(p => `<option value="${p}" ${p === prevPart ? 'selected' : ''}>${p}</option>`).join('');
+    } catch (e) {
+      console.error('loadOutputFilters error:', e);
+    }
+  }
+
+  async function loadOutputData() {
+    const month   = document.getElementById('out-month')?.value   || _phMonth;
+    const dept    = document.getElementById('out-dept')?.value    || 'All';
+    const machine = document.getElementById('out-machine')?.value || 'All';
+    const part    = document.getElementById('out-part')?.value    || 'All';
+
+    const area = document.getElementById('out-table-area');
+    if (!area) return;
+    area.innerHTML = `<div class="ph-loading"><div class="ph-spinner"></div>Loading…</div>`;
+
+    const params = new URLSearchParams({ month });
+    if (dept    !== 'All') params.set('dept',    dept);
+    if (machine !== 'All') params.set('machine', machine);
+    if (part    !== 'All') params.set('part',    part);
+
+    try {
+      const res  = await fetch(`/api/production-output?${params}`, { credentials: 'same-origin' });
+      const data = await res.json();
+      if (!data.success || !data.rows.length) {
+        area.innerHTML = `<div class="ph-empty" style="background:#fff;border:0.5px solid #e5e9f0;border-radius:10px;height:180px">No data for selected filters</div>`;
+        document.getElementById('out-summary')?.style.setProperty('display', 'none');
+        return;
+      }
+      renderOutputTable(area, data.rows);
+    } catch (e) {
+      area.innerHTML = `<div class="ph-empty" style="background:#fff;border:0.5px solid #e5e9f0;border-radius:10px;height:180px">Error loading data</div>`;
+    }
+  }
+
+  function renderOutputTable(area, rows) {
+    // summary
+    const sumEl = document.getElementById('out-summary');
+    if (sumEl) {
+      sumEl.style.display = '';
+      const totalCount = rows.reduce((a, r) => a + r.count_output, 0);
+      const cycles     = rows.filter(r => r.avg_cycle_time).map(r => r.avg_cycle_time);
+      const avgCycle   = cycles.length ? (cycles.reduce((a, b) => a + b, 0) / cycles.length).toFixed(1) : null;
+      const avails     = rows.filter(r => r.avail !== null).map(r => r.avail);
+      const avgAvail   = avails.length ? (avails.reduce((a, b) => a + b, 0) / avails.length).toFixed(1) : null;
+      const perfs      = rows.filter(r => r.perf !== null).map(r => r.perf);
+      const avgPerf    = perfs.length ? (perfs.reduce((a, b) => a + b, 0) / perfs.length).toFixed(1) : null;
+      const oees       = rows.filter(r => r.oee !== null).map(r => r.oee);
+      const avgOee     = oees.length ? (oees.reduce((a, b) => a + b, 0) / oees.length).toFixed(1) : null;
+
+      document.getElementById('os-count').textContent = totalCount.toLocaleString();
+      document.getElementById('os-cycle').textContent = avgCycle ? `${avgCycle} s` : '—';
+      const av = document.getElementById('os-avail');
+      av.textContent = avgAvail ? `${avgAvail}%` : '—';
+      av.style.color = avgAvail ? phMetricColor(parseFloat(avgAvail)) : '#aaa';
+      const pf = document.getElementById('os-perf');
+      pf.textContent = avgPerf ? `${avgPerf}%` : '—';
+      pf.style.color = avgPerf ? phMetricColor(parseFloat(avgPerf), true) : '#aaa';
+      const oe = document.getElementById('os-oee');
+      oe.textContent = avgOee ? `${avgOee}%` : '—';
+      oe.style.color = avgOee ? phMetricColor(parseFloat(avgOee)) : '#aaa';
+    }
+
+    // table
+    area.innerHTML = `
+      <div class="ph-table-panel">
+        <div class="ph-table-head">
+          <span class="ph-table-title">Output detail</span>
+          <span style="font-size:10px;color:#bbb">${rows.length} rows</span>
+        </div>
+        <div class="ph-table-wrap">
+          <table class="ph-table">
+            <thead><tr>
+              <th>Date</th>
+              <th>Dept</th>
+              <th>Machine</th>
+              <th>Part name</th>
+              <th class="r">Count</th>
+              <th class="r">Avg cycle</th>
+              <th class="r">Availability</th>
+              <th class="r">Performance</th>
+              <th class="r">OEE</th>
+              <th>Status split</th>
+              <th class="r">Run time</th>
+            </tr></thead>
+            <tbody>
+              ${rows.map(r => {
+                const d  = new Date(r.date + 'T00:00:00');
+                const dl = d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
+                const deptColor = { Press: '#185FA5', Heat: '#854F0B', Lathe: '#6C3483' }[r.department] || '#888';
+                return `<tr>
+                  <td>${dl}</td>
+                  <td><span style="font-size:10px;font-weight:600;color:${deptColor}">${r.department}</span></td>
+                  <td style="font-weight:600">${r.machine}</td>
+                  <td>${r.part_name || '<span style="color:#bbb">—</span>'}</td>
+                  <td class="r" style="font-weight:700">${r.count_output.toLocaleString()}</td>
+                  <td class="r">${r.avg_cycle_time != null ? r.avg_cycle_time + ' s' : '—'}</td>
+                  <td class="r ${r.avail !== null ? phMetricClass(r.avail) : ''}">${r.avail !== null ? r.avail + '%' : '—'}</td>
+                  <td class="r ${r.perf !== null ? (r.perf > 100 ? 'ph-tbl-blue' : phMetricClass(r.perf)) : ''}">${r.perf !== null ? r.perf + '%' : '—'}</td>
+                  <td class="r ${r.oee !== null ? phMetricClass(r.oee) : ''}">${r.oee !== null ? r.oee + '%' : '—'}</td>
+                  <td>${phAvailBar(r.run_seconds, r.idle_seconds, r.alarm_seconds, r.offline_seconds)}</td>
+                  <td class="r">${phFmtTime(r.run_seconds)}</td>
+                </tr>`;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+        <div class="ph-hint">Green ≥85% · Amber ≥60% · Red &lt;60% · Blue = Performance above standard · Availability shared across all parts on same machine/day</div>
+      </div>
+    `;
+  }
+
+  // ══════════════════════════════════════════════════════════════════════
+  //  MACHINE SECTION
+  // ══════════════════════════════════════════════════════════════════════
+  function renderMachineSection(el) {
+    el.innerHTML = `
+      <!-- toolbar: period + metric selector -->
+      <div class="ph-toolbar">
+        <span class="ph-lbl">Period</span>
+        <div class="ph-mode-group">
+          <button class="ph-mode-btn ${_phMode === 'shifts'  ? 'ph-active' : ''}" data-mode="shifts">Shifts</button>
+          <button class="ph-mode-btn ${_phMode === 'days'    ? 'ph-active' : ''}" data-mode="days">Days</button>
+          <button class="ph-mode-btn ${_phMode === 'months'  ? 'ph-active' : ''}" data-mode="months">Months</button>
+        </div>
+        <div class="ph-toolbar-sep"></div>
+        <span class="ph-lbl">Metric</span>
+        <div class="ph-mode-group">
+          <button class="ph-mode-btn ${_phMetric === 'avail' ? 'ph-active' : ''}" data-metric="avail">Availability</button>
+          <button class="ph-mode-btn ${_phMetric === 'perf'  ? 'ph-active' : ''}" data-metric="perf">Performance</button>
+          <button class="ph-mode-btn ${_phMetric === 'oee'   ? 'ph-active' : ''}" data-metric="oee">OEE</button>
+          <button class="ph-mode-btn ${_phMetric === 'count' ? 'ph-active' : ''}" data-metric="count">Output</button>
+        </div>
+      </div>
+
+      <!-- two-column layout -->
+      <div class="ph-layout">
+        <!-- machine list -->
+        <div class="ph-machine-panel">
+          <div class="ph-machine-panel-head">
+            <div class="ph-machine-panel-title">Machines</div>
+          </div>
+          ${['Press', 'Heat', 'Lathe'].map(dept => {
+            const list = PH_MACHINES.filter(m => m.dept === dept);
+            const cls  = dept.toLowerCase();
+            return `<div class="ph-dept-section">
+              <div class="ph-dept-head ${cls}">${dept}</div>
+              ${list.map(m => {
+                const st = (scadaStore.state.machines[m.id]?.status || 'offline').toLowerCase();
+                return `<div class="ph-machine-item ${m.id === _phMachineId ? 'ph-selected' : ''}" data-mid="${m.id}">
+                  <span class="ph-mi-dot ${st}"></span>
+                  <span class="ph-mi-name">${m.label}</span>
+                </div>`;
+              }).join('')}
+            </div>`;
+          }).join('')}
+        </div>
+
+        <!-- main panel -->
+        <div class="ph-main" id="ph-mc-main">
+          <div class="ph-loading"><div class="ph-spinner"></div>Loading…</div>
+        </div>
+      </div>
+    `;
+
+    // bind toolbar
+    el.querySelectorAll('[data-mode]').forEach(b => b.addEventListener('click', () => {
+      _phMode = b.dataset.mode;
+      el.querySelectorAll('[data-mode]').forEach(x => x.classList.toggle('ph-active', x.dataset.mode === _phMode));
+      loadMachineData();
+    }));
+
+    el.querySelectorAll('[data-metric]').forEach(b => b.addEventListener('click', () => {
+      _phMetric = b.dataset.metric;
+      el.querySelectorAll('[data-metric]').forEach(x => x.classList.toggle('ph-active', x.dataset.metric === _phMetric));
+      loadMachineData();
+    }));
+
+    el.querySelectorAll('[data-mid]').forEach(b => b.addEventListener('click', () => {
+      _phMachineId = b.dataset.mid;
+      el.querySelectorAll('[data-mid]').forEach(x => x.classList.toggle('ph-selected', x.dataset.mid === _phMachineId));
+      el.querySelectorAll('.ph-machine-item.ph-selected .ph-mi-name').forEach(x => x.style.color = '#185FA5');
+      loadMachineData();
+    }));
+
+    // subscribe to live status dots
+    _phUnsubscribe = scadaStore.subscribe(state => {
+      PH_MACHINES.forEach(m => {
+        const dot = el.querySelector(`[data-mid="${m.id}"] .ph-mi-dot`);
+        if (dot) {
+          const st = (state.machines[m.id]?.status || 'offline').toLowerCase();
+          dot.className = `ph-mi-dot ${st}`;
+        }
+      });
+    });
+
+    loadMachineData();
+  }
+
+  async function loadMachineData() {
+    const main = document.getElementById('ph-mc-main');
+    if (!main) return;
+    main.innerHTML = `<div class="ph-loading"><div class="ph-spinner"></div>Loading…</div>`;
+
+    const [dept, ...mp] = _phMachineId.split('_');
+    const machine = mp.join('_');
+    const machineObj = PH_MACHINES.find(m => m.id === _phMachineId);
+
+    try {
+      const res  = await fetch(`/api/machine-history?dept=${dept}&machine=${encodeURIComponent(machine)}&mode=${_phMode}`, { credentials: 'same-origin' });
+      const data = await res.json();
+      if (!data.success) throw new Error('API error');
+      renderMachineMain(main, data, machineObj);
+    } catch (e) {
+      main.innerHTML = `<div class="ph-empty" style="background:#fff;border:0.5px solid #e5e9f0;border-radius:10px">Error loading data</div>`;
+    }
+  }
+
+  function renderMachineMain(main, data, machineObj) {
+    const rows = data.data;
+    const std  = data.std_cycle_time;
+    const periodLabel = { shifts: 'last 31 shifts', days: 'last 31 days', months: 'last 12 months' }[_phMode];
+
+    if (!rows.length) {
+      main.innerHTML = `<div class="ph-empty" style="background:#fff;border:0.5px solid #e5e9f0;border-radius:10px">No data for this machine / period</div>`;
+      return;
+    }
+
+    // summary
+    const totCount   = rows.reduce((a, r) => a + (r.count_output || 0), 0);
+    const totRun     = rows.reduce((a, r) => a + (r.run_seconds  || 0), 0);
+    const avgAvail   = rows.filter(r => r.avail !== null).reduce((a, r) => a + r.avail, 0) / (rows.filter(r => r.avail !== null).length || 1);
+    const avgPerf    = rows.filter(r => r.perf  !== null).reduce((a, r) => a + r.perf,  0) / (rows.filter(r => r.perf  !== null).length || 1);
+    const avgOee     = rows.filter(r => r.oee   !== null).reduce((a, r) => a + r.oee,   0) / (rows.filter(r => r.oee   !== null).length || 1);
+    const isPerf     = _phMetric === 'perf';
+    const isCount    = _phMetric === 'count';
+
+    main.innerHTML = `
+      <!-- summary strip -->
+      <div class="ph-summary-strip">
+        <div class="ph-sum-card">
+          <div class="ph-sum-label">Avg Availability</div>
+          <div class="ph-sum-val" style="color:${phMetricColor(avgAvail)}">${avgAvail.toFixed(1)}%</div>
+          <div class="ph-sum-sub">${periodLabel}</div>
+        </div>
+        <div class="ph-sum-card">
+          <div class="ph-sum-label">Avg Performance</div>
+          <div class="ph-sum-val" style="color:${phMetricColor(avgPerf, true)}">${std ? avgPerf.toFixed(1) + '%' : 'N/A'}</div>
+          <div class="ph-sum-sub">${std ? 'std ' + std + ' s' : 'no standard set'}</div>
+        </div>
+        <div class="ph-sum-card">
+          <div class="ph-sum-label">Avg OEE</div>
+          <div class="ph-sum-val" style="color:${phMetricColor(avgOee)}">${std ? avgOee.toFixed(1) + '%' : 'N/A'}</div>
+          <div class="ph-sum-sub">Avail × Perf</div>
+        </div>
+        <div class="ph-sum-card">
+          <div class="ph-sum-label">Total Output</div>
+          <div class="ph-sum-val">${totCount.toLocaleString()}</div>
+          <div class="ph-sum-sub">parts produced</div>
+        </div>
+        <div class="ph-sum-card">
+          <div class="ph-sum-label">Total Run Time</div>
+          <div class="ph-sum-val" style="font-size:15px">${phFmtTime(totRun)}</div>
+          <div class="ph-sum-sub">machine running</div>
+        </div>
+      </div>
+
+      <!-- trend chart -->
+      <div class="ph-chart-panel">
+        <div class="ph-chart-header">
+          <span class="ph-chart-title">${{ avail: 'Availability', perf: 'Performance', oee: 'OEE', count: 'Output count' }[_phMetric]} — ${machineObj?.label ?? _phMachineId}</span>
+          <span class="ph-chart-meta">${periodLabel}</span>
+        </div>
+        <div class="ph-chart-container"><canvas id="ph-main-chart"></canvas></div>
+      </div>
+
+      <!-- history charts row -->
+      <div class="ph-hist-row">
+        <div class="ph-hist-wrap">
+          <div class="ph-hist-header">
+            <span class="ph-chart-title" style="font-size:12px">Availability history</span>
+            <select id="ph-hist-avail-mode" class="ph-sel" style="font-size:10px;padding:3px 6px">
+              <option value="shifts">31 shifts</option><option value="days">31 days</option><option value="months">12 months</option>
+            </select>
+          </div>
+          <div class="ph-hist-container"><canvas id="ph-hist-avail"></canvas></div>
+        </div>
+        <div class="ph-hist-wrap">
+          <div class="ph-hist-header">
+            <span class="ph-chart-title" style="font-size:12px">Performance history</span>
+            <select id="ph-hist-perf-mode" class="ph-sel" style="font-size:10px;padding:3px 6px">
+              <option value="shifts">31 shifts</option><option value="days">31 days</option><option value="months">12 months</option>
+            </select>
+          </div>
+          <div class="ph-hist-container"><canvas id="ph-hist-perf"></canvas></div>
+          <div id="ph-perf-na" class="ph-hist-na" style="display:none">No standard cycle time</div>
+        </div>
+        <div class="ph-hist-wrap">
+          <div class="ph-hist-header">
+            <span class="ph-chart-title" style="font-size:12px">OEE history</span>
+            <select id="ph-hist-oee-mode" class="ph-sel" style="font-size:10px;padding:3px 6px">
+              <option value="shifts">31 shifts</option><option value="days">31 days</option><option value="months">12 months</option>
+            </select>
+          </div>
+          <div class="ph-hist-container"><canvas id="ph-hist-oee"></canvas></div>
+          <div id="ph-oee-na" class="ph-hist-na" style="display:none">No standard cycle time</div>
+        </div>
+      </div>
+
+      <!-- data table -->
+      <div class="ph-table-panel">
+        <div class="ph-table-head">
+          <span class="ph-table-title">Detail — ${machineObj?.label ?? _phMachineId}</span>
+          <span style="font-size:10px;color:#bbb">${rows.length} records</span>
+        </div>
+        <div class="ph-table-wrap">
+          <table class="ph-table">
+            <thead><tr>
+              <th>Period</th>
+              ${_phMode === 'shifts' ? '<th>Shift</th>' : ''}
+              <th class="r">Availability</th>
+              <th class="r">Performance</th>
+              <th class="r">OEE</th>
+              <th class="r">Output</th>
+              <th>Status split</th>
+              <th class="r">Run time</th>
+            </tr></thead>
+            <tbody>
+              ${[...rows].reverse().map(r => {
+                const dateLabel = _phMode === 'shifts'
+                  ? r.label.split(' ').slice(1).join(' ')
+                  : r.label;
+                return `<tr>
+                  <td>${dateLabel}</td>
+                  ${_phMode === 'shifts' ? `<td><span class="ph-shift-badge ph-shift-${r.label[0]}">${r.label[0]}</span></td>` : ''}
+                  <td class="r ${r.avail !== null ? phMetricClass(r.avail) : ''}">${r.avail !== null ? r.avail + '%' : '—'}</td>
+                  <td class="r ${r.perf  !== null ? (r.perf > 100 ? 'ph-tbl-blue' : phMetricClass(r.perf)) : ''}">${r.perf !== null ? r.perf + '%' : '—'}</td>
+                  <td class="r ${r.oee   !== null ? phMetricClass(r.oee)   : ''}">${r.oee  !== null ? r.oee  + '%' : '—'}</td>
+                  <td class="r" style="font-weight:600">${(r.count_output || 0).toLocaleString()}</td>
+                  <td>${phAvailBar(r.run_seconds || 0, 0, 0, 0)}</td>
+                  <td class="r">${phFmtTime(r.run_seconds)}</td>
+                </tr>`;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+        <div class="ph-hint">Green ≥85% · Amber ≥60% · Red &lt;60% · Blue = Performance above standard</div>
+      </div>
+    `;
+
+    // draw main chart
+    drawPhBarChart('ph-main-chart', rows.map(r => r.label), rows.map(r => r[_phMetric]), _phMetric, std);
+
+    // draw history charts (same data, just different initial render)
+    drawHistChart('ph-hist-avail', rows.map(r => r.label), rows.map(r => r.avail), 'avail', std, 'ph-avail-na');
+    drawHistChart('ph-hist-perf',  rows.map(r => r.label), rows.map(r => r.perf),  'perf',  std, 'ph-perf-na');
+    drawHistChart('ph-hist-oee',   rows.map(r => r.label), rows.map(r => r.oee),   'oee',   std, 'ph-oee-na');
+
+    // history mode selectors
+    ['avail', 'perf', 'oee'].forEach(key => {
+      document.getElementById(`ph-hist-${key}-mode`)?.addEventListener('change', async e => {
+        _phHistMode[key] = e.target.value;
+        const [d2, ...m2] = _phMachineId.split('_');
+        const machine2 = m2.join('_');
+        const r2 = await fetch(`/api/machine-history?dept=${d2}&machine=${encodeURIComponent(machine2)}&mode=${_phHistMode[key]}`, { credentials: 'same-origin' });
+        const d3 = await r2.json();
+        if (d3.success) {
+          if (_phHistCharts[key]) { _phHistCharts[key].destroy(); _phHistCharts[key] = null; }
+          drawHistChart(`ph-hist-${key}`, d3.data.map(r => r.label), d3.data.map(r => r[key]), key, d3.std_cycle_time, `ph-${key}-na`);
+        }
+      });
+    });
+  }
+
+  // ── chart helpers ──────────────────────────────────────────────────────
+  function barColors(values, metric) {
+    return values.map(v => {
+      if (v === null) return 'rgba(200,200,200,0.5)';
+      if (metric === 'count') return 'rgba(55,138,221,0.75)';
+      if (metric === 'perf' && v > 100) return 'rgba(55,138,221,0.75)';
+      if (v >= 85) return 'rgba(29,158,117,0.75)';
+      if (v >= 60) return 'rgba(186,117,23,0.75)';
+      return 'rgba(163,45,45,0.75)';
+    });
+  }
+
+  function drawPhBarChart(canvasId, labels, values, metric, std) {
+    const ctx = document.getElementById(canvasId);
+    if (!ctx) return;
+    const isCount = metric === 'count';
+    const isPerf  = metric === 'perf';
+    const colors  = barColors(values, metric);
+    const maxVal  = values.reduce((a, v) => v !== null && v > a ? v : a, 0);
+    const yMax    = isCount ? Math.ceil(maxVal * 1.15 / 10) * 10 || 100
+                            : isPerf ? Math.max(100, Math.ceil(maxVal / 10) * 10 + 10) : 100;
+    const annotations = {};
+    if (!isCount) {
+      annotations.t85 = { type: 'line', yMin: 85, yMax: 85, borderColor: 'rgba(29,158,117,0.5)', borderWidth: 1, borderDash: [4, 4], label: { display: true, content: '85%', position: 'end', color: '#1D9E75', font: { size: 9 } } };
+      if (isPerf && std) annotations.t100 = { type: 'line', yMin: 100, yMax: 100, borderColor: 'rgba(55,138,221,0.5)', borderWidth: 1, borderDash: [4, 4], label: { display: true, content: '100%', position: 'end', color: '#185FA5', font: { size: 9 } } };
+    }
+    return new Chart(ctx, {
+      type: 'bar',
+      data: { labels, datasets: [{ data: values.map(v => v ?? 0), backgroundColor: colors, borderColor: colors.map(c => c.replace('0.75', '1')), borderWidth: 1, borderRadius: 3, originalValues: values.slice() }] },
+      options: {
+        animation: false, responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => { const raw = ctx.dataset.originalValues[ctx.dataIndex]; return raw !== null ? isCount ? raw.toLocaleString() : raw.toFixed(1) + '%' : 'N/A'; } } }, annotation: { annotations } },
+        scales: { x: { ticks: { font: { size: 9 }, maxRotation: 45, minRotation: 30 }, grid: { display: false } }, y: { min: 0, max: yMax, ticks: { font: { size: 9 }, callback: v => isCount ? v.toLocaleString() : `${v}%`, maxTicksLimit: 6 }, grid: { color: 'rgba(0,0,0,0.05)' } } }
+      }
+    });
+  }
+
+  function drawHistChart(canvasId, labels, values, metric, std, naId) {
+    const canvas = document.getElementById(canvasId);
+    const naEl   = document.getElementById(naId);
+    if (!canvas) return;
+    const hasVal = values.some(v => v !== null);
+    if (!hasVal || (metric !== 'avail' && !std)) {
+      if (canvas) canvas.style.display = 'none';
+      if (naEl)   naEl.style.display   = '';
+      return;
+    }
+    if (canvas) canvas.style.display = '';
+    if (naEl)   naEl.style.display   = 'none';
+    if (_phHistCharts[metric]) { try { _phHistCharts[metric].destroy(); } catch(e){} }
+    _phHistCharts[metric] = drawPhBarChart(canvasId, labels, values, metric, std);
+  }
+}
+
+export function productionProductionHistoryUnmount() {
+  if (_phUnsubscribe) { _phUnsubscribe(); _phUnsubscribe = null; }
+  Object.values(_phHistCharts).forEach(c => { try { c?.destroy(); } catch(e){} });
+  _phHistCharts = {};
+  _phTimers.forEach(clearInterval);
+  _phTimers = [];
+}
 // --------------- STAFF MANAGEMENT page --------------- //
 export function productionStaffManagementView() {
   return `<h1>👨‍👨‍👦‍ Staff Management</h1><div class="card"><p>Waiting for development</p></div>`;

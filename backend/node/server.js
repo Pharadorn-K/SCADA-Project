@@ -69,6 +69,7 @@ app.use('/api/plant-summary', require('./routes/api/plantSummary'));
 app.use('/api/machine-oee', require('./routes/api/machineOee'));
 app.use('/api/machine-history', require('./routes/api/machineHistory'))
 app.use('/api/machine-part-history', require('./routes/api/machinePartHistory'))
+app.use('/api/production-output', require('./routes/api/productionOutput'))
 // Serve static files
 app.use(express.static(path.join(__dirname, '../../frontend/public')));
 

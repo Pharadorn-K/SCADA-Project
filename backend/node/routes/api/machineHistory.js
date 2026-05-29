@@ -27,7 +27,8 @@ function getStdCycleTime(dept, machine) {
 
 function calcPerf(std, count_output, run_seconds) {
   if (!std || !run_seconds || !count_output) return null;
-  return Math.min((std * count_output) / run_seconds * 100, 100);
+  // No cap — values above 100% mean the machine ran faster than standard cycle time
+  return +((std * count_output) / run_seconds * 100).toFixed(2);
 }
 
 function calcAvail(run, idle, alarm, offline) {
@@ -37,7 +38,8 @@ function calcAvail(run, idle, alarm, offline) {
 
 function calcOEE(avail, perf) {
   if (avail === null || perf === null) return null;
-  return (avail / 100) * (perf / 100) * 100;
+  // OEE capped at 100% (quality assumed 100% — OEE cannot exceed availability)
+  return Math.min((avail / 100) * (perf / 100) * 100, 100);
 }
 
 // GET /api/machine-history?dept=heat&machine=K7&mode=shifts|days|months
