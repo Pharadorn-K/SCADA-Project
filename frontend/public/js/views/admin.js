@@ -109,6 +109,21 @@ export function adminAlarmView() {
       </div>
       <div id="session-list" class="adm-session-list"></div>
     </div>
+
+    <div class="adm-panel adm-sessions-panel" style="margin-top:14px" id="users-panel">
+      <div class="adm-panel-head">
+        <span class="adm-panel-title">User management</span>
+        <div style="display:flex;gap:6px;align-items:center">
+          <select id="invite-role" class="adm-select">
+            <option value="operator">operator</option>
+            <option value="supervisor">supervisor</option>
+          </select>
+          <button class="adm-btn adm-btn-green" id="btn-invite">Generate invite</button>
+        </div>
+      </div>
+      <div id="invite-result" style="padding:6px 14px;font-size:11px;color:#185FA5;word-break:break-all;min-height:20px"></div>
+      <div id="user-list" style="padding:6px 8px;display:flex;flex-direction:column;gap:4px"></div>
+    </div>
   `;
 }
 export async function adminAlarmMount() {
@@ -258,84 +273,161 @@ export async function adminAlarmMount() {
 
   // store cleanup ref
   adminAlarmMount._wsCleanup = () => ws.removeEventListener('message', handleAlarmWs);
-// inside adminAlarmMount(), add after the WS handler setup:
+  // inside adminAlarmMount(), add after the WS handler setup:
 
-// ── Sessions ──────────────────────────────────────────────────────────
-async function loadSessions() {
-  const res = await fetch('/api/auth/sessions', { credentials: 'same-origin' });
-  if (!res.ok) return;
-  renderSessions(await res.json());
-}
-
-function renderSessions(sessions) {
-  const listEl   = document.getElementById('session-list');
-  const countEl  = document.getElementById('session-count');
-  if (!listEl) return;
-
-  countEl.textContent = `${sessions.length} online`;
-
-  if (!sessions.length) {
-    listEl.innerHTML = '<div class="adm-empty">No active sessions</div>';
-    return;
+  // ── Sessions ──────────────────────────────────────────────────────────
+  async function loadSessions() {
+    const res = await fetch('/api/auth/sessions', { credentials: 'same-origin' });
+    if (!res.ok) return;
+    renderSessions(await res.json());
   }
 
-  const now = Date.now();
+  function renderSessions(sessions) {
+    const listEl   = document.getElementById('session-list');
+    const countEl  = document.getElementById('session-count');
+    if (!listEl) return;
 
-  listEl.innerHTML = sessions.map(s => {
-    const loginAgo    = formatSessionAge(now - s.loginAt);
-    const idleMs      = now - s.lastSeenAt;
-    const idleSec     = Math.floor(idleMs / 1000);
-    const isLong      = s.loginAt && (now - s.loginAt) > (8 * 3600 * 1000);
-    const isIdle      = idleSec > 300; // idle > 5 min
-    const idleLabel   = formatSessionAge(idleMs);
+    countEl.textContent = `${sessions.length} online`;
 
-    return `
-      <div class="adm-session-row ${isLong ? 'session-long' : ''} ${isIdle ? 'session-idle' : ''}">
-        <div class="adm-session-avatar">${s.userId.slice(0,2).toUpperCase()}</div>
+    if (!sessions.length) {
+      listEl.innerHTML = '<div class="adm-empty">No active sessions</div>';
+      return;
+    }
+
+    const now = Date.now();
+
+    listEl.innerHTML = sessions.map(s => {
+      const loginAgo    = formatSessionAge(now - s.loginAt);
+      const idleMs      = now - s.lastSeenAt;
+      const idleSec     = Math.floor(idleMs / 1000);
+      const isLong      = s.loginAt && (now - s.loginAt) > (8 * 3600 * 1000);
+      const isIdle      = idleSec > 300; // idle > 5 min
+      const idleLabel   = formatSessionAge(idleMs);
+
+      return `
+        <div class="adm-session-row ${isLong ? 'session-long' : ''} ${isIdle ? 'session-idle' : ''}">
+          <div class="adm-session-avatar">${s.userId.slice(0,2).toUpperCase()}</div>
+          <div class="adm-session-info">
+            <div class="adm-session-name">
+              ${s.userId}
+              <span class="adm-tag ${s.role === 'admin' ? 'adm-tag-admin' : 'adm-tag-op'}">${s.role}</span>
+              ${isLong ? '<span class="adm-tag adm-tag-warn">Long session</span>' : ''}
+            </div>
+            <div class="adm-session-meta">
+              Logged in ${loginAgo} ago
+              &nbsp;·&nbsp;
+              ${isIdle
+                ? `<span style="color:#BA7517">Idle ${idleLabel}</span>`
+                : `Active ${idleLabel} ago`
+              }
+            </div>
+          </div>
+          <div class="adm-session-dot ${isIdle ? 'dot-idle' : 'dot-active'}"></div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function formatSessionAge(ms) {
+    const s = Math.floor(ms / 1000);
+    if (s < 60)   return `${s}s`;
+    const m = Math.floor(s / 60);
+    if (m < 60)   return `${m}m`;
+    const h = Math.floor(m / 60);
+    if (h < 24)   return `${h}h ${m % 60}m`;
+    return `${Math.floor(h / 24)}d`;
+  }
+
+  // wire WS session updates into the existing handler:
+  // replace the handleAlarmWs function with:
+  function handleAlarmWs(event) {
+    const msg = JSON.parse(event.data);
+    if (msg.type === 'alarm_event') {
+      loadActiveAlarms();
+      loadHistory();
+    }
+    if (msg.type === 'session_update') {
+      renderSessions(msg.sessions);
+    }
+  }
+  // ADD at the end of adminAlarmMount(), before the closing brace:
+
+  // ── User management ──────────────────────────────────────────────────────
+  async function loadUsers() {
+    const res = await fetch('/api/auth/users', { credentials: 'same-origin' });
+    if (!res.ok) return;
+    const data = await res.json();
+    if (!data.success) return;
+
+    const listEl = document.getElementById('user-list');
+    if (!listEl) return;
+
+    const ROLE_COLOR = { admin: '#3C3489', supervisor: '#854F0B', operator: '#0C447C' };
+    const ROLE_BG    = { admin: '#EEEDFE', supervisor: '#FAEEDA', operator: '#E6F1FB' };
+
+    listEl.innerHTML = data.users.map(u => `
+      <div class="adm-session-row">
+        <div class="adm-session-avatar">${u.username.slice(0,2).toUpperCase()}</div>
         <div class="adm-session-info">
           <div class="adm-session-name">
-            ${s.userId}
-            <span class="adm-tag ${s.role === 'admin' ? 'adm-tag-admin' : 'adm-tag-op'}">${s.role}</span>
-            ${isLong ? '<span class="adm-tag adm-tag-warn">Long session</span>' : ''}
+            ${u.display_name || u.username}
+            <span class="adm-tag" style="background:${ROLE_BG[u.role]};color:${ROLE_COLOR[u.role]}">${u.role}</span>
+            ${!u.active ? '<span class="adm-tag" style="background:#f1efe8;color:#888">inactive</span>' : ''}
+            ${u.must_change_password ? '<span class="adm-tag adm-tag-warn">must change pw</span>' : ''}
           </div>
-          <div class="adm-session-meta">
-            Logged in ${loginAgo} ago
-            &nbsp;·&nbsp;
-            ${isIdle
-              ? `<span style="color:#BA7517">Idle ${idleLabel}</span>`
-              : `Active ${idleLabel} ago`
-            }
-          </div>
+          <div class="adm-session-meta">@${u.username} · joined ${new Date(u.created_at).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})}</div>
         </div>
-        <div class="adm-session-dot ${isIdle ? 'dot-idle' : 'dot-active'}"></div>
+        <div style="display:flex;gap:4px;flex-shrink:0">
+          <button class="adm-btn" style="padding:3px 9px;font-size:10px"
+            onclick="adminResetPw('${u.username}')">Reset pw</button>
+          <button class="adm-btn ${u.active ? 'adm-btn-red' : 'adm-btn-green'}" style="padding:3px 9px;font-size:10px"
+            onclick="adminToggleActive('${u.username}', ${u.active ? 0 : 1})">${u.active ? 'Deactivate' : 'Activate'}</button>
+        </div>
       </div>
-    `;
-  }).join('');
-}
-
-function formatSessionAge(ms) {
-  const s = Math.floor(ms / 1000);
-  if (s < 60)   return `${s}s`;
-  const m = Math.floor(s / 60);
-  if (m < 60)   return `${m}m`;
-  const h = Math.floor(m / 60);
-  if (h < 24)   return `${h}h ${m % 60}m`;
-  return `${Math.floor(h / 24)}d`;
-}
-
-// wire WS session updates into the existing handler:
-// replace the handleAlarmWs function with:
-function handleAlarmWs(event) {
-  const msg = JSON.parse(event.data);
-  if (msg.type === 'alarm_event') {
-    loadActiveAlarms();
-    loadHistory();
+    `).join('');
   }
-  if (msg.type === 'session_update') {
-    renderSessions(msg.sessions);
-  }
-}
 
+  window.adminResetPw = async (username) => {
+    const newPw = prompt(`Reset password for "${username}"\nEnter a temporary password (min 8 chars):`);
+    if (!newPw || newPw.length < 8) { alert('Password too short'); return; }
+    const res = await fetch('/api/auth/reset-password', {
+      method: 'POST', credentials: 'same-origin',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ username, newPassword: newPw })
+    });
+    const data = await res.json();
+    alert(data.success ? `Password reset. User must change it on next login.` : (data.message || 'Failed'));
+    if (data.success) loadUsers();
+  };
+
+  window.adminToggleActive = async (username, active) => {
+    const res = await fetch(`/api/auth/users/${username}`, {
+      method: 'PATCH', credentials: 'same-origin',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ active })
+    });
+    const data = await res.json();
+    if (data.success) loadUsers();
+    else alert(data.message || 'Failed');
+  };
+
+  document.getElementById('btn-invite')?.addEventListener('click', async () => {
+    const role = document.getElementById('invite-role').value;
+    const res  = await fetch('/api/auth/invites', {
+      method: 'POST', credentials: 'same-origin',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ role })
+    });
+    const data = await res.json();
+    const el   = document.getElementById('invite-result');
+    if (data.success) {
+      el.innerHTML = `<strong>Invite token (${role}, valid 24h):</strong><br><code style="font-size:10px;word-break:break-all;user-select:all">${data.token}</code>`;
+    } else {
+      el.textContent = data.message || 'Failed to create invite';
+    }
+  });
+
+  await loadUsers();
   // initial load
   await loadSessions();
   await loadActiveAlarms();
@@ -346,7 +438,10 @@ export function adminAlarmUnmount() {
   if (adminAlarmMount._wsCleanup) {
     adminAlarmMount._wsCleanup();
     delete adminAlarmMount._wsCleanup;
+    delete window.adminResetPw;
+    delete window.adminToggleActive;
   }
+
 }
 
 // ---------------- Database Page ---------------- // 

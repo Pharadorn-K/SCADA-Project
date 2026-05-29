@@ -1,19 +1,14 @@
-<!-- // frontend/public/login.html -->
+<!-- frontend/public/login.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>SET SCADA : Login</title>
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/fontawesome/all.min.css">
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-      font-family: "Poppins", sans-serif;
-    }
+    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; font-family:"Poppins",sans-serif; }
 
     body {
       background: #4973ff;
@@ -24,147 +19,560 @@
       overflow: hidden;
     }
 
-    /* Wave Background */
-    .wave {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      z-index: -1;
-      box-shadow: inset 0 0 50px rgba(255, 255, 255, 0.5);
-    }
+    /* ── Wave background ── */
+    .wave { position:absolute; inset:0; z-index:0; }
     .wave span {
-      position: absolute;
-      width: 700vh;
-      height: 700vh;
-      top: -900px;
-      left: 50%;
-      transform: translate(-50%, -75%);
-      background: #ffffff;
+      position:absolute; width:700vh; height:700vh;
+      top:-900px; left:50%;
+      transform:translate(-50%,-75%);
     }
-    .wave span:nth-child(1) {
-      border-radius: 45%;
-      background: rgb(255, 255, 255);
-      animation: animate 20s linear infinite;
-    }
-    .wave span:nth-child(2) {
-      border-radius: 40%;
-      background: rgba(255, 255, 255, 0.5);
-      animation: animate 30s linear infinite;
-    }
-    .wave span:nth-child(3) {
-      border-radius: 42.5%;
-      background: rgba(186, 215, 248, 0.5);
-      animation: animate 40s linear infinite;
-    }
+    .wave span:nth-child(1) { border-radius:45%; background:#fff;                   animation:spin 20s linear infinite; }
+    .wave span:nth-child(2) { border-radius:40%; background:rgba(255,255,255,.5);    animation:spin 30s linear infinite; }
+    .wave span:nth-child(3) { border-radius:42.5%; background:rgba(186,215,248,.5); animation:spin 40s linear infinite; }
+    @keyframes spin { to { transform:translate(-50%,-75%) rotate(360deg); } }
 
-    @keyframes animate {
-      0% {
-        transform: translate(-50%, -75%) rotate(0deg);
-      }
-      100% {
-        transform: translate(-50%, -75%) rotate(360deg);
-      }
-    }
-
-    /* Login Card (unchanged, but adjusted for contrast) */
-    .login-card {
-      background: rgba(255, 255, 255, 0.92); /* Slight transparency for depth */
-      padding: 2rem;
-      border-radius: 12px;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
-      width: 320px;
+    /* ── Card ── */
+    .card {
+      position: relative;
       z-index: 2;
+      background: rgba(255,255,255,.94);
+      border-radius: 14px;
+      padding: 32px 28px 28px;
+      width: 360px;
+      box-shadow: 0 12px 40px rgba(0,0,0,.2);
     }
-    .login-card h2 {
+
+    /* ── Brand ── */
+    .brand {
       text-align: center;
-      margin-bottom: 1.5rem;
+      margin-bottom: 24px;
+    }
+    .brand-title {
+      font-size: 22px;
+      font-weight: 700;
       color: #1976d2;
+      letter-spacing: .5px;
     }
-    .form-group input {
+    .brand-sub {
+      font-size: 11px;
+      color: #aaa;
+      margin-top: 2px;
+    }
+
+    /* ── Panels ── */
+    .panel { display:none; }
+    .panel.active { display:block; }
+
+    /* ── Tab switcher (login ↔ sign-up) ── */
+    .tab-bar {
+      display: flex;
+      border-bottom: 1px solid #e5e9f0;
+      margin-bottom: 20px;
+    }
+    .tab-btn {
+      flex: 1;
+      background: none;
+      border: none;
+      border-bottom: 2px solid transparent;
+      padding: 8px 0;
+      font-size: 13px;
+      font-weight: 600;
+      color: #999;
+      cursor: pointer;
+      margin-bottom: -1px;
+      transition: color .15s, border-color .15s;
+    }
+    .tab-btn.active { color: #1976d2; border-bottom-color: #1976d2; }
+
+    /* ── Form elements ── */
+    .form-group { margin-bottom: 14px; }
+    label { display:block; font-size:11px; font-weight:600; color:#666; margin-bottom:5px; }
+    input[type=text],
+    input[type=password],
+    select {
       width: 100%;
-      padding: 0.5rem;
-      border: 1px solid #ccc;
-      border-radius: 6px;
-      box-sizing: border-box;
-      font-size: 1rem;
-      margin-bottom: 1rem;
+      padding: 9px 12px;
+      border: 1px solid #d0d7e3;
+      border-radius: 8px;
+      font-size: 13px;
+      color: #1a1a1a;
+      background: #fff;
+      transition: border-color .15s;
     }
+    input:focus, select:focus { outline:none; border-color:#1976d2; }
+
+    /* password wrapper */
+    .pw-wrap { position:relative; }
+    .pw-wrap input { padding-right:38px; }
+    .pw-toggle {
+      position:absolute; right:10px; top:50%;
+      transform:translateY(-50%);
+      background:none; border:none; cursor:pointer;
+      color:#aaa; font-size:13px; padding:0;
+    }
+    .pw-toggle:hover { color:#555; }
+
+    /* strength bar */
+    .strength-bar {
+      height: 4px;
+      border-radius: 2px;
+      background: #eee;
+      margin-top: 6px;
+      overflow: hidden;
+    }
+    .strength-fill {
+      height: 100%;
+      border-radius: 2px;
+      transition: width .3s, background .3s;
+      width: 0;
+    }
+    .strength-label {
+      font-size: 10px;
+      color: #aaa;
+      margin-top: 3px;
+      min-height: 14px;
+    }
+
+    /* ── Button ── */
     .btn {
       width: 100%;
-      padding: 0.75rem;
+      padding: 10px;
       background: #1976d2;
-      color: white;
+      color: #fff;
       border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 1rem;
+      border-radius: 8px;
+      font-size: 14px;
       font-weight: 600;
-      transition: background 10s;
+      cursor: pointer;
+      transition: background .15s;
+      margin-top: 4px;
     }
-    .btn:hover {
-      background: #1565c0;
-    }
-    .error {
-      color: #d32f2f;
+    .btn:hover  { background: #1565c0; }
+    .btn:active { background: #0d47a1; }
+    .btn:disabled { background: #90bef0; cursor:not-allowed; }
+
+    /* ── Error / info ── */
+    .msg {
+      font-size: 12px;
       text-align: center;
-      margin-top: 0.5rem;
-      font-size: 0.9rem;
+      margin-top: 12px;
+      min-height: 18px;
+      border-radius: 6px;
+      padding: 0 4px;
+    }
+    .msg.error   { color: #c62828; }
+    .msg.success { color: #2e7d32; }
+    .msg.info    { color: #1565c0; }
+
+    /* ── Divider / note ── */
+    .note {
+      font-size: 11px;
+      color: #bbb;
+      text-align: center;
+      margin-top: 16px;
+      line-height: 1.5;
+    }
+    .link-btn {
+      background: none;
+      border: none;
+      color: #1976d2;
+      font-size: 12px;
+      cursor: pointer;
+      text-decoration: underline;
+      padding: 0;
+    }
+    .link-btn:hover { color: #0d47a1; }
+
+    /* ── Password requirements hint ── */
+    .pw-hint {
+      font-size: 10px;
+      color: #aaa;
+      margin-top: 4px;
+      line-height: 1.5;
+    }
+    .pw-hint span { display:inline-block; margin-right:6px; }
+    .pw-hint .ok  { color: #2e7d32; }
+
+    /* ── Admin token note ── */
+    .token-note {
+      font-size: 10px;
+      color: #999;
+      margin-top: 4px;
     }
   </style>
-
 </head>
 <body>
-  <!-- Animated wave background -->
-  <div class="wave">
-    <span></span>
-    <span></span>
-    <span></span>
+
+<div class="wave"><span></span><span></span><span></span></div>
+
+<div class="card">
+  <div class="brand">
+    <div class="brand-title">SCADA.SET</div>
+    <div class="brand-sub">Sunstar Engineering (Thailand)</div>
   </div>
 
-  <!-- Login Form -->
-  <div class="login-card">
-    <h2>SCADA Login</h2>
-    <form id="loginForm">
-      <div class="form-group">
-        <input type="text" id="username" placeholder="Username" required />
+  <!-- ═══ PANEL: LOGIN ═══ -->
+  <div id="panel-login" class="panel active">
+    <div class="tab-bar">
+      <button class="tab-btn active" onclick="switchTab('login')">Sign in</button>
+      <button class="tab-btn"        onclick="switchTab('signup')">Sign up</button>
+    </div>
+
+    <div class="form-group">
+      <label>Username</label>
+      <input type="text" id="login-username" autocomplete="username" placeholder="Enter username"/>
+    </div>
+    <div class="form-group">
+      <label>Password</label>
+      <div class="pw-wrap">
+        <input type="password" id="login-password" autocomplete="current-password" placeholder="Enter password"/>
+        <button type="button" class="pw-toggle" onclick="togglePw('login-password',this)"><i class="fa-regular fa-eye"></i></button>
       </div>
-      <div class="form-group">
-        <input type="password" id="password" placeholder="Password" required />
-      </div>
-      <button type="submit" class="btn">Login <i class="fa-solid fa-arrow-right-to-bracket"> </i> </button>
-    </form>
-    <div id="error" class="error"></div>
+    </div>
+    <button class="btn" id="login-btn" onclick="doLogin()">Sign in <i class="fa-solid fa-arrow-right-to-bracket"></i></button>
+    <div class="msg error" id="login-msg"></div>
+
+    <div class="note">
+      Forgot password? Contact your administrator.<br>
+      <button class="link-btn" onclick="switchPanel('panel-change-pw','Forgot / change password')">Change my password</button>
+    </div>
   </div>
 
-  <script>
-    document.getElementById('loginForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const errorEl = document.getElementById('error');
-      errorEl.textContent = '';
+  <!-- ═══ PANEL: SIGN UP (admin-invite) ═══ -->
+  <div id="panel-signup" class="panel">
+    <div class="tab-bar">
+      <button class="tab-btn"        onclick="switchTab('login')">Sign in</button>
+      <button class="tab-btn active" onclick="switchTab('signup')">Sign up</button>
+    </div>
 
-      try {
-        const res = await fetch('/api/auth/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'same-origin',
-          body: JSON.stringify({
-            username: document.getElementById('username').value,
-            password: document.getElementById('password').value
-          })
-        });
+    <div class="form-group">
+      <label>Admin invite token <span class="token-note">(get this from your admin)</span></label>
+      <input type="password" id="su-token" autocomplete="off" placeholder="Paste invite token"/>
+    </div>
+    <div class="form-group">
+      <label>Username</label>
+      <input type="text" id="su-username" autocomplete="username" placeholder="3–32 chars, letters/digits/._-"/>
+    </div>
+    <div class="form-group">
+      <label>Display name <span style="color:#bbb;font-weight:400">(optional)</span></label>
+      <input type="text" id="su-display" autocomplete="off" placeholder="Your full name"/>
+    </div>
+    <div class="form-group">
+      <label>Password</label>
+      <div class="pw-wrap">
+        <input type="password" id="su-password" autocomplete="new-password" placeholder="Minimum 8 characters" oninput="checkStrength(this,'su-strength','su-strength-lbl','su-hints')"/>
+        <button type="button" class="pw-toggle" onclick="togglePw('su-password',this)"><i class="fa-regular fa-eye"></i></button>
+      </div>
+      <div class="strength-bar"><div class="strength-fill" id="su-strength"></div></div>
+      <div class="strength-label" id="su-strength-lbl"></div>
+      <div class="pw-hint" id="su-hints">
+        <span id="sh-len">✗ 8+ chars</span>
+        <span id="sh-upper">✗ uppercase</span>
+        <span id="sh-num">✗ number</span>
+        <span id="sh-sym">✗ symbol</span>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Confirm password</label>
+      <div class="pw-wrap">
+        <input type="password" id="su-confirm" autocomplete="new-password" placeholder="Re-enter password"/>
+        <button type="button" class="pw-toggle" onclick="togglePw('su-confirm',this)"><i class="fa-regular fa-eye"></i></button>
+      </div>
+    </div>
+    <button class="btn" id="su-btn" onclick="doSignup()">Create account</button>
+    <div class="msg" id="su-msg"></div>
+  </div>
 
-        const data = await res.json();
-        if (data.success) {
-          window.location.href = '/'; // Redirect to dashboard
-        } else {
-          errorEl.textContent = data.message || 'Login failed';
-        }
-      } catch (err) {
-        errorEl.textContent = 'Network error';
-      }
+  <!-- ═══ PANEL: FORCE CHANGE PASSWORD (first login) ═══ -->
+  <div id="panel-force-pw" class="panel">
+    <div style="font-size:14px;font-weight:600;color:#1a1a1a;margin-bottom:6px">Set your new password</div>
+    <div style="font-size:12px;color:#888;margin-bottom:18px">Your account requires a password change before you can continue.</div>
+
+    <div class="form-group">
+      <label>New password</label>
+      <div class="pw-wrap">
+        <input type="password" id="fp-password" autocomplete="new-password" placeholder="Minimum 8 characters" oninput="checkStrength(this,'fp-strength','fp-strength-lbl','fp-hints')"/>
+        <button type="button" class="pw-toggle" onclick="togglePw('fp-password',this)"><i class="fa-regular fa-eye"></i></button>
+      </div>
+      <div class="strength-bar"><div class="strength-fill" id="fp-strength"></div></div>
+      <div class="strength-label" id="fp-strength-lbl"></div>
+      <div class="pw-hint" id="fp-hints">
+        <span id="fh-len">✗ 8+ chars</span>
+        <span id="fh-upper">✗ uppercase</span>
+        <span id="fh-num">✗ number</span>
+        <span id="fh-sym">✗ symbol</span>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Confirm new password</label>
+      <div class="pw-wrap">
+        <input type="password" id="fp-confirm" autocomplete="new-password" placeholder="Re-enter password"/>
+        <button type="button" class="pw-toggle" onclick="togglePw('fp-confirm',this)"><i class="fa-regular fa-eye"></i></button>
+      </div>
+    </div>
+    <button class="btn" onclick="doForceChange()">Set password & sign in <i class="fa-solid fa-lock-open"></i></button>
+    <div class="msg" id="fp-msg"></div>
+  </div>
+
+  <!-- ═══ PANEL: VOLUNTARY CHANGE PASSWORD ═══ -->
+  <div id="panel-change-pw" class="panel">
+    <div style="font-size:14px;font-weight:600;color:#1a1a1a;margin-bottom:18px">
+      <button class="link-btn" onclick="switchPanel('panel-login')" style="margin-right:8px"><i class="fa-solid fa-arrow-left"></i></button>
+      Change password
+    </div>
+
+    <div class="form-group">
+      <label>Username</label>
+      <input type="text" id="cp-username" autocomplete="username" placeholder="Your username"/>
+    </div>
+    <div class="form-group">
+      <label>Current password</label>
+      <div class="pw-wrap">
+        <input type="password" id="cp-current" autocomplete="current-password" placeholder="Current password"/>
+        <button type="button" class="pw-toggle" onclick="togglePw('cp-current',this)"><i class="fa-regular fa-eye"></i></button>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>New password</label>
+      <div class="pw-wrap">
+        <input type="password" id="cp-new" autocomplete="new-password" placeholder="Minimum 8 characters" oninput="checkStrength(this,'cp-strength','cp-strength-lbl','cp-hints')"/>
+        <button type="button" class="pw-toggle" onclick="togglePw('cp-new',this)"><i class="fa-regular fa-eye"></i></button>
+      </div>
+      <div class="strength-bar"><div class="strength-fill" id="cp-strength"></div></div>
+      <div class="strength-label" id="cp-strength-lbl"></div>
+    </div>
+    <div class="form-group">
+      <label>Confirm new password</label>
+      <div class="pw-wrap">
+        <input type="password" id="cp-confirm" autocomplete="new-password" placeholder="Re-enter password"/>
+        <button type="button" class="pw-toggle" onclick="togglePw('cp-confirm',this)"><i class="fa-regular fa-eye"></i></button>
+      </div>
+    </div>
+    <button class="btn" onclick="doChangePassword()">Update password</button>
+    <div class="msg" id="cp-msg"></div>
+  </div>
+
+</div><!-- .card -->
+
+<script>
+// ── Panel / tab helpers ───────────────────────────────────────────────────────
+function switchPanel(id) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function switchTab(tab) {
+  switchPanel(tab === 'login' ? 'panel-login' : 'panel-signup');
+}
+
+function togglePw(inputId, btn) {
+  const el = document.getElementById(inputId);
+  const showing = el.type === 'text';
+  el.type = showing ? 'password' : 'text';
+  btn.innerHTML = showing
+    ? '<i class="fa-regular fa-eye"></i>'
+    : '<i class="fa-regular fa-eye-slash"></i>';
+}
+
+function showMsg(id, text, type = 'error') {
+  const el = document.getElementById(id);
+  el.textContent  = text;
+  el.className    = `msg ${type}`;
+}
+
+// ── Password strength ─────────────────────────────────────────────────────────
+function checkStrength(input, barId, lblId, hintsId) {
+  const pw = input.value;
+  const bar = document.getElementById(barId);
+  const lbl = document.getElementById(lblId);
+
+  const checks = {
+    len:   pw.length >= 8,
+    upper: /[A-Z]/.test(pw),
+    num:   /[0-9]/.test(pw),
+    sym:   /[^a-zA-Z0-9]/.test(pw),
+  };
+
+  // Update hint spans if present
+  if (hintsId) {
+    const prefix = hintsId.slice(0,2); // 'su','fp','cp'
+    const map = { 'su': ['sh','su'], 'fp': ['fh','fp'], 'cp': ['ch','cp'] };
+    const pfx = hintsId.split('-')[0];
+    const ids  = { len:'len', upper:'upper', num:'num', sym:'sym' };
+    for (const [k, v] of Object.entries(ids)) {
+      const spanEl = document.getElementById(`${pfx}h-${k}`);
+      if (!spanEl) continue;
+      const labels = { len:'8+ chars', upper:'uppercase', num:'number', sym:'symbol' };
+      spanEl.textContent = (checks[k] ? '✓ ' : '✗ ') + labels[k];
+      spanEl.className   = checks[k] ? 'ok' : '';
+    }
+  }
+
+  const score = Object.values(checks).filter(Boolean).length;
+  const pct   = score * 25;
+  const colors = ['', '#e53935','#FB8C00','#FDD835','#43A047'];
+  const labels = ['', 'Weak','Fair','Good','Strong'];
+
+  bar.style.width      = pct + '%';
+  bar.style.background = colors[score] ?? '#43A047';
+  lbl.textContent      = score > 0 ? labels[score] : '';
+  lbl.style.color      = colors[score] ?? '#43A047';
+}
+
+// ── Login ─────────────────────────────────────────────────────────────────────
+async function doLogin() {
+  const username = document.getElementById('login-username').value.trim();
+  const password = document.getElementById('login-password').value;
+  showMsg('login-msg','');
+
+  if (!username || !password) { showMsg('login-msg','Enter username and password'); return; }
+
+  const btn = document.getElementById('login-btn');
+  btn.disabled = true;
+
+  try {
+    const res  = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      credentials: 'same-origin',
+      body: JSON.stringify({ username, password })
     });
-  </script>
+    const data = await res.json();
+
+    if (data.mustChangePassword) {
+      switchPanel('panel-force-pw');
+      return;
+    }
+    if (data.success) {
+      window.location.href = '/';
+    } else {
+      showMsg('login-msg', data.message || 'Invalid credentials');
+    }
+  } catch {
+    showMsg('login-msg','Network error — please try again');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+// Enter key on login
+['login-username','login-password'].forEach(id => {
+  document.getElementById(id)?.addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+});
+
+// ── Sign up (admin-invite) ────────────────────────────────────────────────────
+async function doSignup() {
+  showMsg('su-msg','');
+  const token    = document.getElementById('su-token').value.trim();
+  const username = document.getElementById('su-username').value.trim();
+  const display  = document.getElementById('su-display').value.trim();
+  const password = document.getElementById('su-password').value;
+  const confirm  = document.getElementById('su-confirm').value;
+
+  if (!token)    { showMsg('su-msg','Invite token is required'); return; }
+  if (!username) { showMsg('su-msg','Username is required'); return; }
+  if (password.length < 8) { showMsg('su-msg','Password must be at least 8 characters'); return; }
+  if (password !== confirm)  { showMsg('su-msg','Passwords do not match'); return; }
+
+  const btn = document.getElementById('su-btn');
+  btn.disabled = true;
+
+  try {
+    const res  = await fetch('/api/auth/signup', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      credentials: 'same-origin',
+      body: JSON.stringify({ token, username, display_name: display || username, password })
+    });
+    const data = await res.json();
+
+    if (data.success) {
+      showMsg('su-msg','Account created! You can now sign in.','success');
+      setTimeout(() => switchTab('login'), 2000);
+    } else {
+      showMsg('su-msg', data.message || 'Sign-up failed');
+    }
+  } catch {
+    showMsg('su-msg','Network error — please try again');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+// ── Force change password (first login) ──────────────────────────────────────
+async function doForceChange() {
+  showMsg('fp-msg','');
+  const newPassword = document.getElementById('fp-password').value;
+  const confirm     = document.getElementById('fp-confirm').value;
+
+  if (newPassword.length < 8) { showMsg('fp-msg','Minimum 8 characters'); return; }
+  if (newPassword !== confirm)  { showMsg('fp-msg','Passwords do not match'); return; }
+
+  try {
+    const res  = await fetch('/api/auth/change-password', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      credentials: 'same-origin',
+      body: JSON.stringify({ newPassword })
+    });
+    const data = await res.json();
+
+    if (data.success && data.loginCompleted) {
+      showMsg('fp-msg','Password set! Redirecting…','success');
+      setTimeout(() => window.location.href = '/', 1000);
+    } else {
+      showMsg('fp-msg', data.message || 'Failed to set password');
+    }
+  } catch {
+    showMsg('fp-msg','Network error');
+  }
+}
+
+// ── Voluntary change password ─────────────────────────────────────────────────
+async function doChangePassword() {
+  showMsg('cp-msg','');
+  const username    = document.getElementById('cp-username').value.trim();
+  const current     = document.getElementById('cp-current').value;
+  const newPassword = document.getElementById('cp-new').value;
+  const confirm     = document.getElementById('cp-confirm').value;
+
+  if (!username || !current) { showMsg('cp-msg','Username and current password required'); return; }
+  if (newPassword.length < 8) { showMsg('cp-msg','New password must be at least 8 characters'); return; }
+  if (newPassword !== confirm)  { showMsg('cp-msg','Passwords do not match'); return; }
+
+  // Log in first so the server can verify identity
+  const loginRes  = await fetch('/api/auth/login', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    credentials: 'same-origin',
+    body: JSON.stringify({ username, password: current })
+  });
+  const loginData = await loginRes.json();
+
+  if (!loginData.success && !loginData.mustChangePassword) {
+    showMsg('cp-msg', loginData.message || 'Current password is incorrect');
+    return;
+  }
+
+  try {
+    const res  = await fetch('/api/auth/change-password', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      credentials: 'same-origin',
+      body: JSON.stringify({ currentPassword: current, newPassword })
+    });
+    const data = await res.json();
+
+    if (data.success) {
+      showMsg('cp-msg','Password updated! Redirecting to sign in…','success');
+      setTimeout(() => { switchPanel('panel-login'); }, 2000);
+    } else {
+      showMsg('cp-msg', data.message || 'Failed to update password');
+    }
+  } catch {
+    showMsg('cp-msg','Network error');
+  }
+}
+</script>
 </body>
 </html>

@@ -61,6 +61,8 @@ app.use('/api/auth', require('./routes/api/auth'));
 app.use('/api/plc', plcRoutes);
 app.use('/api/alarms', require('./routes/api/alarm'));
 app.use('/api/alarm-history', require('./routes/api/alarmHistory'));
+// ADD after the existing /api/alarm-history line:
+app.use('/api/auth', require('./routes/api/userManagement'));   // ← ADD (signup + invites)
 app.use('/api/audit', auditRoutes);
 app.use('/api/shift-summary', shiftSummaryRoute);
 app.use('/api/shift-history', shiftHistoryRoute);
@@ -70,6 +72,7 @@ app.use('/api/machine-oee', require('./routes/api/machineOee'));
 app.use('/api/machine-history', require('./routes/api/machineHistory'))
 app.use('/api/machine-part-history', require('./routes/api/machinePartHistory'))
 app.use('/api/production-output', require('./routes/api/productionOutput'))
+
 // Serve static files
 app.use(express.static(path.join(__dirname, '../../frontend/public')));
 
