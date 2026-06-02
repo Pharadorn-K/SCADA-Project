@@ -16,7 +16,7 @@ global.services = {
   wss: null // Will be set later
 };
 
-logService.loadFromFile(10);
+// logService.loadFromFile(10);
 const alarmService = require('./services/alarmService');
 global.services.alarmService = alarmService;
 const sessionRegistry = require('./services/sessionRegistry');
@@ -148,6 +148,7 @@ async function bootstrap() {
 
   // Hydrate state
   await bootstrapEngine.hydrate();
+  await logService.loadFromDB(500);
   const { detectAndHandleShift, checkMissedBoundary } = require('./services/shiftEngine');
   await checkMissedBoundary(); // ← add this line
   const machines = stateStore.getPlcSnapshot().machines;

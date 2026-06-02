@@ -2399,3 +2399,23 @@
 {"ts":"2026-05-29T09:36:01.758Z","type":"AUDIT","severity":"INFO","user":"production","role":"supervisor","action":"LOGIN","code":null,"message":"User logged in","meta":{}}
 {"ts":"2026-05-29T09:36:12.077Z","type":"AUDIT","severity":"INFO","user":"production","role":"supervisor","action":"LOGOUT","code":null,"message":"User logged out","meta":{}}
 {"ts":"2026-05-29T09:36:15.132Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"LOGIN","code":null,"message":"User logged in","meta":{}}
+{"ts":"2026-05-29T09:40:30.378Z","type":"ALARM","severity":"ERROR","user":"system","role":"system","action":null,"code":"PLC_DISCONNECTED","message":"Lost connection to Python PLC service","meta":{}}
+{"ts":"2026-06-02T00:35:00.154Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"LOGIN","code":null,"message":"User logged in","meta":{}}
+{"ts":"2026-06-02T04:46:18.577Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_RECOVERED","message":"PLC heartbeat restored","meta":{},"ackBy":null}
+{"ts":"2026-06-02T04:48:01.697Z","type":"ALARM","severity":"ERROR","user":"system","role":"system","action":null,"code":"PLC_DISCONNECTED","message":"Lost connection to Python PLC service","meta":{},"ackBy":null}
+{"ts":"2026-06-02T04:48:17.016Z","type":"ALARM","severity":"WARN","user":"system","role":"system","action":null,"code":"PLC_RECOVERING","message":"Auto-recover attempt 1","meta":{},"ackBy":null}
+{"ts":"2026-06-02T04:48:19.029Z","type":"ALARM","severity":"ERROR","user":"system","role":"system","action":null,"code":"PLC_DISCONNECTED","message":"Lost connection to Python PLC service","meta":{},"ackBy":null}
+{"ts":"2026-06-02T04:48:19.112Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_DISCONNECTED","message":"Alarm cleared (condition recovered)","meta":{},"ackBy":null}
+{"ts":"2026-06-02T04:48:19.112Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_RECOVERED","message":"PLC heartbeat restored","meta":{},"ackBy":null}
+{"ts":"2026-06-02T04:48:25.065Z","type":"ALARM","severity":"ERROR","user":"system","role":"system","action":null,"code":"PLC_DISCONNECTED","message":"Lost connection to Python PLC service","meta":{},"ackBy":null}
+{"ts":"2026-06-02T04:48:40.142Z","type":"ALARM","severity":"WARN","user":"system","role":"system","action":null,"code":"PLC_RECOVERING","message":"Auto-recover attempt 1","meta":{},"ackBy":null}
+{"ts":"2026-06-02T04:48:42.154Z","type":"ALARM","severity":"ERROR","user":"system","role":"system","action":null,"code":"PLC_DISCONNECTED","message":"Lost connection to Python PLC service","meta":{},"ackBy":null}
+{"ts":"2026-06-02T04:48:42.231Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_DISCONNECTED","message":"Alarm cleared (condition recovered)","meta":{},"ackBy":null}
+{"ts":"2026-06-02T04:48:42.230Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_RECOVERED","message":"PLC heartbeat restored","meta":{},"ackBy":null}
+{"ts":"2026-06-02T04:52:15.085Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"LOGIN","code":null,"message":"User logged in","meta":{},"ackBy":null}
+{"ts":"2026-06-02T05:16:46.431Z","type":"ALARM","severity":"ERROR","user":"system","role":"system","action":null,"code":"PLC_DISCONNECTED","message":"Lost connection to Python PLC service","meta":{},"ackBy":null}
+{"ts":"2026-06-02T05:17:01.513Z","type":"ALARM","severity":"WARN","user":"system","role":"system","action":null,"code":"PLC_RECOVERING","message":"Auto-recover attempt 1","meta":{},"ackBy":null}
+{"ts":"2026-06-02T05:17:03.517Z","type":"ALARM","severity":"ERROR","user":"system","role":"system","action":null,"code":"PLC_DISCONNECTED","message":"Lost connection to Python PLC service","meta":{},"ackBy":null}
+{"ts":"2026-06-02T05:17:03.621Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_RECOVERED","message":"PLC heartbeat restored","meta":{},"ackBy":null}
+{"ts":"2026-06-02T05:17:03.622Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_DISCONNECTED","message":"Alarm cleared (condition recovered)","meta":{},"ackBy":null}
+{"ts":"2026-06-02T05:43:48.135Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"LOGIN","code":null,"message":"User logged in","meta":{},"ackBy":null}
