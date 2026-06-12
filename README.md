@@ -13,35 +13,142 @@ The PM2 process file at `ecosystem.config.js` starts and monitors both services.
 
 ```text
 D:\GitHub\SCADA-Project
+|-- .gitignore
+|-- .vscode
+|   `-- settings.json
 |-- backend
 |   |-- node
-|   |   |-- server.js
-|   |   |-- package.json
 |   |   |-- .env
-|   |   |-- routes
-|   |   |-- services
 |   |   |-- data
-|   |   `-- logs
+|   |   |   `-- systemState.json
+|   |   |-- generate-hash.js
+|   |   |-- logs
+|   |   |   `-- scada.log
+|   |   |-- middleware
+|   |   |   `-- requireRole.js
+|   |   |-- node_modules
+|   |   |   `-- (...)
+|   |   |-- package-lock.json
+|   |   |-- package.json
+|   |   |-- routes
+|   |   |   |-- machineTimeline.js
+|   |   |   |-- shiftHistory.js
+|   |   |   |-- shiftSummary.js
+|   |   |   `-- api
+|   |   |       |-- alarm.js
+|   |   |       |-- alarmHistory.js
+|   |   |       |-- audit.js
+|   |   |       |-- auth.js
+|   |   |       |-- machineHistory.js
+|   |   |       |-- machineOee.js
+|   |   |       |-- machinePartHistory.js
+|   |   |       |-- plantSummary.js
+|   |   |       |-- plc.js
+|   |   |       |-- ProductionOutput.js
+|   |   |       `-- userManagement.js
+|   |   |-- server.js
+|   |   `-- services
+|   |       |-- alarmService.js
+|   |       |-- bootstrapEngine.js
+|   |       |-- db.js
+|   |       |-- hourlyAggregator.js
+|   |       |-- logService.js
+|   |       |-- persistenceEngine.js
+|   |       |-- plcEngine.js
+|   |       |-- plcMonitor.js
+|   |       |-- pythonBridge.js
+|   |       |-- sessionRegistry.js
+|   |       |-- shiftEngine.js
+|   |       `-- stateStore.js
 |   `-- python
-|       |-- plc_service.py
+|       |-- __init__.py
+|       |-- __pycache__
+|       |   |-- config.cpython-313.pyc
+|       |   |-- plc_loop.cpython-313.pyc
+|       |   `-- plc_loop.cpython-314.pyc
 |       |-- plc_loop.py
+|       |-- plc_service.py
 |       `-- utils
+|           |-- __pycache__
+|           |   |-- clean_data.cpython-313.pyc
+|           |   |-- clean_data.cpython-314.pyc
+|           |   |-- db_connector.cpython-313.pyc
+|           |   |-- db_connector.cpython-314.pyc
+|           |   |-- db_writer.cpython-313.pyc
+|           |   `-- db_writer.cpython-314.pyc
+|           |-- clean_data.py
+|           |-- db_connector.py
+|           `-- db_writer.py
 |-- database
+|   |-- Heat Interface device list.xlsx
+|   |-- Lathe Interface device list.xlsx
 |   |-- schema.sql
 |   |-- seed.sql
-|   `-- *.csv / *.xlsx source files
+|   |-- source_plc_location.csv
+|   `-- test.py
+|-- ecosystem.config.js
+|-- env_01
+|   |-- pyvenv.cfg
+|   |-- Include
+|   |-- Lib
+|   |   `-- site-packages
+|   `-- Scripts
 |-- frontend
 |   `-- public
-|       |-- index.html
-|       |-- login.html
 |       |-- css
+|       |   `-- fontawesome
+|       |       `-- (...)
+|       |   |-- header_press.png
+|       |   |-- main.css
+|       |   `-- webfonts
+|       |       |-- fa-brands-400.woff2
+|       |       |-- fa-regular-400.woff2
+|       |       |-- fa-solid-900.woff2
+|       |       `-- fa-v4compatibility.woff2
+|       |-- favicon.ico
 |       |-- images
-|       `-- js
+|       |   |-- Availability.png
+|       |   |-- Availability2.png
+|       |   |-- heat_DKK1.png
+|       |   |-- heat_DKK2.png
+|       |   |-- heat_K3.png
+|       |   |-- heat_K4.png
+|       |   |-- heat_K5.png
+|       |   |-- heat_K6.png
+|       |   |-- heat_K7.png
+|       |   |-- heat_K8.png
+|       |   |-- lathe_Rotor TK1.png
+|       |   |-- lathe_Rotor TK4.png
+|       |   |-- OEE.png
+|       |   |-- Performance.png
+|       |   |-- press_AIDA630T.png
+|       |   `-- press_M-20id-25.png
+|       |-- index.html
+|       |-- js
+|       |   |-- api.js
+|       |   |-- app.js
+|       |   |-- routes.js
+|       |   |-- shiftSummary.js
+|       |   |-- sidebar-behavior.js
+|       |   |-- sidebar.js
+|       |   |-- store.js
+|       |   |-- storeSelectors.js
+|       |   |-- utils.js
+|       |   `-- views
+|       |       |-- admin.js
+|       |       |-- home.js
+|       |       |-- maintenance.js
+|       |       `-- production.js
+|       `-- login.html
 |-- logs
-|-- env_01
-|-- ecosystem.config.js
-`-- README.md
+|   `-- .gitkeep
+|-- README.md
+|-- scripts
+|   |-- deploy.sh
+|   `-- start-dev.sh
 ```
+
+Skipped from this tree: `backend\node\node_modules`, `frontend\public\css\fontawesome`, and the expanded dependency files inside `env_01`.
 
 ## Prerequisites
 
@@ -269,6 +376,7 @@ pm2 stop all
 
 ### Restart
 pm2 restart scada-node
+pm2 restart scada-node scada-python
 
 ### View live logs (most useful for debugging)
 pm2 logs scada-python       # see why it's crashing

@@ -1,3 +1,3 @@
-# .gitignore additions
+# .gitignore
 logs/pm2-*.log
 backend/node/logs/scada.log*

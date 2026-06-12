@@ -2419,3 +2419,31 @@
 {"ts":"2026-06-02T05:17:03.621Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_RECOVERED","message":"PLC heartbeat restored","meta":{},"ackBy":null}
 {"ts":"2026-06-02T05:17:03.622Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_DISCONNECTED","message":"Alarm cleared (condition recovered)","meta":{},"ackBy":null}
 {"ts":"2026-06-02T05:43:48.135Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"LOGIN","code":null,"message":"User logged in","meta":{},"ackBy":null}
+{"ts":"2026-06-02T09:13:12.357Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_RECOVERED","message":"PLC heartbeat restored","meta":{},"ackBy":null}
+{"ts":"2026-06-02T09:13:21.512Z","type":"ALARM","severity":"ERROR","user":"system","role":"system","action":null,"code":"PLC_DISCONNECTED","message":"Lost connection to Python PLC service","meta":{},"ackBy":null}
+{"ts":"2026-06-02T09:13:36.316Z","type":"ALARM","severity":"WARN","user":"system","role":"system","action":null,"code":"PLC_RECOVERING","message":"Auto-recover attempt 1","meta":{},"ackBy":null}
+{"ts":"2026-06-02T09:13:38.330Z","type":"ALARM","severity":"ERROR","user":"system","role":"system","action":null,"code":"PLC_DISCONNECTED","message":"Lost connection to Python PLC service","meta":{},"ackBy":null}
+{"ts":"2026-06-02T09:13:38.411Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_RECOVERED","message":"PLC heartbeat restored","meta":{},"ackBy":null}
+{"ts":"2026-06-02T09:13:38.411Z","type":"ALARM","severity":"INFO","user":"system","role":"system","action":null,"code":"PLC_DISCONNECTED","message":"Alarm cleared (condition recovered)","meta":{},"ackBy":null}
+{"ts":"2026-06-03T23:47:15.695Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"LOGIN","code":null,"message":"User logged in","meta":{},"ackBy":null}
+{"ts":"2026-06-04T23:41:56.718Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"LOGOUT","code":null,"message":"User logged out","meta":{},"ackBy":null}
+{"ts":"2026-06-04T23:42:02.706Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"LOGIN","code":null,"message":"User logged in","meta":{},"ackBy":null}
+{"ts":"2026-06-05T23:42:52.890Z","type":"AUDIT","severity":"WARN","user":"admin","role":"admin","action":"SESSION_TIMEOUT","code":null,"message":"Session expired after 24h","meta":{},"ackBy":null}
+{"ts":"2026-06-06T00:05:22.525Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"LOGIN","code":null,"message":"User logged in","meta":{},"ackBy":null}
+{"ts":"2026-06-06T05:38:15.927Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"LOGIN","code":null,"message":"User logged in","meta":{},"ackBy":null}
+{"ts":"2026-06-07T05:38:27.880Z","type":"AUDIT","severity":"WARN","user":"admin","role":"admin","action":"SESSION_TIMEOUT","code":null,"message":"Session expired after 24h","meta":{},"ackBy":null}
+{"ts":"2026-06-07T23:57:16.871Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"LOGIN","code":null,"message":"User logged in","meta":{},"ackBy":null}
+{"ts":"2026-06-08T00:58:16.323Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"LOGIN","code":null,"message":"User logged in","meta":{},"ackBy":null}
+{"ts":"2026-06-08T23:57:47.398Z","type":"AUDIT","severity":"WARN","user":"admin","role":"admin","action":"SESSION_TIMEOUT","code":null,"message":"Session expired after 24h","meta":{},"ackBy":null}
+{"ts":"2026-06-09T00:58:47.839Z","type":"AUDIT","severity":"WARN","user":"admin","role":"admin","action":"SESSION_TIMEOUT","code":null,"message":"Session expired after 24h","meta":{},"ackBy":null}
+{"ts":"2026-06-09T01:32:29.827Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"LOGIN","code":null,"message":"User logged in","meta":{},"ackBy":null}
+{"ts":"2026-06-09T03:16:37.267Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"LOGOUT","code":null,"message":"User logged out","meta":{},"ackBy":null}
+{"ts":"2026-06-09T03:16:41.803Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"LOGIN","code":null,"message":"User logged in","meta":{},"ackBy":null}
+{"ts":"2026-06-10T03:17:00.188Z","type":"AUDIT","severity":"WARN","user":"admin","role":"admin","action":"SESSION_TIMEOUT","code":null,"message":"Session expired after 24h","meta":{},"ackBy":null}
+{"ts":"2026-06-10T06:45:54.324Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"LOGIN","code":null,"message":"User logged in","meta":{},"ackBy":null}
+{"ts":"2026-06-10T08:55:31.530Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"LOGOUT","code":null,"message":"User logged out","meta":{},"ackBy":null}
+{"ts":"2026-06-10T08:55:39.016Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"LOGIN","code":null,"message":"User logged in","meta":{},"ackBy":null}
+{"ts":"2026-06-11T03:24:11.677Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"LOGOUT","code":null,"message":"User logged out","meta":{},"ackBy":null}
+{"ts":"2026-06-11T03:24:17.349Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"LOGIN","code":null,"message":"User logged in","meta":{},"ackBy":null}
+{"ts":"2026-06-12T03:24:22.567Z","type":"AUDIT","severity":"WARN","user":"admin","role":"admin","action":"SESSION_TIMEOUT","code":null,"message":"Session expired after 24h","meta":{},"ackBy":null}
+{"ts":"2026-06-12T05:27:51.722Z","type":"AUDIT","severity":"INFO","user":"admin","role":"admin","action":"LOGIN","code":null,"message":"User logged in","meta":{},"ackBy":null}

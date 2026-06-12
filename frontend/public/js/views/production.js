@@ -1,4 +1,3 @@
-
 // frontend/public/js/views/production.js 
 import { scadaStore } from '../store.js'; 
 import { formatDuration } from '../utils.js';
@@ -33,7 +32,6 @@ function calculateShiftSummary() {
     const availability = planned ? (totalRun / planned) * 100 : 0;
     return { availability, totalRun, totalIdle, totalAlarm, totalOffline };
 }
-
 function kpiClass(v) {
     if (v >= 85) return 'kpi-good';
     if (v >= 60) return 'kpi-warning'; 
@@ -52,7 +50,6 @@ function formatShiftDate(dateStr) {
 function safeKey(str) {
   return str.replace(/[^a-zA-Z0-9_-]/g, '_');
 }
-
 async function loadAndRenderShiftPanel(container) {
   const today = new Date().toISOString().split('T')[0];
   const res = await fetch(`/api/shift-history?date=${today}`);
@@ -73,7 +70,6 @@ async function fetchAndCacheWindow(win) {
   const res  = await fetch(`/api/plant-summary?window=${win}`, { credentials: 'same-origin' });
   windowData = await res.json();
 }
-
 function updateKpiBar(container) {
   let run, idle, alarm, offline, avail;
   if (currentWindow === 'shift') {
@@ -110,7 +106,6 @@ function updateKpiBar(container) {
   const labels = { shift: 'Availability (shift)', '8': 'Availability (8h)', '24': 'Availability (24h)' };
   container.querySelector('.sp-kpi-cell .sp-kpi-label').textContent = labels[currentWindow] ?? 'Availability';
 }
-
 function renderTrendChart(container, shifts) {
   const ctx = container.querySelector('#trendChart')?.getContext('2d');
   if (!ctx) return;
@@ -140,7 +135,6 @@ function renderTrendChart(container, shifts) {
     shiftTrendChart.update('none');
   }
 }
-
 function renderShiftColumns(container, shifts) {
   const grid = container.querySelector('#shift-col-grid');
   if (!grid) return;
@@ -184,21 +178,18 @@ function renderShiftColumns(container, shifts) {
     if (avEl) { avEl.textContent = `${plantAvail.toFixed(1)}%`; avEl.className = `sc-plant-avail ${kpiClass(plantAvail)}`; }
   });
 }
-
 function calcAvailability(m) {
   const d = m.shiftDurations;
   if (!d) return 0;
   const planned = (d.run_seconds || 0) + (d.idle_seconds || 0) + (d.alarm_seconds || 0) + (d.offline_seconds || 0);
   return planned > 0 ? (d.run_seconds / planned) * 100 : 0;
 }
-
 const STANDARD_MAP = {
   'heat_DKK1': 86.9, 'heat_DKK2': 86.89, 'heat_K3': 94.98, 'heat_K4': 94.09,
   'heat_K5': 90, 'heat_K6': 90, 'heat_K7': 96.18, 'heat_K8': 96.04,
   'press_AIDA630T': 6.45, 'press_M-20id-25': 6.3,
   'lathe_Rotor TK1': 93.45, 'lathe_Rotor TK4': 93.88,
 };
-
 function applyStandardMap() {
   const machines = scadaStore.state.machines;
   for (const [key, std] of Object.entries(STANDARD_MAP)) {
@@ -374,7 +365,6 @@ export function productionOverviewMount(container) {
         card.querySelector('.mc-shift').textContent = m.shift ? `Shift ${m.shift}` : '';
     }
 }
-
 export function productionOverviewUnmount() {
   if (unsubscribe)        { unsubscribe(); unsubscribe = null; }
   if (summaryTimer)       { clearInterval(summaryTimer);     summaryTimer = null; }
@@ -567,7 +557,6 @@ export function productionMachineEfficiencyView() {
       </div>
     </div>`;
 }
-
 export function productionMachineEfficiencyMount(container) {
   applyStandardMap();
 
@@ -1219,7 +1208,6 @@ function calcAvailabilityPct(m) {
     if (selectedId) renderSelected(selectedId);
   });
 }
-
 export function productionMachineEfficiencyUnmount() {
   if (efficiencyUnsubscribe) { efficiencyUnsubscribe(); efficiencyUnsubscribe = null; }
   if (stopwatchInterval)     { clearInterval(stopwatchInterval); stopwatchInterval = null; }
@@ -1232,8 +1220,6 @@ export function productionMachineEfficiencyUnmount() {
 }
 
 // --------------- HISTORY page --------------- //
-// --------------- HISTORY page --------------- //
-
 // ── shared helpers ─────────────────────────────────────────────────────────
 function phFmtTime(s) {
   if (!s) return '0h 0m';
@@ -1414,7 +1400,6 @@ export function productionProductionHistoryView() {
   <div id="ph-content"></div>
   `;
 }
-
 export async function productionProductionHistoryMount(container) {
   // destroy old chart refs on every mount
   Object.values(_phHistCharts).forEach(c => { try { c?.destroy(); } catch(e){} });
@@ -1476,6 +1461,9 @@ export async function productionProductionHistoryMount(container) {
         <select class="ph-sel" id="out-part"><option value="All">All</option></select>
         <div class="ph-spacer"></div>
         <button class="ph-mode-btn ph-active" id="out-load-btn">Load</button>
+        <button class="ph-mode-btn" id="out-export-btn" style="display:none">
+          <i class="fa-solid fa-download"></i> Export CSV
+        </button>
       </div>
 
       <!-- summary strip -->
@@ -1524,8 +1512,9 @@ export async function productionProductionHistoryMount(container) {
       await loadOutputFilters(_phMonth);
     });
 
+    // el.querySelector('#out-load-btn').addEventListener('click', () => loadOutputData());
     el.querySelector('#out-load-btn').addEventListener('click', () => loadOutputData());
-
+    el.querySelector('#out-export-btn').addEventListener('click', () => exportOutputCSV());
     // Auto-load on first render
     loadOutputData();
   }
@@ -1565,15 +1554,22 @@ export async function productionProductionHistoryMount(container) {
     }
   }
 
+  // ── module-level cache for export ─────────────────────────────────────
+  let _lastOutputRows  = [];
+  let _lastOutputMeta  = { month: '', dept: 'All', machine: 'All', part: 'All' };
+
   async function loadOutputData() {
     const month   = document.getElementById('out-month')?.value   || _phMonth;
     const dept    = document.getElementById('out-dept')?.value    || 'All';
     const machine = document.getElementById('out-machine')?.value || 'All';
     const part    = document.getElementById('out-part')?.value    || 'All';
 
-    const area = document.getElementById('out-table-area');
+    const area      = document.getElementById('out-table-area');
+    const exportBtn = document.getElementById('out-export-btn');
     if (!area) return;
+
     area.innerHTML = `<div class="ph-loading"><div class="ph-spinner"></div>Loading…</div>`;
+    if (exportBtn) exportBtn.style.display = 'none';
 
     const params = new URLSearchParams({ month });
     if (dept    !== 'All') params.set('dept',    dept);
@@ -1583,14 +1579,24 @@ export async function productionProductionHistoryMount(container) {
     try {
       const res  = await fetch(`/api/production-output?${params}`, { credentials: 'same-origin' });
       const data = await res.json();
+
       if (!data.success || !data.rows.length) {
         area.innerHTML = `<div class="ph-empty" style="background:#fff;border:0.5px solid #e5e9f0;border-radius:10px;height:180px">No data for selected filters</div>`;
         document.getElementById('out-summary')?.style.setProperty('display', 'none');
+        _lastOutputRows = [];
         return;
       }
+
+      // Cache rows + current filter state for export
+      _lastOutputRows = data.rows;
+      _lastOutputMeta = { month, dept, machine, part };
+
       renderOutputTable(area, data.rows);
+      if (exportBtn) exportBtn.style.display = '';
+
     } catch (e) {
       area.innerHTML = `<div class="ph-empty" style="background:#fff;border:0.5px solid #e5e9f0;border-radius:10px;height:180px">Error loading data</div>`;
+      _lastOutputRows = [];
     }
   }
 
@@ -1669,6 +1675,91 @@ export async function productionProductionHistoryMount(container) {
         <div class="ph-hint">Green ≥85% · Amber ≥60% · Red &lt;60% · Blue = Performance above standard · Availability shared across all parts on same machine/day</div>
       </div>
     `;
+  }
+  // ── CSV Export ────────────────────────────────────────────────────────
+  function exportOutputCSV() {
+    if (!_lastOutputRows.length) return;
+
+    const { month, dept, machine, part } = _lastOutputMeta;
+
+    // ── Build filename ────────────────────────────────────────────────
+    // Month label: "2026-05" → "may"
+    const [yyyy, mm] = month.split('-');
+    const monthName  = new Date(Number(yyyy), Number(mm) - 1, 1)
+      .toLocaleDateString('en-GB', { month: 'long' })
+      .toLowerCase();
+
+    // Sanitise filter parts: lowercase, spaces → dashes, 'All' → 'all'
+    function sanitise(val) {
+      return (val || 'all').toLowerCase().replace(/\s+/g, '-');
+    }
+
+    const deptPart    = sanitise(dept);
+    const machinePart = sanitise(machine);
+    const partPart    = sanitise(part);
+
+    const filename =
+      `production-history-output_${monthName}-${deptPart}-${machinePart}-${partPart}_${month}.csv`;
+
+    // ── Build CSV content ─────────────────────────────────────────────
+    const HEADERS = [
+      'Date',
+      'Department',
+      'Machine',
+      'Part Name',
+      'Count Output',
+      'Avg Cycle Time (s)',
+      'Availability (%)',
+      'Performance (%)',
+      'OEE (%)',
+      'Run Time (hh:mm)',
+    ];
+
+    function fmtRunTime(seconds) {
+      if (!seconds) return '0h 0m';
+      const h = Math.floor(seconds / 3600);
+      const m = Math.floor((seconds % 3600) / 60);
+      return `${h}h ${m}m`;
+    }
+
+    function csvCell(val) {
+      if (val === null || val === undefined) return '';
+      const str = String(val);
+      // Wrap in quotes if it contains comma, quote, or newline
+      if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+        return `"${str.replace(/"/g, '""')}"`;
+      }
+      return str;
+    }
+
+    const lines = [
+      HEADERS.join(','),
+      ..._lastOutputRows.map(r => [
+        csvCell(r.date),
+        csvCell(r.department),
+        csvCell(r.machine),
+        csvCell(r.part_name || ''),
+        csvCell(r.count_output),
+        csvCell(r.avg_cycle_time != null ? r.avg_cycle_time : ''),
+        csvCell(r.avail         != null ? r.avail          : ''),
+        csvCell(r.perf          != null ? r.perf           : ''),
+        csvCell(r.oee           != null ? r.oee            : ''),
+        csvCell(fmtRunTime(r.run_seconds)),
+      ].join(','))
+    ];
+
+    const csvContent = lines.join('\r\n');
+
+    // ── Trigger download ──────────────────────────────────────────────
+    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   }
 
   // ══════════════════════════════════════════════════════════════════════
@@ -1986,7 +2077,6 @@ export async function productionProductionHistoryMount(container) {
     _phHistCharts[metric] = drawPhBarChart(canvasId, labels, values, metric, std);
   }
 }
-
 export function productionProductionHistoryUnmount() {
   if (_phUnsubscribe) { _phUnsubscribe(); _phUnsubscribe = null; }
   Object.values(_phHistCharts).forEach(c => { try { c?.destroy(); } catch(e){} });
@@ -1994,7 +2084,11 @@ export function productionProductionHistoryUnmount() {
   _phTimers.forEach(clearInterval);
   _phTimers = [];
 }
+
+
 // --------------- STAFF MANAGEMENT page --------------- //
 export function productionStaffManagementView() {
   return `<h1>👨‍👨‍👦‍ Staff Management</h1><div class="card"><p>Waiting for development</p></div>`;
 }
+
+// ใช้ลมเป่าให้กระเด็น
